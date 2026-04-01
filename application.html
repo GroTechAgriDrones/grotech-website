@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Request | GroTech AgriDrones</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Orbitron:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <img src="logo.svg" alt="GroTech AgriDrones Logo" class="logo-img">
+                <span class="logo-text">GroTech AgriDrones</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="index.html#services">Services</a></li>
+                <li><a href="index.html#why-us">Why Us</a></li>
+                <li><a href="index.html#service-area">Service Area</a></li>
+                <li><a href="about.html">About Us</a></li>
+                <li><a href="index.html#contact">Contact</a></li>
+                <li><a href="login.html" class="nav-signin">Sign In</a></li>
+                <li><a href="application.html" class="nav-cta">Application Request</a></li>
+            </ul>
+            <button class="mobile-menu-btn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <section class="application-hero">
+        <div class="hero-bg">
+            <div class="grid-overlay"></div>
+        </div>
+        <div class="application-hero-content">
+            <span class="section-tag">Get Started</span>
+            <h1>Custom Application Request</h1>
+            <p>Fill out the form below and we'll get back to you within 24 hours with a custom quote for your operation.</p>
+            <p class="pricing-note">Applications start at $12 per acre. Final pricing is subject to adjustment based on field conditions, including but not limited to acreage size, field geometry, terrain obstacles, geographic location, and specific service requirements.</p>
+        </div>
+    </section>
+
+    <section class="application-section">
+        <div class="container">
+            <div class="application-content">
+                <div class="application-sidebar">
+                    <div class="sidebar-card">
+                        <h3>Why Apply With Us?</h3>
+                        <ul class="benefits-list">
+                            <li>
+                                <div class="benefit-icon">✓</div>
+                                <span>We apply the chemicals you choose — because you know your fields best</span>
+                            </li>
+                            <li>
+                                <div class="benefit-icon">✓</div>
+                                <span>Free consultation and field assessment</span>
+                            </li>
+                            <li>
+                                <div class="benefit-icon">✓</div>
+                                <span>Custom pricing based on your needs</span>
+                            </li>
+                            <li>
+                                <div class="benefit-icon">✓</div>
+                                <span>No obligation quote within 24 hours</span>
+                            </li>
+                            <li>
+                                <div class="benefit-icon">✓</div>
+                                <span>Flexible scheduling options</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="sidebar-card">
+                        <h3>Contact Us Directly</h3>
+                        <div class="contact-info">
+                            <div class="contact-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                <div class="contact-item-text">
+                                    <a href="tel:8159013190">815-901-3190</a>
+                                    <span class="contact-note">Call or text</span>
+                                </div>
+                            </div>
+                            <div class="contact-item">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                                <a href="mailto:grotechagridrones@gmail.com">grotechagridrones@gmail.com</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="application-form-container">
+                    <form class="application-form" id="applicationForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="fullName">Full Name *</label>
+                                <input type="text" id="fullName" name="fullName" required placeholder="John Smith">
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number *</label>
+                                <input type="tel" id="phone" name="phone" required placeholder="(555) 123-4567">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required placeholder="john@farm.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="address">Billing Address *</label>
+                            <input type="text" id="address" name="address" required placeholder="123 Main Street">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">City *</label>
+                                <input type="text" id="city" name="city" required placeholder="Freeport">
+                            </div>
+                            <div class="form-group">
+                                <label for="state">State *</label>
+                                <select id="state" name="state" required>
+                                    <option value="">Select state</option>
+                                    <option value="IL">Illinois</option>
+                                    <option value="WI">Wisconsin</option>
+                                    <option value="IA">Iowa</option>
+                                    <option value="IN">Indiana</option>
+                                    <option value="MO">Missouri</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="zip">ZIP Code *</label>
+                            <input type="text" id="zip" name="zip" required placeholder="61032" pattern="[0-9]{5}" maxlength="5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Preferred Contact Method *</label>
+                            <div class="radio-group">
+                                <label class="radio-label">
+                                    <input type="radio" name="contactMethod" value="phone" required>
+                                    <span class="radio-custom"></span>
+                                    <span>Phone Call</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="contactMethod" value="email">
+                                    <span class="radio-custom"></span>
+                                    <span>Email</span>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="contactMethod" value="both">
+                                    <span class="radio-custom"></span>
+                                    <span>Both</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="field-info-section">
+                            <h3 class="section-subtitle">Field Information</h3>
+                            <p class="section-intro">Nobody knows your fields better than you do. Select the chemicals you want applied — we'll handle the precision application.</p>
+                            <div id="fieldGroups">
+                                <div class="field-group" data-field-index="0">
+                                    <div class="field-group-header">
+                                        <span>Field 1</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="fieldName0">Field Name</label>
+                                        <input type="text" id="fieldName0" name="fieldName[]" placeholder="e.g., North 40, South Field">
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="fieldSize0">Field Size (Estimate Acres) *</label>
+                                            <input type="number" id="fieldSize0" name="fieldSize[]" required placeholder="500" min="1">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="fieldLocation0">Field Location (GPS Coordinates)</label>
+                                            <div class="field-location-input">
+                                                <input type="text" id="fieldLocation0" name="fieldLocation[]" placeholder="e.g., 42.2975, -89.6438" readonly>
+                                                <button type="button" class="btn btn-secondary btn-sm" onclick="openMapModal(0)">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                                                    Locate on Map
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="cropType0">Crop Type *</label>
+                                        <select id="cropType0" name="cropType[]" required>
+                                            <option value="">Select crop type</option>
+                                            <option value="corn">Corn</option>
+                                            <option value="soybeans">Soybeans</option>
+                                            <option value="wheat">Wheat</option>
+                                            <option value="alfalfa">Alfalfa</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Chemicals / Pesticides <span class="label-hint">(If not in list, add "Other")</span></label>
+                                        <div class="chemical-selector">
+                                            <div class="chemical-input-wrapper">
+                                                <input type="text" id="chemicalSearch0" class="chemical-search" placeholder="Search chemicals..." oninput="filterChemicals(0)" onfocus="showDropdown(0)">
+                                                <div class="chemical-dropdown" id="chemicalDropdown0">
+                                                    <div class="chemical-options" id="chemicalOptions0"></div>
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="addChemical(0)">Add</button>
+                                        </div>
+                                        <div class="selected-chemicals" id="selectedChemicals0"></div>
+                                        <div class="custom-chemical-input" id="customChemical0" style="display: none;">
+                                            <input type="text" class="custom-chem-field" placeholder="Enter chemical name..." onkeypress="if(event.key==='Enter'){submitCustomChemical(0); return false;}">
+                                            <button type="button" class="btn btn-primary btn-sm" onclick="submitCustomChemical(0)">Confirm</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary add-field-btn" onclick="addFieldGroup()">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                Add Another Field
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Additional Information</label>
+                            <textarea id="message" name="message" rows="4" placeholder="Provide any additional information or questions you may have..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">
+                            <span>Submit Application</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                        </button>
+                        <p class="form-note">We typically respond within 24 hours. For urgent inquiries, please call us directly.</p>
+                    </form>
+                    
+                    <div id="formSuccess" class="form-success">
+                        <div class="success-content">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            <h3>Application Submitted!</h3>
+                            <p>Thank you for your interest. We'll review your application and get back to you within 24 hours.</p>
+                            <a href="index.html" class="btn btn-primary">Return to Home</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo">
+                        <img src="logo.svg" alt="GroTech AgriDrones Logo" class="logo-img footer-logo-img">
+                        <span class="logo-text">GroTech AgriDrones</span>
+                    </a>
+                    <p>Precision spraying for better farming. Serving Northern Illinois agriculture with advanced drone technology.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Navigation</h4>
+                        <ul>
+                            <li><a href="index.html#services">Services</a></li>
+                            <li><a href="index.html#why-us">Why Us</a></li>
+                            <li><a href="index.html#service-area">Service Area</a></li>
+                            <li><a href="about.html">About Us</a></li>
+                            <li><a href="index.html#contact">Contact</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Services</h4>
+                        <ul>
+                            <li><a href="index.html#services">Precision Spraying</a></li>
+                            <li><a href="index.html#services">Variable Rate</a></li>
+                            <li><a href="index.html#services">Crop Monitoring</a></li>
+                            <li><a href="application.html">Application Request</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 GroTech AgriDrones. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Map Modal -->
+    <div id="mapModal" class="map-modal">
+        <div class="map-modal-content">
+            <div class="map-modal-header">
+                <h3>Locate Your Field</h3>
+                <button class="map-close-btn" onclick="closeMapModal()">&times;</button>
+            </div>
+            <div class="map-modal-body">
+                <p class="map-instructions">Zoom in to your field and click on the center to place a pin.</p>
+                <div id="map"></div>
+                <div class="map-info">
+                    <span id="pinCoords">No pin placed yet</span>
+                </div>
+            </div>
+            <div class="map-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="clearPin()">Clear Pin</button>
+                <button type="button" class="btn btn-primary" onclick="getCoordinates()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Get Pin Coordinates
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+    <script>
+        // Application form submission
+        document.getElementById('applicationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Collect field data
+            const fieldGroups = document.querySelectorAll('.field-group');
+            const fields = [];
+            
+            fieldGroups.forEach((group, index) => {
+                const fieldName = group.querySelector(`[name="fieldName[]"]`)?.value || '';
+                const fieldSize = group.querySelector(`[name="fieldSize[]"]`)?.value || '';
+                const fieldLocation = group.querySelector(`[name="fieldLocation[]"]`)?.value || '';
+                const cropType = group.querySelector(`[name="cropType[]"]`)?.value || '';
+                const chemicals = selectedChemicals[index] || [];
+                
+                fields.push({
+                    fieldName,
+                    fieldSize,
+                    fieldLocation,
+                    cropType,
+                    chemicals
+                });
+            });
+            
+            const formData = new FormData(this);
+            const data = {
+                fullName: formData.get('fullName'),
+                phone: formData.get('phone'),
+                email: formData.get('email'),
+                address: formData.get('address'),
+                city: formData.get('city'),
+                state: formData.get('state'),
+                zip: formData.get('zip'),
+                contactMethod: formData.get('contactMethod'),
+                fields: fields,
+                message: formData.get('message')
+            };
+            
+            // Save to sessionStorage for dashboard
+            let applications = JSON.parse(sessionStorage.getItem('applications') || '[]');
+            
+            // Generate ID
+            let maxId = 0;
+            applications.forEach(app => {
+                const id = parseInt(app.id.replace('APP-', ''));
+                if (id > maxId) maxId = id;
+            });
+            const newId = 'APP-' + String(maxId + 1).padStart(3, '0');
+            
+            const application = {
+                id: newId,
+                ...data,
+                status: 'pending',
+                dateSubmitted: new Date().toISOString()
+            };
+            
+            applications.unshift(application);
+            sessionStorage.setItem('applications', JSON.stringify(applications));
+            
+            console.log('Application submitted:', application);
+            document.getElementById('formSuccess').classList.add('active');
+            
+            // Reset form
+            this.reset();
+            fieldCount = 1;
+            document.getElementById('fieldGroups').innerHTML = document.querySelector('.field-group').outerHTML;
+            Object.keys(selectedChemicals).forEach(key => delete selectedChemicals[key]);
+            document.querySelectorAll('.selected-chemicals').forEach(el => el.innerHTML = '');
+        });
+
+        document.getElementById('formSuccess').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.getElementById('formSuccess').classList.remove('active');
+                closeMapModal();
+            }
+        });
+
+        // Field Group Management
+        let fieldCount = 1;
+
+        function addFieldGroup() {
+            const fieldGroupsContainer = document.getElementById('fieldGroups');
+            const newFieldGroup = document.createElement('div');
+            newFieldGroup.className = 'field-group';
+            newFieldGroup.dataset.fieldIndex = fieldCount;
+            newFieldGroup.innerHTML = `
+                <div class="field-group-header">
+                    <span>Field ${fieldCount + 1}</span>
+                    <button type="button" class="remove-field-btn" onclick="removeFieldGroup(this)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label for="fieldName${fieldCount}">Field Name</label>
+                    <input type="text" id="fieldName${fieldCount}" name="fieldName[]" placeholder="e.g., North 40, South Field">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="fieldSize${fieldCount}">Field Size (Estimate Acres) *</label>
+                        <input type="number" id="fieldSize${fieldCount}" name="fieldSize[]" required placeholder="500" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="fieldLocation${fieldCount}">Field Location (GPS Coordinates)</label>
+                        <div class="field-location-input">
+                            <input type="text" id="fieldLocation${fieldCount}" name="fieldLocation[]" placeholder="e.g., 42.2975, -89.6438" readonly>
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="openMapModal(${fieldCount})">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                                Locate on Map
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="cropType${fieldCount}">Crop Type *</label>
+                    <select id="cropType${fieldCount}" name="cropType[]" required>
+                        <option value="">Select crop type</option>
+                        <option value="corn">Corn</option>
+                        <option value="soybeans">Soybeans</option>
+                        <option value="wheat">Wheat</option>
+                        <option value="alfalfa">Alfalfa</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Chemicals / Pesticides <span class="label-hint">(If not in list, add "Other")</span></label>
+                    <div class="chemical-selector">
+                        <div class="chemical-input-wrapper">
+                            <input type="text" id="chemicalSearch${fieldCount}" class="chemical-search" placeholder="Search chemicals..." oninput="filterChemicals(${fieldCount})" onfocus="showDropdown(${fieldCount})">
+                            <div class="chemical-dropdown" id="chemicalDropdown${fieldCount}">
+                                <div class="chemical-options" id="chemicalOptions${fieldCount}"></div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addChemical(${fieldCount})">Add</button>
+                    </div>
+                    <div class="selected-chemicals" id="selectedChemicals${fieldCount}"></div>
+                    <div class="custom-chemical-input" id="customChemical${fieldCount}" style="display: none;">
+                        <input type="text" class="custom-chem-field" placeholder="Enter chemical name..." onkeypress="if(event.key==='Enter'){submitCustomChemical(${fieldCount}); return false;}">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="submitCustomChemical(${fieldCount})">Confirm</button>
+                    </div>
+                </div>
+            `;
+            fieldGroupsContainer.appendChild(newFieldGroup);
+            fieldCount++;
+            updateFieldNumbers();
+        }
+
+        function removeFieldGroup(button) {
+            const fieldGroup = button.closest('.field-group');
+            fieldGroup.remove();
+            updateFieldNumbers();
+        }
+
+        function updateFieldNumbers() {
+            const fieldGroups = document.querySelectorAll('.field-group');
+            fieldGroups.forEach((group, index) => {
+                const header = group.querySelector('.field-group-header span');
+                header.textContent = `Field ${index + 1}`;
+                group.dataset.fieldIndex = index;
+            });
+        }
+
+        // Chemical Database (from Greenbook.net - common agricultural pesticides)
+        const chemicalsDB = [
+            // Herbicides
+            { name: "2,4-D", type: "Herbicide" },
+            { name: "2,4-D Choline", type: "Herbicide" },
+            { name: "2,4-D LV6", type: "Herbicide" },
+            { name: "Acetochlor", type: "Herbicide" },
+            { name: "Atrazine", type: "Herbicide" },
+            { name: "Bensulfuron-methyl", type: "Herbicide" },
+            { name: "Bentazon", type: "Herbicide" },
+            { name: "Bromoxynil", type: "Herbicide" },
+            { name: "Chlorimuron-ethyl", type: "Herbicide" },
+            { name: "Clethodim", type: "Herbicide" },
+            { name: "Dicamba", type: "Herbicide" },
+            { name: "Diquat", type: "Herbicide" },
+            { name: "Diuron", type: "Herbicide" },
+            { name: "EPTC", type: "Herbicide" },
+            { name: "Flumioxazin", type: "Herbicide" },
+            { name: "Fomesafen", type: "Herbicide" },
+            { name: "Glufosinate", type: "Herbicide" },
+            { name: "Glyphosate", type: "Herbicide" },
+            { name: "Halosulfuron-methyl", type: "Herbicide" },
+            { name: "Imazamox", type: "Herbicide" },
+            { name: "Imazapic", type: "Herbicide" },
+            { name: "Imazethapyr", type: "Herbicide" },
+            { name: "Lactofen", type: "Herbicide" },
+            { name: "Linuron", type: "Herbicide" },
+            { name: "Mesotrione", type: "Herbicide" },
+            { name: "Metolachlor", type: "Herbicide" },
+            { name: "Metribuzin", type: "Herbicide" },
+            { name: "Metsulfuron-methyl", type: "Herbicide" },
+            { name: "Nicosulfuron", type: "Herbicide" },
+            { name: "Paraquat", type: "Herbicide" },
+            { name: "Pendimethalin", type: "Herbicide" },
+            { name: "Picosulfuron", type: "Herbicide" },
+            { name: "Rimsulfuron", type: "Herbicide" },
+            { name: "Saflufenacil", type: "Herbicide" },
+            { name: "S-metolachlor", type: "Herbicide" },
+            { name: "Sulfentrazone", type: "Herbicide" },
+            { name: "Sulfometuron-methyl", type: "Herbicide" },
+            { name: "Tembotrione", type: "Herbicide" },
+            { name: "Thifensulfuron-methyl", type: "Herbicide" },
+            { name: "Topramezone", type: "Herbicide" },
+            { name: "Triclopyr", type: "Herbicide" },
+            { name: "Trifloxysulfuron", type: "Herbicide" },
+            { name: "Trifluralin", type: "Herbicide" },
+            { name: "Trinexapac-ethyl", type: "Herbicide" },
+            { name: "Valet", type: "Herbicide" },
+            { name: "Visitor", type: "Herbicide" },
+            
+            // Fungicides
+            { name: "Azoxystrobin", type: "Fungicide" },
+            { name: "Carbendazim", type: "Fungicide" },
+            { name: "Chlorothalonil", type: "Fungicide" },
+            { name: "Cyproconazole", type: "Fungicide" },
+            { name: "Epoxiconazole", type: "Fungicide" },
+            { name: "Fluopyram", type: "Fungicide" },
+            { name: "Fluxapyroxad", type: "Fungicide" },
+            { name: "Fosetyl-Al", type: "Fungicide" },
+            { name: "Hexaconazole", type: "Fungicide" },
+            { name: "Ipconazole", type: "Fungicide" },
+            { name: "Mancozeb", type: "Fungicide" },
+            { name: "Metalaxyl", type: "Fungicide" },
+            { name: "Metconazole", type: "Fungicide" },
+            { name: "Myclobutanil", type: "Fungicide" },
+            { name: "Picoxystrobin", type: "Fungicide" },
+            { name: "Propiconazole", type: "Fungicide" },
+            { name: "Pyraclostrobin", type: "Fungicide" },
+            { name: "Quinoxyfen", type: "Fungicide" },
+            { name: "Spiroxamine", type: "Fungicide" },
+            { name: "Tebuconazole", type: "Fungicide" },
+            { name: "Thiabendazole", type: "Fungicide" },
+            { name: "Thifluzamide", type: "Fungicide" },
+            { name: "Trifloxystrobin", type: "Fungicide" },
+            { name: "Triconazole", type: "Fungicide" },
+            { name: "Zoxamide", type: "Fungicide" },
+            
+            // Insecticides
+            { name: "Acephate", type: "Insecticide" },
+            { name: "Alpha-cypermethrin", type: "Insecticide" },
+            { name: "Bifenthrin", type: "Insecticide" },
+            { name: "Chlorantraniliprole", type: "Insecticide" },
+            { name: "Chlorpyrifos", type: "Insecticide" },
+            { name: "Cyfluthrin", type: "Insecticide" },
+            { name: "Deltamethrin", type: "Insecticide" },
+            { name: "Diazinon", type: "Insecticide" },
+            { name: "Dimethoate", type: "Insecticide" },
+            { name: "Dinotefuran", type: "Insecticide" },
+            { name: "Esfenvalerate", type: "Insecticide" },
+            { name: "Ethiprole", type: "Insecticide" },
+            { name: "Fenpropathrin", type: "Insecticide" },
+            { name: "Gamma-cyhalothrin", type: "Insecticide" },
+            { name: "Imidacloprid", type: "Insecticide" },
+            { name: "Lambda-cyhalothrin", type: "Insecticide" },
+            { name: "Malathion", type: "Insecticide" },
+            { name: "Methomyl", type: "Insecticide" },
+            { name: "Orthene", type: "Insecticide" },
+            { name: "Permethrin", type: "Insecticide" },
+            { name: "Phosmet", type: "Insecticide" },
+            { name: "Spinosad", type: "Insecticide" },
+            { name: "Thiamethoxam", type: "Insecticide" },
+            { name: "Zeta-cypermethrin", type: "Insecticide" },
+            
+            // Fumigants
+            { name: "1,3-Dichloropropene", type: "Fumigant" },
+            { name: "Metam Sodium", type: "Fumigant" },
+            { name: "Sodium Azide", type: "Fumigant" },
+            
+            // PGRs (Plant Growth Regulators)
+            { name: "Ethephon", type: "PGR" },
+            { name: "Gibberellic Acid", type: "PGR" },
+            { name: "Mepiquat Chloride", type: "PGR" },
+            
+            // Defoliants
+            { name: "Copper Sulfate", type: "Defoliant" },
+            { name: "Sodium Chlorate", type: "Defoliant" },
+            
+            // Soil Amendments
+            { name: "Elemental Sulfur", type: "Soil Amendment" },
+            { name: "Pelletized Lime", type: "Soil Amendment" },
+            
+            // Other
+            { name: "Other", type: "Custom" }
+        ];
+
+        // Selected chemicals storage for each field
+        const selectedChemicals = {};
+
+        function filterChemicals(fieldIndex) {
+            const searchInput = document.getElementById(`chemicalSearch${fieldIndex}`);
+            const optionsContainer = document.getElementById(`chemicalOptions${fieldIndex}`);
+            const searchTerm = searchInput.value.toLowerCase();
+            
+            const filtered = chemicalsDB.filter(chem => 
+                chem.name.toLowerCase().includes(searchTerm) || 
+                chem.type.toLowerCase().includes(searchTerm)
+            );
+            
+            // Group by type
+            const grouped = {};
+            filtered.forEach(chem => {
+                if (!grouped[chem.type]) grouped[chem.type] = [];
+                grouped[chem.type].push(chem);
+            });
+            
+            let html = '';
+            Object.keys(grouped).sort().forEach(type => {
+                html += `<div class="chemical-type-header">${type}</div>`;
+                grouped[type].forEach(chem => {
+                    html += `<div class="chemical-option" onclick="selectChemical(${fieldIndex}, '${chem.name}')">${chem.name}</div>`;
+                });
+            });
+            
+            if (filtered.length === 0) {
+                html = '<div class="chemical-no-results">No chemicals found</div>';
+            }
+            
+            optionsContainer.innerHTML = html;
+        }
+
+        function showDropdown(fieldIndex) {
+            const dropdown = document.getElementById(`chemicalDropdown${fieldIndex}`);
+            dropdown.classList.add('active');
+            filterChemicals(fieldIndex);
+        }
+
+        function hideDropdown(fieldIndex) {
+            const dropdown = document.getElementById(`chemicalDropdown${fieldIndex}`);
+            dropdown.classList.remove('active');
+        }
+
+        function selectChemical(fieldIndex, chemicalName) {
+            document.getElementById(`chemicalSearch${fieldIndex}`).value = chemicalName;
+            hideDropdown(fieldIndex);
+        }
+
+        function addChemical(fieldIndex) {
+            const searchInput = document.getElementById(`chemicalSearch${fieldIndex}`);
+            const chemicalName = searchInput.value.trim();
+            
+            if (!chemicalName) return;
+            
+            // Check if "Other" was selected
+            if (chemicalName.toLowerCase() === 'other') {
+                document.getElementById(`customChemical${fieldIndex}`).style.display = 'flex';
+                searchInput.value = '';
+                return;
+            }
+            
+            // Initialize storage for this field if needed
+            if (!selectedChemicals[fieldIndex]) {
+                selectedChemicals[fieldIndex] = [];
+            }
+            
+            // Check if already added
+            if (selectedChemicals[fieldIndex].includes(chemicalName)) {
+                searchInput.value = '';
+                return;
+            }
+            
+            selectedChemicals[fieldIndex].push(chemicalName);
+            renderSelectedChemicals(fieldIndex);
+            searchInput.value = '';
+        }
+
+        function submitCustomChemical(fieldIndex) {
+            const customInput = document.querySelector(`#customChemical${fieldIndex} .custom-chem-field`);
+            const chemicalName = customInput.value.trim();
+            
+            if (!chemicalName) return;
+            
+            // Initialize storage for this field if needed
+            if (!selectedChemicals[fieldIndex]) {
+                selectedChemicals[fieldIndex] = [];
+            }
+            
+            // Check if already added
+            if (selectedChemicals[fieldIndex].includes(chemicalName)) {
+                customInput.value = '';
+                return;
+            }
+            
+            selectedChemicals[fieldIndex].push(chemicalName);
+            renderSelectedChemicals(fieldIndex);
+            customInput.value = '';
+            document.getElementById(`customChemical${fieldIndex}`).style.display = 'none';
+        }
+
+        function removeChemical(fieldIndex, chemicalName) {
+            if (selectedChemicals[fieldIndex]) {
+                selectedChemicals[fieldIndex] = selectedChemicals[fieldIndex].filter(c => c !== chemicalName);
+                renderSelectedChemicals(fieldIndex);
+            }
+        }
+
+        function renderSelectedChemicals(fieldIndex) {
+            const container = document.getElementById(`selectedChemicals${fieldIndex}`);
+            const chemicals = selectedChemicals[fieldIndex] || [];
+            
+            container.innerHTML = chemicals.map(chem => {
+                const chemical = chemicalsDB.find(c => c.name === chem);
+                const type = chemical ? chemical.type : '';
+                return `
+                    <span class="chemical-tag" data-type="${type}">
+                        ${chem}
+                        <button type="button" onclick="removeChemical(${fieldIndex}, '${chem}')">&times;</button>
+                    </span>
+                `;
+            }).join('');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.chemical-selector')) {
+                document.querySelectorAll('.chemical-dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('active');
+                });
+            }
+        });
+
+        // Map Modal Functions
+        let map = null;
+        let marker = null;
+        let mapInitialized = false;
+        let currentFieldIndex = 0;
+
+        function openMapModal(fieldIndex) {
+            currentFieldIndex = fieldIndex;
+            document.getElementById('mapModal').classList.add('active');
+            if (!mapInitialized) {
+                initMap();
+            }
+            // Invalidate map size when modal opens
+            setTimeout(() => map.invalidateSize(), 100);
+        }
+
+        function closeMapModal() {
+            document.getElementById('mapModal').classList.remove('active');
+        }
+
+        function initMap() {
+            // Center on Northern Illinois (Freeport area)
+            map = L.map('map').setView([42.2975, -89.6438], 10);
+
+            // ESRI World Imagery (satellite)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Tiles &copy; Esri',
+                maxZoom: 18
+            }).addTo(map);
+
+            // ESRI World Boundaries and Places (labels overlay)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Labels &copy; Esri',
+                maxZoom: 18
+            }).addTo(map);
+
+            // ESRI World Transportation (roads overlay)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Roads &copy; Esri',
+                maxZoom: 18
+            }).addTo(map);
+
+            // Click to place pin
+            map.on('click', function(e) {
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                marker = L.marker(e.latlng, {
+                    draggable: true
+                }).addTo(map);
+
+                updatePinCoords(e.latlng);
+
+                // Update coords when marker is dragged
+                marker.on('dragend', function(e) {
+                    updatePinCoords(e.target.getLatLng());
+                });
+            });
+
+            mapInitialized = true;
+        }
+
+        function updatePinCoords(latlng) {
+            const lat = latlng.lat.toFixed(6);
+            const lng = latlng.lng.toFixed(6);
+            document.getElementById('pinCoords').textContent = `Pin: ${lat}, ${lng}`;
+        }
+
+        function clearPin() {
+            if (marker) {
+                map.removeLayer(marker);
+                marker = null;
+            }
+            document.getElementById('pinCoords').textContent = 'No pin placed yet';
+        }
+
+        function getCoordinates() {
+            if (!marker) {
+                alert('Please click on the map to place a pin first.');
+                return;
+            }
+            const latlng = marker.getLatLng();
+            const lat = latlng.lat.toFixed(6);
+            const lng = latlng.lng.toFixed(6);
+            document.getElementById(`fieldLocation${currentFieldIndex}`).value = `${lat}, ${lng}`;
+            closeMapModal();
+        }
+    </script>
+</body>
+</html>
