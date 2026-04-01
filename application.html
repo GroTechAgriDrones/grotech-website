@@ -308,8 +308,11 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="script.js"></script>
     <script>
-        // Application form submission
-        document.getElementById('applicationForm').addEventListener('submit', function(e) {
+        // API Configuration
+        const API_BASE_URL = 'https://g82vp7wi5i.execute-api.us-east-2.amazonaws.com/prod';
+
+        // Application form submission - sends to AWS API
+        document.getElementById('applicationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             // Collect field data
@@ -317,23 +320,17 @@
             const fields = [];
             
             fieldGroups.forEach((group, index) => {
-                const fieldName = group.querySelector(`[name="fieldName[]"]`)?.value || '';
-                const fieldSize = group.querySelector(`[name="fieldSize[]"]`)?.value || '';
-                const fieldLocation = group.querySelector(`[name="fieldLocation[]"]`)?.value || '';
-                const cropType = group.querySelector(`[name="cropType[]"]`)?.value || '';
-                const chemicals = selectedChemicals[index] || [];
-                
                 fields.push({
-                    fieldName,
-                    fieldSize,
-                    fieldLocation,
-                    cropType,
-                    chemicals
+                    fieldName: group.querySelector('[name="fieldName[]"]')?.value || '',
+                    fieldSize: group.querySelector('[name="fieldSize[]"]')?.value || '',
+                    fieldLocation: group.querySelector('[name="fieldLocation[]"]')?.value || '',
+                    cropType: group.querySelector('[name="cropType[]"]')?.value || '',
+                    chemicals: selectedChemicals[index] || []
                 });
             });
             
             const formData = new FormData(this);
-            const data = {
+            const applicationData = {
                 fullName: formData.get('fullName'),
                 phone: formData.get('phone'),
                 email: formData.get('email'),
@@ -346,36 +343,34 @@
                 message: formData.get('message')
             };
             
-            // Save to sessionStorage for dashboard
-            let applications = JSON.parse(sessionStorage.getItem('applications') || '[]');
-            
-            // Generate ID
-            let maxId = 0;
-            applications.forEach(app => {
-                const id = parseInt(app.id.replace('APP-', ''));
-                if (id > maxId) maxId = id;
-            });
-            const newId = 'APP-' + String(maxId + 1).padStart(3, '0');
-            
-            const application = {
-                id: newId,
-                ...data,
-                status: 'pending',
-                dateSubmitted: new Date().toISOString()
-            };
-            
-            applications.unshift(application);
-            sessionStorage.setItem('applications', JSON.stringify(applications));
-            
-            console.log('Application submitted:', application);
-            document.getElementById('formSuccess').classList.add('active');
-            
-            // Reset form
-            this.reset();
-            fieldCount = 1;
-            document.getElementById('fieldGroups').innerHTML = document.querySelector('.field-group').outerHTML;
-            Object.keys(selectedChemicals).forEach(key => delete selectedChemicals[key]);
-            document.querySelectorAll('.selected-chemicals').forEach(el => el.innerHTML = '');
+            try {
+                const response = await fetch(`${API_BASE_URL}/applications`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(applicationData)
+                });
+                
+                const result = await response.json();
+                console.log('Application submitted:', result);
+                
+                // Show success message
+                document.getElementById('formSuccess').classList.add('active');
+                
+                // Reset form
+                this.reset();
+                fieldCount = 1;
+                const fieldGroupsContainer = document.getElementById('fieldGroups');
+                fieldGroupsContainer.innerHTML = document.querySelector('.field-group').outerHTML;
+                Object.keys(selectedChemicals).forEach(key => delete selectedChemicals[key]);
+                document.querySelectorAll('.selected-chemicals').forEach(el => el.innerHTML = '');
+                document.querySelectorAll('.custom-chemical-input').forEach(el => el.style.display = 'none');
+                
+            } catch (error) {
+                console.error('Error submitting application:', error);
+                alert('There was an error submitting your application. Please try again.');
+            }
         });
 
         document.getElementById('formSuccess').addEventListener('click', function(e) {

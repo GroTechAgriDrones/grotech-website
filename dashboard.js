@@ -676,7 +676,7 @@ if (logoutBtn) {
 }
 
 function updateDashboardStats() {
-    const apps = JSON.parse(sessionStorage.getItem('applications') || '[]');
+    const apps = applications;
     const totalEl = document.getElementById('statTotalApps');
     const pendingEl = document.getElementById('statPending');
     const approvedEl = document.getElementById('statApproved');
@@ -694,8 +694,8 @@ function updateDashboardStats() {
         } else {
             const recent = apps.slice(0, 5);
             recentBody.innerHTML = recent.map(app => {
-                const cropTypes = app.fields.map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
-                const totalAcres = app.fields.reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
+                const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
+                const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
                 const statusClass = app.status === 'approved' ? 'approved' : app.status === 'denied' ? 'denied' : 'pending';
                 return `
                     <tr>
@@ -711,44 +711,30 @@ function updateDashboardStats() {
     }
 }
 
-// Applications Management System
-let applications = JSON.parse(sessionStorage.getItem('applications') || '[]');
+// ============================================
+// APPLICATIONS API - Fetches from AWS Lambda
+// ============================================
+const API_BASE_URL = 'https://g82vp7wi5i.execute-api.us-east-2.amazonaws.com/prod';
+let applications = [];
 let currentApplicationId = null;
 
-function saveApplications() {
-    sessionStorage.setItem('applications', JSON.stringify(applications));
+// Fetch all applications from API
+async function fetchApplications() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/applications`);
+        applications = await response.json();
+        renderApplicationsTable();
+        updateDashboardStats();
+    } catch (error) {
+        console.error('Error fetching applications:', error);
+        const tbody = document.getElementById('applicationsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Check console for details.</td></tr>';
+        }
+    }
 }
 
-function generateApplicationId() {
-    let maxId = 0;
-    applications.forEach(app => {
-        const id = parseInt(app.id.replace('APP-', ''));
-        if (id > maxId) maxId = id;
-    });
-    return 'APP-' + String(maxId + 1).padStart(3, '0');
-}
-
-function submitApplication(formData) {
-    const application = {
-        id: generateApplicationId(),
-        fullName: formData.fullName,
-        phone: formData.phone,
-        email: formData.email,
-        billingAddress: formData.address,
-        city: formData.city,
-        state: formData.state,
-        zip: formData.zip,
-        contactMethod: formData.contactMethod,
-        fields: formData.fields || [],
-        message: formData.message || '',
-        status: 'pending',
-        dateSubmitted: new Date().toISOString()
-    };
-    applications.unshift(application);
-    saveApplications();
-    renderApplicationsTable();
-}
-
+// Render applications table
 function renderApplicationsTable() {
     const tbody = document.getElementById('applicationsTableBody');
     const noApps = document.getElementById('noApplications');
@@ -766,8 +752,8 @@ function renderApplicationsTable() {
     tbody.innerHTML = applications.map(app => {
         const date = new Date(app.dateSubmitted).toLocaleDateString();
         const statusClass = app.status === 'approved' ? 'approved' : app.status === 'denied' ? 'denied' : 'pending';
-        const cropTypes = app.fields.map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
-        const totalAcres = app.fields.reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
+        const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
+        const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
         
         return `
             <tr>
@@ -784,6 +770,7 @@ function renderApplicationsTable() {
     }).join('');
 }
 
+// View application details
 function viewApplication(id) {
     currentApplicationId = id;
     const app = applications.find(a => a.id === id);
@@ -792,29 +779,32 @@ function viewApplication(id) {
     const date = new Date(app.dateSubmitted).toLocaleString();
     const statusClass = app.status === 'approved' ? 'approved' : app.status === 'denied' ? 'denied' : 'pending';
     
-    let fieldsHtml = app.fields.map((field, index) => `
-        <div class="detail-field-group">
-            <h4>Field ${index + 1}${field.fieldName ? ': ' + field.fieldName : ''}</h4>
-            <div class="detail-grid">
-                <div class="detail-item">
-                    <label>Field Size</label>
-                    <span>${field.fieldSize || 'N/A'} acres</span>
-                </div>
-                <div class="detail-item">
-                    <label>Crop Type</label>
-                    <span>${field.cropType || 'N/A'}</span>
-                </div>
-                <div class="detail-item">
-                    <label>GPS Coordinates</label>
-                    <span>${field.fieldLocation || 'Not provided'}</span>
-                </div>
-                <div class="detail-item">
-                    <label>Chemicals</label>
-                    <span>${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}</span>
+    let fieldsHtml = '';
+    if (app.fields && app.fields.length > 0) {
+        fieldsHtml = app.fields.map((field, index) => `
+            <div class="detail-field-group">
+                <h4>Field ${index + 1}${field.fieldName ? ': ' + field.fieldName : ''}</h4>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Field Size</label>
+                        <span>${field.fieldSize || 'N/A'} acres</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Crop Type</label>
+                        <span>${field.cropType || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>GPS Coordinates</label>
+                        <span>${field.fieldLocation || 'Not provided'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Chemicals</label>
+                        <span>${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}</span>
+                    </div>
                 </div>
             </div>
-        </div>
-    `).join('');
+        `).join('');
+    }
     
     const content = `
         <div class="application-detail-header">
@@ -849,7 +839,7 @@ function viewApplication(id) {
             <div class="detail-grid">
                 <div class="detail-item full-width">
                     <label>Address</label>
-                    <span>${app.billingAddress}, ${app.city}, ${app.state} ${app.zip}</span>
+                    <span>${app.address}, ${app.city}, ${app.state} ${app.zip}</span>
                 </div>
             </div>
         </div>
@@ -886,26 +876,68 @@ function closeApplicationModal() {
     currentApplicationId = null;
 }
 
-function updateApplicationStatus(status) {
+// Update application status via API
+async function updateApplicationStatus(status) {
     if (!currentApplicationId) return;
     
-    const app = applications.find(a => a.id === currentApplicationId);
-    if (app) {
-        app.status = status;
-        saveApplications();
-        renderApplicationsTable();
+    try {
+        const response = await fetch(`${API_BASE_URL}/applications/${currentApplicationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: status })
+        });
         
-        // Update the modal header status
-        const modal = document.getElementById('applicationDetailModal');
-        const statusBadge = modal.querySelector('.application-detail-header .status');
-        if (statusBadge) {
-            statusBadge.className = `status ${status}`;
-            statusBadge.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-        }
+        const result = await response.json();
+        console.log('Status updated:', result);
         
+        // Refresh the list
+        await fetchApplications();
         closeApplicationModal();
+        
+    } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Error updating status. Please try again.');
     }
 }
+
+// Update dashboard stats
+function updateDashboardStats() {
+    const totalEl = document.getElementById('statTotalApps');
+    const pendingEl = document.getElementById('statPending');
+    const approvedEl = document.getElementById('statApproved');
+    const deniedEl = document.getElementById('statDenied');
+    const recentBody = document.getElementById('recentApplicationsBody');
+    
+    if (totalEl) totalEl.textContent = applications.length;
+    if (pendingEl) pendingEl.textContent = applications.filter(a => a.status === 'pending').length;
+    if (approvedEl) approvedEl.textContent = applications.filter(a => a.status === 'approved').length;
+    if (deniedEl) deniedEl.textContent = applications.filter(a => a.status === 'denied').length;
+    
+    if (recentBody) {
+        if (applications.length === 0) {
+            recentBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No applications yet</td></tr>';
+        } else {
+            const recent = applications.slice(0, 5);
+            recentBody.innerHTML = recent.map(app => {
+                const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
+                const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
+                const statusClass = app.status === 'approved' ? 'approved' : app.status === 'denied' ? 'denied' : 'pending';
+                return `
+                    <tr>
+                        <td>${app.id}</td>
+                        <td>${app.fullName}</td>
+                        <td>${totalAcres} acres</td>
+                        <td>${cropTypes}</td>
+                        <td><span class="status ${statusClass}">${app.status.charAt(0).toUpperCase() + app.status.slice(1)}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+    }
+}
+// ============================================
+// END APPLICATIONS API
+// ============================================
 
 // Document Management System
 let documents = JSON.parse(sessionStorage.getItem('documents') || '[]');
@@ -1159,7 +1191,7 @@ function initUploadHandlers() {
     }
 }
 
-// Re-render documents when navigating to documents page
+// Navigation handler - fetch applications when navigating
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', function() {
         const pageKey = this.getAttribute('data-page');
@@ -1173,26 +1205,23 @@ document.querySelectorAll('.nav-item').forEach(item => {
         }
         if (pageKey === 'applications') {
             setTimeout(function() {
-                renderApplicationsTable();
+                fetchApplications();
             }, 50);
         }
         if (pageKey === 'overview') {
             setTimeout(function() {
-                updateDashboardStats();
+                fetchApplications();
             }, 50);
         }
     });
 });
 
-// Initial render if on documents or applications page
+// Initial render on page load
 if (document.getElementById('documentsGrid')) {
     updateCategoryFilter();
     renderDocuments();
     initUploadHandlers();
 }
 if (document.getElementById('applicationsTableBody')) {
-    renderApplicationsTable();
-}
-if (document.getElementById('statTotalApps')) {
-    updateDashboardStats();
+    fetchApplications();
 }
