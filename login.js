@@ -9,17 +9,22 @@ document.addEventListener('DOMContentLoaded', function() {
         const errorDiv = document.getElementById('loginError');
         
         try {
-            // Fetch credentials from S3 via API
-            const response = await fetch(`${API_BASE_URL}/credentials`);
-            const creds = await response.json();
+            // POST to login endpoint for server-side verification
+            const response = await fetch(`${API_BASE_URL}/credentials/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email, password: password })
+            });
             
-            if (email === creds.email && password === creds.password) {
+            const result = await response.json();
+            
+            if (result.success) {
                 sessionStorage.setItem('isLoggedIn', 'true');
                 sessionStorage.setItem('email', email);
-                sessionStorage.setItem('userName', creds.name);
+                sessionStorage.setItem('userName', result.name);
                 window.location.href = 'dashboard.html';
             } else {
-                errorDiv.textContent = 'Invalid email or password';
+                errorDiv.textContent = result.error || 'Invalid email or password';
                 errorDiv.classList.add('show');
             }
         } catch (error) {

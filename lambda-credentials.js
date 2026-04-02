@@ -4,11 +4,22 @@ const s3 = new S3Client({ region: 'us-east-2' });
 const BUCKET_NAME = 'grotech-website-files';
 const FILE_KEY = 'credentials.json';
 
+// Helper function to get credentials from S3
+async function getCredentials() {
+    const command = new GetObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: FILE_KEY
+    });
+    const response = await s3.send(command);
+    const body = await response.Body.transformToString();
+    return JSON.parse(body);
+}
+
 export const handler = async (event) => {
     const headers = {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, PUT, OPTIONS'
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS'
     };
 
     try {
@@ -17,16 +28,38 @@ export const handler = async (event) => {
             return { statusCode: 200, headers, body: '' };
         }
 
+        // POST - Login verification (server-side)
+        if (event.httpMethod === 'POST' && event.path === '/credentials/login') {
+            const data = JSON.parse(event.body);
+            const creds = await getCredentials();
+
+            // Verify credentials server-side
+            if (data.email === creds.email && data.password === creds.password) {
+                return {
+                    statusCode: 200,
+                    headers,
+                    body: JSON.stringify({
+                        success: true,
+                        name: creds.name,
+                        email: creds.email,
+                        role: creds.role
+                    })
+                };
+            } else {
+                return {
+                    statusCode: 401,
+                    headers,
+                    body: JSON.stringify({
+                        success: false,
+                        error: 'Invalid email or password'
+                    })
+                };
+            }
+        }
+
         // GET - Return credentials (without password for security)
         if (event.httpMethod === 'GET') {
-            const command = new GetObjectCommand({
-                Bucket: BUCKET_NAME,
-                Key: FILE_KEY
-            });
-
-            const response = await s3.send(command);
-            const body = await response.Body.transformToString();
-            const creds = JSON.parse(body);
+            const creds = await getCredentials();
 
             // Return without password
             return {
@@ -44,16 +77,7 @@ export const handler = async (event) => {
         // PUT - Update password (requires current password verification)
         if (event.httpMethod === 'PUT') {
             const data = JSON.parse(event.body);
-
-            // Get current credentials
-            const getCommand = new GetObjectCommand({
-                Bucket: BUCKET_NAME,
-                Key: FILE_KEY
-            });
-
-            const getResponse = await s3.send(getCommand);
-            const currentBody = await getResponse.Body.transformToString();
-            const currentCreds = JSON.parse(currentBody);
+            const currentCreds = await getCredentials();
 
             // Verify current password
             if (data.currentPassword !== currentCreds.password) {
