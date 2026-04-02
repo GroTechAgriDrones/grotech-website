@@ -401,19 +401,19 @@ const pages = {
                 <div class="settings-form">
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Username</label>
-                            <input type="text" value="Admin" disabled>
+                            <label>Name</label>
+                            <input type="text" id="accountName" value="Admin" disabled>
                         </div>
                         <div class="form-group">
                             <label>Role</label>
-                            <input type="text" value="Administrator" disabled>
+                            <input type="text" id="accountRole" value="Administrator" disabled>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Email</label>
-                        <input type="email" value="grotechagridrones@gmail.com">
+                        <input type="email" id="accountEmail" value="grotechagridrones@gmail.com" disabled>
                     </div>
-                    <button class="btn btn-primary">Save Changes</button>
+                    <p class="text-muted" style="font-size: 0.85rem; margin-top: 8px;">Last password change: <span id="lastPasswordChange">-</span></p>
                 </div>
             </div>
             <div class="settings-section">
@@ -421,21 +421,44 @@ const pages = {
                 <div class="settings-form">
                     <div class="form-group">
                         <label>Current Password</label>
-                        <input type="password" placeholder="Enter current password">
+                        <input type="password" id="currentPassword" placeholder="Enter current password">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>New Password</label>
-                            <input type="password" placeholder="Enter new password">
+                            <input type="password" id="newPassword" placeholder="Enter new password">
                         </div>
                         <div class="form-group">
                             <label>Confirm Password</label>
-                            <input type="password" placeholder="Confirm new password">
+                            <input type="password" id="confirmPassword" placeholder="Confirm new password">
                         </div>
                     </div>
-                    <button class="btn btn-primary">Update Password</button>
+                    <div id="passwordMessage" class="password-message"></div>
+                    <button class="btn btn-primary" onclick="updatePassword()">Update Password</button>
                 </div>
             </div>
+            
+            <style>
+                .password-message {
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    margin-bottom: 16px;
+                    display: none;
+                    font-size: 0.9rem;
+                }
+                .password-message.success {
+                    display: block;
+                    background: rgba(34, 197, 94, 0.1);
+                    border: 1px solid rgba(34, 197, 94, 0.3);
+                    color: #22c55e;
+                }
+                .password-message.error {
+                    display: block;
+                    background: rgba(239, 68, 68, 0.1);
+                    border: 1px solid rgba(239, 68, 68, 0.3);
+                    color: #ef4444;
+                }
+            </style>
         `
     },
     documents: {
@@ -1376,6 +1399,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
                 fetchChemicalsForCalculator();
             }, 100);
         }
+        
+        // Fetch account info when account page is loaded
+        if (pageKey === 'account') {
+            setTimeout(() => {
+                fetchAccountInfo();
+            }, 100);
+        }
     });
 });
 
@@ -1386,9 +1416,98 @@ const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', function() {
         sessionStorage.removeItem('isLoggedIn');
-        sessionStorage.removeItem('username');
+        sessionStorage.removeItem('email');
+        sessionStorage.removeItem('userName');
         window.location.href = 'login.html';
     });
+}
+
+// Fetch account info and populate fields
+async function fetchAccountInfo() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/credentials`);
+        const creds = await response.json();
+        
+        const nameEl = document.getElementById('accountName');
+        const emailEl = document.getElementById('accountEmail');
+        const roleEl = document.getElementById('accountRole');
+        const lastChangeEl = document.getElementById('lastPasswordChange');
+        
+        if (nameEl) nameEl.value = creds.name || 'Admin';
+        if (emailEl) emailEl.value = creds.email || '';
+        if (roleEl) roleEl.value = creds.role || 'Administrator';
+        if (lastChangeEl && creds.lastPasswordChange) {
+            lastChangeEl.textContent = new Date(creds.lastPasswordChange).toLocaleDateString();
+        }
+    } catch (error) {
+        console.error('Error fetching account info:', error);
+    }
+}
+
+// Update password function
+async function updatePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const messageEl = document.getElementById('passwordMessage');
+    
+    // Reset message
+    messageEl.className = 'password-message';
+    messageEl.style.display = 'none';
+    
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        messageEl.textContent = 'Please fill in all fields';
+        messageEl.className = 'password-message error';
+        return;
+    }
+    
+    if (newPassword.length < 4) {
+        messageEl.textContent = 'New password must be at least 4 characters';
+        messageEl.className = 'password-message error';
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        messageEl.textContent = 'New passwords do not match';
+        messageEl.className = 'password-message error';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/credentials`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                currentPassword: currentPassword,
+                newPassword: newPassword,
+                confirmPassword: confirmPassword
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            messageEl.textContent = 'Password updated successfully!';
+            messageEl.className = 'password-message success';
+            // Clear fields
+            document.getElementById('currentPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            // Update last password change
+            if (result.lastPasswordChange) {
+                document.getElementById('lastPasswordChange').textContent = 
+                    new Date(result.lastPasswordChange).toLocaleDateString();
+            }
+        } else {
+            messageEl.textContent = result.error || 'Failed to update password';
+            messageEl.className = 'password-message error';
+        }
+    } catch (error) {
+        console.error('Error updating password:', error);
+        messageEl.textContent = 'Error connecting to server';
+        messageEl.className = 'password-message error';
+    }
 }
 
 function updateDashboardStats() {

@@ -1,22 +1,35 @@
+const API_BASE_URL = 'https://g82vp7wi5i.execute-api.us-east-2.amazonaws.com/prod';
+
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('loginForm').addEventListener('submit', function(e) {
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
         const password = document.getElementById('password').value;
         const errorDiv = document.getElementById('loginError');
         
-        if (username === 'Admin' && password === 'admin') {
-            sessionStorage.setItem('isLoggedIn', 'true');
-            sessionStorage.setItem('username', username);
-            window.location.href = 'dashboard.html';
-        } else {
-            errorDiv.textContent = 'Invalid username or password';
+        try {
+            // Fetch credentials from S3 via API
+            const response = await fetch(`${API_BASE_URL}/credentials`);
+            const creds = await response.json();
+            
+            if (email === creds.email && password === creds.password) {
+                sessionStorage.setItem('isLoggedIn', 'true');
+                sessionStorage.setItem('email', email);
+                sessionStorage.setItem('userName', creds.name);
+                window.location.href = 'dashboard.html';
+            } else {
+                errorDiv.textContent = 'Invalid email or password';
+                errorDiv.classList.add('show');
+            }
+        } catch (error) {
+            console.error('Login error:', error);
+            errorDiv.textContent = 'Unable to connect. Please try again.';
             errorDiv.classList.add('show');
         }
     });
 
-    document.getElementById('username').addEventListener('input', function() {
+    document.getElementById('email').addEventListener('input', function() {
         document.getElementById('loginError').classList.remove('show');
     });
 
