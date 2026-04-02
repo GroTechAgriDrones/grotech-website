@@ -867,6 +867,22 @@
     border-top: 1px solid var(--border);
 }
 
+/* Delete Modal */
+.delete-modal {
+    max-width: 400px;
+}
+
+.delete-modal .modal-body {
+    text-align: center;
+    padding: 24px;
+}
+
+.delete-warning {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    margin-top: 8px;
+}
+
 /* Button Success/Danger */
 .btn-success {
     background: #22c55e;
@@ -947,6 +963,26 @@
 .detail-item span {
     font-size: 0.95rem;
     color: var(--text-primary);
+}
+
+/* Map View Button */
+.map-view-btn {
+    background: rgba(54, 124, 43, 0.1);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 6px;
+    margin-left: 8px;
+    cursor: pointer;
+    color: var(--primary-light);
+    vertical-align: middle;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.map-view-btn:hover {
+    background: rgba(54, 124, 43, 0.2);
 }
 
 .detail-field-group {

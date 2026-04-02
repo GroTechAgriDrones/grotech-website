@@ -41,7 +41,7 @@
         <div class="application-hero-content">
             <span class="section-tag">Get Started</span>
             <h1>Custom Application Request</h1>
-            <p>Fill out the form below and we'll get back to you within 24 hours with a custom quote for your operation.</p>
+            <p>Fill out the form below and we'll get back to you within 24 hours with a custom application review for your operation.</p>
             <p class="pricing-note">Applications start at $12 per acre. Final pricing is subject to adjustment based on field conditions, including but not limited to acreage size, field geometry, terrain obstacles, geographic location, and specific service requirements.</p>
         </div>
     </section>
@@ -67,7 +67,7 @@
                             </li>
                             <li>
                                 <div class="benefit-icon">✓</div>
-                                <span>No obligation quote within 24 hours</span>
+                                <span>No obligation review within 24 hours</span>
                             </li>
                             <li>
                                 <div class="benefit-icon">✓</div>
@@ -184,16 +184,24 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="cropType0">Crop Type *</label>
-                                        <select id="cropType0" name="cropType[]" required>
-                                            <option value="">Select crop type</option>
-                                            <option value="corn">Corn</option>
-                                            <option value="soybeans">Soybeans</option>
-                                            <option value="wheat">Wheat</option>
-                                            <option value="alfalfa">Alfalfa</option>
-                                            <option value="other">Other</option>
-                                        </select>
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label for="cropType0">Crop Type *</label>
+                                            <select id="cropType0" name="cropType[]" required>
+                                                <option value="">Select crop type</option>
+                                                <option value="corn">Corn</option>
+                                                <option value="soybeans">Soybeans</option>
+                                                <option value="wheat">Wheat</option>
+                                                <option value="alfalfa">Alfalfa</option>
+                                                <option value="other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="optimalDate0">Optimal Application Date</label>
+                                            <div class="date-input-wrapper">
+                                                <input type="text" id="optimalDate0" name="optimalDate[]" placeholder="Click to select date" readonly class="date-input" onclick="openFieldCalendar(0)">
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="form-group">
                                         <label>Chemicals / Pesticides <span class="label-hint">(If not in list, add "Other")</span></label>
@@ -358,6 +366,7 @@
                     fieldSize: group.querySelector('[name="fieldSize[]"]')?.value || '',
                     fieldLocation: group.querySelector('[name="fieldLocation[]"]')?.value || '',
                     cropType: group.querySelector('[name="cropType[]"]')?.value || '',
+                    optimalDate: group.querySelector('[name="optimalDate[]"]')?.value || '',
                     chemicals: selectedChemicals[index] || []
                 });
             });
@@ -454,16 +463,24 @@
                         </div>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="cropType${fieldCount}">Crop Type *</label>
-                    <select id="cropType${fieldCount}" name="cropType[]" required>
-                        <option value="">Select crop type</option>
-                        <option value="corn">Corn</option>
-                        <option value="soybeans">Soybeans</option>
-                        <option value="wheat">Wheat</option>
-                        <option value="alfalfa">Alfalfa</option>
-                        <option value="other">Other</option>
-                    </select>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cropType${fieldCount}">Crop Type *</label>
+                        <select id="cropType${fieldCount}" name="cropType[]" required>
+                            <option value="">Select crop type</option>
+                            <option value="corn">Corn</option>
+                            <option value="soybeans">Soybeans</option>
+                            <option value="wheat">Wheat</option>
+                            <option value="alfalfa">Alfalfa</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="optimalDate${fieldCount}">Optimal Application Date</label>
+                        <div class="date-input-wrapper">
+                            <input type="text" id="optimalDate${fieldCount}" name="optimalDate[]" placeholder="Click to select date" readonly class="date-input" onclick="openFieldCalendar(${fieldCount})">
+                        </div>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Chemicals / Pesticides <span class="label-hint">(If not in list, add "Other")</span></label>
@@ -726,6 +743,259 @@
             const lng = latlng.lng.toFixed(6);
             document.getElementById(`fieldLocation${currentFieldIndex}`).value = `${lat}, ${lng}`;
             closeMapModal();
+        }
+    </script>
+
+    <!-- Field Calendar Modal (same style as dashboard) -->
+    <div id="fieldCalendarModal" class="calendar-modal">
+        <div class="calendar-modal-content">
+            <div class="calendar-header">
+                <button class="calendar-nav" onclick="changeFieldMonth(-1)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h3 id="fieldCalendarTitle"></h3>
+                <button class="calendar-nav" onclick="changeFieldMonth(1)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
+                <button class="calendar-close" onclick="closeFieldCalendar()">&times;</button>
+            </div>
+            <div class="calendar-weekdays">
+                <div class="weekday">Sun</div>
+                <div class="weekday">Mon</div>
+                <div class="weekday">Tue</div>
+                <div class="weekday">Wed</div>
+                <div class="weekday">Thu</div>
+                <div class="weekday">Fri</div>
+                <div class="weekday">Sat</div>
+            </div>
+            <div id="fieldCalendarDays" class="calendar-days"></div>
+        </div>
+    </div>
+
+    <!-- Date Input & Calendar Modal Styles (matching dashboard) -->
+    <style>
+        /* Date Input */
+        .date-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .date-input {
+            cursor: pointer;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 0.95rem;
+            width: 100%;
+            box-sizing: border-box;
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+        .date-input:hover {
+            border-color: var(--border);
+            background: var(--bg-card-hover);
+        }
+        .date-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(54, 124, 43, 0.1);
+        }
+
+        /* Calendar Modal - matches dashboard style */
+        .calendar-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .calendar-modal.active {
+            display: flex;
+        }
+
+        .calendar-modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: 16px;
+            padding: 24px;
+            width: 350px;
+            max-width: 95vw;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .calendar-nav {
+            background: rgba(54, 124, 43, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px;
+            cursor: pointer;
+            color: var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .calendar-nav:hover {
+            background: rgba(54, 124, 43, 0.2);
+        }
+
+        .calendar-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0 8px;
+        }
+
+        .calendar-close:hover {
+            color: var(--text-primary);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            padding: 8px 0;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            text-align: center;
+            padding: 10px 4px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .calendar-day:hover:not(.empty):not(.past) {
+            background: rgba(54, 124, 43, 0.2);
+            color: var(--primary-light);
+        }
+
+        .calendar-day.today {
+            background: rgba(54, 124, 43, 0.1);
+            border: 1px solid var(--primary);
+            font-weight: 600;
+        }
+
+        .calendar-day.past {
+            color: var(--text-muted);
+            cursor: default;
+            opacity: 0.5;
+        }
+
+        .calendar-day.empty {
+            cursor: default;
+            background: transparent;
+        }
+    </style>
+
+    <!-- Calendar JavaScript -->
+    <script>
+        let currentFieldCalendarIndex = null;
+        let currentFieldCalendarDate = new Date();
+
+        function openFieldCalendar(fieldIndex) {
+            currentFieldCalendarIndex = fieldIndex;
+            currentFieldCalendarDate = new Date();
+            renderFieldCalendar();
+            document.getElementById('fieldCalendarModal').classList.add('active');
+        }
+
+        function closeFieldCalendar() {
+            document.getElementById('fieldCalendarModal').classList.remove('active');
+            currentFieldCalendarIndex = null;
+        }
+
+        function renderFieldCalendar() {
+            const year = currentFieldCalendarDate.getFullYear();
+            const month = currentFieldCalendarDate.getMonth();
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                                'July', 'August', 'September', 'October', 'November', 'December'];
+            
+            document.getElementById('fieldCalendarTitle').textContent = `${monthNames[month]} ${year}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = new Date();
+            
+            let html = '';
+            
+            // Empty cells for days before first day of month
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div class="calendar-day empty"></div>';
+            }
+            
+            // Days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+                const isPast = new Date(year, month, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                
+                html += `
+                    <div class="calendar-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" 
+                         onclick="${!isPast ? `selectFieldDate('${dateStr}')` : ''}">
+                        ${day}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('fieldCalendarDays').innerHTML = html;
+        }
+
+        function changeFieldMonth(delta) {
+            currentFieldCalendarDate.setMonth(currentFieldCalendarDate.getMonth() + delta);
+            renderFieldCalendar();
+        }
+
+        function selectFieldDate(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            const displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            document.getElementById(`optimalDate${currentFieldCalendarIndex}`).value = displayDate;
+            closeFieldCalendar();
         }
     </script>
 </body>
