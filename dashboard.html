@@ -86,7 +86,7 @@
                 <h1 id="pageTitle">Dashboard Overview</h1>
             </div>
             <div class="header-right">
-                <span class="admin-name">Welcome, Admin</span>
+                <span class="admin-name" id="adminName">Welcome, Admin</span>
             </div>
         </header>
 
@@ -96,5 +96,12 @@
     </main>
 
     <script src="dashboard.js"></script>
+    <script>
+        // Update admin name from session storage
+        const userName = sessionStorage.getItem('userName');
+        if (userName) {
+            document.getElementById('adminName').textContent = 'Welcome, ' + userName;
+        }
+    </script>
 </body>
 </html>
