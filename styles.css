@@ -1920,4 +1920,94 @@ ul {
     .application-sidebar {
         flex-direction: column;
     }
+    
+    .field-info-section {
+        padding: 16px;
+    }
+    
+    .field-group {
+        padding: 16px;
+    }
+    
+    .field-group-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .add-field-btn {
+        width: 100%;
+    }
+    
+    .success-content {
+        padding: 32px 24px;
+        margin: 16px;
+    }
+    
+    .modal-content {
+        width: calc(100% - 24px);
+        margin: 12px;
+    }
+    
+    .map-modal-content {
+        max-height: calc(100vh - 24px);
+    }
+    
+    #map {
+        min-height: 300px;
+    }
+    
+    .map-modal-footer {
+        flex-direction: column;
+    }
+    
+    .map-modal-footer .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .application-hero-content h1 {
+        font-size: 1.5rem;
+    }
+    
+    .application-form {
+        padding: 16px;
+    }
+    
+    .sidebar-card {
+        min-width: 100%;
+    }
+    
+    .sidebar-card h3 {
+        font-size: 0.9rem;
+    }
+    
+    .sidebar-card .benefits-list li {
+        font-size: 0.85rem;
+    }
+    
+    .chemical-selector {
+        flex-direction: column;
+    }
+    
+    .chemical-input-wrapper {
+        width: 100%;
+    }
+    
+    .selected-chemicals {
+        flex-wrap: wrap;
+    }
+    
+    .chemical-tag {
+        font-size: 0.75rem;
+    }
+    
+    .custom-chemical-input {
+        flex-direction: column;
+    }
+    
+    .custom-chemical-input .custom-chem-field {
+        width: 100%;
+    }
 }
