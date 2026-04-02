@@ -94,26 +94,7 @@ const pages = {
                 </div>
             </div>
             
-            <div id="applicationDetailModal" class="modal">
-                <div class="modal-content application-detail">
-                    <div class="modal-header">
-                        <h3>Application Details</h3>
-                        <button class="modal-close" onclick="closeApplicationModal()">&times;</button>
-                    </div>
-                    <div class="modal-body" id="applicationDetailContent">
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-success" onclick="updateApplicationStatus('approved')">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                            Approve
-                        </button>
-                        <button class="btn btn-danger" onclick="updateApplicationStatus('denied')">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            Deny
-                        </button>
-                    </div>
-                </div>
-            </div>
+
         `
     },
     requests: {
@@ -695,7 +676,7 @@ const pages = {
                             </div>
                             <div class="form-group">
                                 <label>GPA (Gallons Per Acre)</label>
-                                <input type="number" id="fieldGPA" placeholder="e.g., 15" min="0" step="0.5" value="15" oninput="calculateFieldVolume()">
+                                <input type="number" id="fieldGPA" placeholder="e.g., 2" min="0" step="0.5" value="2" oninput="calculateFieldVolume()">
                             </div>
                             <div class="form-group">
                                 <label>Total Volume (gallons)</label>
@@ -1613,11 +1594,22 @@ function viewApplication(id) {
                     </div>
                     <div class="detail-item">
                         <label>GPS Coordinates</label>
-                        <span>${field.fieldLocation || 'Not provided'}</span>
+                        <span>
+                            ${field.fieldLocation ? 
+                                `<span>${field.fieldLocation}</span>
+                                 <button class="map-view-btn" onclick="event.stopPropagation(); viewFieldMap('${field.fieldLocation}')" title="View on map">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                                 </button>` 
+                                : 'Not provided'}
+                        </span>
                     </div>
                     <div class="detail-item">
                         <label>Chemicals</label>
                         <span>${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Optimal Date</label>
+                        <span>${field.optimalDate || 'Not specified'}</span>
                     </div>
                 </div>
             </div>
@@ -1686,12 +1678,95 @@ function viewApplication(id) {
     `;
     
     document.getElementById('applicationDetailContent').innerHTML = content;
+    
+    // Populate modal footer with Approve/Deny buttons for applications
+    const footerHtml = `
+        <button class="btn btn-success" onclick="updateApplicationStatus('approved')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Approve
+        </button>
+        <button class="btn btn-danger" onclick="updateApplicationStatus('denied')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            Deny
+        </button>
+    `;
+    document.getElementById('modalFooter').innerHTML = footerHtml;
+    document.getElementById('modalFooter').style.display = 'flex';
+    
     document.getElementById('applicationDetailModal').classList.add('active');
 }
 
 function closeApplicationModal() {
     document.getElementById('applicationDetailModal').classList.remove('active');
+    // Clear and hide modal footer
+    document.getElementById('modalFooter').innerHTML = '';
+    document.getElementById('modalFooter').style.display = 'none';
     currentApplicationId = null;
+}
+
+// Field Map variables
+let fieldMap = null;
+let fieldMarker = null;
+
+// View field location on map
+function viewFieldMap(coordinates) {
+    if (!coordinates) {
+        alert('No GPS coordinates available for this field.');
+        return;
+    }
+    
+    // Parse coordinates (format: "lat, lng")
+    const coords = coordinates.split(',').map(c => parseFloat(c.trim()));
+    if (coords.length !== 2 || isNaN(coords[0]) || isNaN(coords[1])) {
+        alert('Invalid GPS coordinates format.');
+        return;
+    }
+    
+    const [lat, lng] = coords;
+    
+    // Show modal
+    document.getElementById('fieldMapModal').classList.add('active');
+    document.getElementById('fieldMapCoords').textContent = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    
+    // Initialize map (remove existing if any)
+    if (fieldMap) {
+        fieldMap.remove();
+    }
+    
+    fieldMap = L.map('fieldMapView').setView([lat, lng], 15);
+    
+    // Add satellite imagery (ESRI World Imagery)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri'
+    }).addTo(fieldMap);
+    
+    // Add labels overlay (town/city names)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Labels &copy; Esri'
+    }).addTo(fieldMap);
+    
+    // Add transportation overlay (roads/streets)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Roads &copy; Esri'
+    }).addTo(fieldMap);
+    
+    // Add marker
+    fieldMarker = L.marker([lat, lng]).addTo(fieldMap);
+    fieldMarker.bindPopup('<b>Field Location</b>').openPopup();
+    
+    // Fix map size after modal animation
+    setTimeout(() => {
+        fieldMap.invalidateSize();
+    }, 100);
+}
+
+// Close field map modal
+function closeFieldMapModal() {
+    document.getElementById('fieldMapModal').classList.remove('active');
+    if (fieldMap) {
+        fieldMap.remove();
+        fieldMap = null;
+    }
 }
 
 // Update application status via API
@@ -1718,28 +1793,73 @@ async function updateApplicationStatus(status) {
     }
 }
 
+// Delete confirmation modal variables
+let deleteCallback = null;
+
+// Open delete confirmation modal
+function openDeleteModal(message, callback) {
+    document.getElementById('deleteMessage').textContent = message;
+    deleteCallback = callback;
+    document.getElementById('confirmDeleteBtn').onclick = executeDelete;
+    document.getElementById('deleteConfirmModal').classList.add('active');
+}
+
+// Close delete confirmation modal
+function closeDeleteModal() {
+    document.getElementById('deleteConfirmModal').classList.remove('active');
+    deleteCallback = null;
+}
+
+// Execute delete after confirmation
+function executeDelete() {
+    if (deleteCallback) {
+        deleteCallback();
+    }
+    closeDeleteModal();
+}
+
 // Delete application
 async function deleteApplication(id) {
-    if (!confirm('Are you sure you want to delete this application? This action cannot be undone.')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/applications/${id}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const result = await response.json();
-        console.log('Application deleted:', result);
-        
-        // Refresh the list
-        await fetchApplications();
-        
-    } catch (error) {
-        console.error('Error deleting application:', error);
-        alert('Error deleting application. Please try again.');
-    }
+    openDeleteModal('Are you sure you want to delete this application?', async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/applications/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const result = await response.json();
+            console.log('Application deleted:', result);
+            
+            // Refresh the list
+            await fetchApplications();
+            
+        } catch (error) {
+            console.error('Error deleting application:', error);
+            alert('Error deleting application. Please try again.');
+        }
+    });
+}
+
+// Delete job
+async function deleteJob(id) {
+    openDeleteModal('Are you sure you want to delete this job?', async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/jobs/${id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            const result = await response.json();
+            console.log('Job deleted:', result);
+            
+            // Refresh the list
+            await fetchJobs();
+            
+        } catch (error) {
+            console.error('Error deleting job:', error);
+            alert('Error deleting job. Please try again.');
+        }
+    });
 }
 
 // Update dashboard stats
@@ -1794,6 +1914,11 @@ async function fetchJobs() {
         if (response.ok) {
             const data = await response.json();
             jobs = data.jobs || [];
+            // Ensure each job has an id (fallback to index-based if missing)
+            jobs = jobs.map((job, index) => ({
+                ...job,
+                id: job.id || job.applicationId || job.appId || `JOB-${index + 1}`
+            }));
             updateJobsTable();
             updateJobsStats();
         }
@@ -1806,6 +1931,11 @@ async function fetchJobs() {
 
 // Update job schedule (stored in jobs/ folder)
 async function updateJobSchedule(jobId, scheduledDate) {
+    if (!jobId) {
+        alert('Error: Job ID is missing. Please try again.');
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
             method: 'PUT',
@@ -1816,13 +1946,16 @@ async function updateJobSchedule(jobId, scheduledDate) {
             })
         });
         
+        const result = await response.json();
+        
         if (response.ok) {
             await fetchJobs();
-            alert('Job scheduled successfully!');
+        } else {
+            alert('Error: ' + (result.error || 'Failed to update schedule'));
         }
     } catch (error) {
         console.error('Error updating job:', error);
-        alert('Error scheduling job');
+        alert('Error scheduling job: ' + error.message);
     }
 }
 
@@ -1862,7 +1995,7 @@ function updateJobsTable() {
         const clientName = job.fullName || job.client || 'N/A';
         const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0) || job.acres || 0;
         const cropTypes = (job.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || job.crops || 'N/A';
-        const dateRequested = job.dateSubmitted ? new Date(job.dateSubmitted).toLocaleDateString() : job.dateRequested || 'N/A';
+        const dateRequested = job.fields?.[0]?.optimalDate || job.optimalDate || 'Not set';
         const status = job.jobStatus || 'pending';
         const statusClass = status === 'scheduled' ? 'scheduled' : 
                            status === 'completed' ? 'completed' : 'pending';
@@ -1883,7 +2016,9 @@ function updateJobsTable() {
                 </td>
                 <td><span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 <td class="actions-cell">
-                    ${status !== 'completed' ? `<button class="action-btn" onclick="event.stopPropagation(); updateJobStatus('${job.id}', 'completed')">Complete</button>` : ''}
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteJob('${job.id}')" title="Delete job">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
                 </td>
             </tr>
         `;
@@ -1907,27 +2042,34 @@ function viewJob(jobId) {
             <div class="detail-field-group">
                 <h4>Field ${index + 1}${field.fieldName ? ': ' + field.fieldName : ''}</h4>
                 <div class="detail-grid">
-                    <div class="detail-field">
+                    <div class="detail-item">
                         <label>Size</label>
                         <span>${field.fieldSize || 'N/A'} acres</span>
                     </div>
-                    <div class="detail-field">
+                    <div class="detail-item">
                         <label>Crop Type</label>
                         <span>${field.cropType || 'N/A'}</span>
                     </div>
-                    <div class="detail-field">
+                    <div class="detail-item">
                         <label>Location</label>
-                        <span>${field.fieldLocation || 'Not specified'}</span>
+                        <span>
+                            ${field.fieldLocation ? 
+                                `<span>${field.fieldLocation}</span>
+                                 <button class="map-view-btn" onclick="event.stopPropagation(); viewFieldMap('${field.fieldLocation}')" title="View on map">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                                 </button>` 
+                                : 'Not specified'}
+                        </span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Chemicals</label>
+                        <span>${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Optimal Date</label>
+                        <span>${field.optimalDate || 'Not specified'}</span>
                     </div>
                 </div>
-                ${field.chemicals && field.chemicals.length > 0 ? `
-                    <div class="detail-chemicals">
-                        <label>Chemicals</label>
-                        <div class="chemical-tags">
-                            ${field.chemicals.map(c => `<span class="chemical-tag">${c}</span>`).join('')}
-                        </div>
-                    </div>
-                ` : ''}
             </div>
         `).join('');
     }
@@ -1935,32 +2077,35 @@ function viewJob(jobId) {
     const content = `
         <div class="application-detail">
             <div class="application-detail-header">
-                <div>
-                    <span class="detail-id">${job.id}</span>
-                    <span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-                </div>
-                ${job.scheduledDate ? `<div class="scheduled-info">Scheduled: ${job.scheduledDate}</div>` : ''}
+                <div class="detail-id">${job.id}</div>
+                <span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
             </div>
             
             <div class="detail-section">
                 <h4>Client Information</h4>
                 <div class="detail-grid">
-                    <div class="detail-field">
+                    <div class="detail-item">
                         <label>Name</label>
                         <span>${job.fullName || job.client || 'N/A'}</span>
                     </div>
-                    <div class="detail-field">
+                    <div class="detail-item">
                         <label>Phone</label>
                         <span>${job.phone || 'N/A'}</span>
                     </div>
-                    <div class="detail-field">
+                    <div class="detail-item">
                         <label>Email</label>
                         <span>${job.email || 'N/A'}</span>
                     </div>
-                    <div class="detail-field">
+                    <div class="detail-item">
                         <label>Date Submitted</label>
                         <span>${date}</span>
                     </div>
+                    ${job.scheduledDate ? `
+                    <div class="detail-item">
+                        <label>Scheduled Date</label>
+                        <span style="color: #3b82f6; font-weight: 500;">${job.scheduledDate}</span>
+                    </div>
+                    ` : ''}
                 </div>
             </div>
             
@@ -1982,17 +2127,17 @@ function viewJob(jobId) {
                 <p>${job.message}</p>
             </div>
             ` : ''}
-            
-            <div class="modal-footer">
-                ${status !== 'completed' ? `
-                    <button class="btn btn-success" onclick="updateJobStatus('${job.id}', 'completed'); closeApplicationModal();">Mark Completed</button>
-                ` : ''}
-                <button class="btn btn-secondary" onclick="closeApplicationModal()">Close</button>
-            </div>
         </div>
     `;
     
     document.getElementById('applicationDetailContent').innerHTML = content;
+    
+    // Populate modal footer for jobs
+    const footerHtml = status !== 'completed' ? 
+        `<button class="btn btn-success" onclick="updateJobStatus('${job.id}', 'completed'); closeApplicationModal();">Mark Completed</button>` : '';
+    document.getElementById('modalFooter').innerHTML = footerHtml;
+    document.getElementById('modalFooter').style.display = footerHtml ? 'flex' : 'none';
+    
     document.getElementById('applicationDetailModal').classList.add('active');
 }
 
@@ -2111,12 +2256,15 @@ function changeMonth(delta) {
 // Select date
 function selectDate(dateStr) {
     if (currentCalendarJobId) {
+        // Save the job ID before closing modal (which resets it)
+        const jobIdToSave = currentCalendarJobId;
+        
         // Format date for display
         const date = new Date(dateStr + 'T00:00:00');
         const displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         
         // Update display immediately (before API call for instant feedback)
-        const dateEl = document.querySelector(`.scheduled-date[data-job-id="${currentCalendarJobId}"]`);
+        const dateEl = document.querySelector(`.scheduled-date[data-job-id="${jobIdToSave}"]`);
         if (dateEl) {
             dateEl.innerHTML = displayDate;
             dateEl.classList.add('has-date');
@@ -2130,11 +2278,11 @@ function selectDate(dateStr) {
             statusCell.className = 'status scheduled';
         }
         
-        // Close modal
+        // Close modal (this resets currentCalendarJobId)
         closeCalendarModal();
         
-        // Update job schedule via API
-        updateJobSchedule(currentCalendarJobId, displayDate);
+        // Update job schedule via API using the saved job ID
+        updateJobSchedule(jobIdToSave, displayDate);
     }
 }
 
@@ -2542,6 +2690,8 @@ function onChemicalSelect(selectElement) {
     const customInput = row.querySelector('.custom-chem-name');
     const labelRateInput = row.querySelector('.label-rate');
     
+    console.log('onChemicalSelect called, value:', selectElement.value, 'row:', row.dataset.row);
+    
     if (selectElement.value === 'custom') {
         customInput.style.display = 'block';
         labelRateInput.value = '';
@@ -2550,20 +2700,29 @@ function onChemicalSelect(selectElement) {
         customInput.style.display = 'none';
         
         // Auto-fill default rate and unit from chemical data
-        const chem = chemicalsDB.find(c => (c.id || c.name.toLowerCase().replace(/\s+/g, '-')) === selectElement.value);
+        const chem = chemicalsDB.find(c => {
+            const matchKey = c.id || c.name.toLowerCase().replace(/\s+/g, '-');
+            return matchKey === selectElement.value;
+        });
+        
+        console.log('Found chem:', chem);
+        
         if (chem) {
             // Check if rate range exists and min !== max
             if (chem.rateRange && chem.rateRange.min !== chem.rateRange.max) {
                 // Pre-fill with range as suggestion, but allow editing
                 labelRateInput.value = `${chem.rateRange.min} - ${chem.rateRange.max}`;
+                console.log('Set rate range:', labelRateInput.value);
             } else if (chem.defaultRate) {
                 // Pre-fill with default rate, but allow editing
                 labelRateInput.value = chem.defaultRate;
+                console.log('Set default rate:', labelRateInput.value);
             }
             if (chem.rateUnit) {
                 // Strip "/acre" suffix to match dropdown values (e.g., "oz/acre" -> "oz")
                 const unitValue = chem.rateUnit.replace('/acre', '');
                 row.querySelector('.rate-unit').value = unitValue;
+                console.log('Set unit:', unitValue);
             }
         }
     }
@@ -2685,7 +2844,7 @@ function addChemicalRow() {
             </select>
             <input type="text" class="custom-chem-name" placeholder="Custom name" style="display:none; margin-top: 4px;">
         </td>
-        <td><input type="number" class="label-rate" placeholder="32" min="0" step="0.1" oninput="calculateChemicalVolume(this)"></td>
+        <td><input type="text" class="label-rate" placeholder="32 or 16 - 64" oninput="calculateChemicalVolume(this)"></td>
         <td>
             <select class="rate-unit" onchange="calculateChemicalVolume(this)">
                 <option value="oz">oz/acre</option>
