@@ -1006,18 +1006,40 @@
    ============================================ */
 @media (max-width: 768px) {
     .content-header {
-        flex-direction: column;
+        flex-wrap: wrap;
+        padding: 12px;
         gap: 8px;
-        text-align: center;
-        padding: 12px 16px;
+    }
+    
+    .header-left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .navbar-mobile-toggle {
+        flex-shrink: 0;
     }
     
     .header-left h1 {
-        font-size: 1.25rem;
+        font-size: 1rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
     }
     
     .header-right {
+        width: 100%;
         justify-content: center;
+        padding-top: 4px;
+    }
+    
+    .admin-name {
+        font-size: 0.8rem;
     }
     
     .content-area {
@@ -1026,7 +1048,7 @@
     
     .stats-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 10px;
     }
     
     .stat-card {
@@ -1034,11 +1056,13 @@
         justify-content: space-between;
         align-items: center;
         padding: 12px;
+        gap: 12px;
     }
     
     .stat-icon {
         width: 40px;
         height: 40px;
+        flex-shrink: 0;
     }
     
     .stat-icon svg {
@@ -1048,35 +1072,58 @@
     
     .stat-info {
         text-align: right;
+        flex: 1;
     }
     
     .stat-info .stat-value {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
     }
     
     .stat-info .stat-label {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
+    }
+    
+    .recent-section {
+        padding: 12px;
+        overflow: hidden;
+    }
+    
+    .recent-section .section-title {
+        font-size: 0.95rem;
+        margin-bottom: 12px;
     }
     
     .data-table {
         font-size: 0.75rem;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        margin: 0 -12px;
+        padding: 0 12px;
     }
     
     .data-table table {
-        min-width: 600px;
+        min-width: 550px;
+    }
+    
+    .data-table table {
+        min-width: 500px;
     }
     
     .data-table th,
     .data-table td {
         padding: 8px 6px;
         white-space: nowrap;
+        font-size: 0.7rem;
+    }
+    
+    .data-table th {
+        font-size: 0.6rem;
+        text-transform: uppercase;
     }
     
     .action-btn {
         padding: 4px 8px;
-        font-size: 0.7rem;
+        font-size: 0.65rem;
     }
     
     .sidebar {
@@ -1103,7 +1150,7 @@
     }
     
     .modal-header h3 {
-        font-size: 1rem;
+        font-size: 0.95rem;
     }
     
     .modal-body {
@@ -1121,7 +1168,7 @@
     }
     
     .detail-id {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
     
     .detail-grid {
@@ -1130,7 +1177,11 @@
     }
     
     .detail-field-group {
-        padding: 12px;
+        padding: 10px;
+    }
+    
+    .detail-field-group h4 {
+        font-size: 0.85rem;
     }
     
     .btn {
@@ -1149,10 +1200,11 @@
     .page-header {
         flex-direction: column;
         gap: 8px;
+        margin-bottom: 16px;
     }
     
     .page-header p {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     .category-manager {
@@ -1168,12 +1220,12 @@
         width: 100%;
     }
     
-    .recent-section {
+    .profile-card {
         padding: 12px;
     }
     
-    .profile-card {
-        padding: 12px;
+    .profile-header h3 {
+        font-size: 0.95rem;
     }
     
     .profiles-grid {
@@ -1181,11 +1233,11 @@
     }
     
     .chart-visual {
-        height: 150px;
+        height: 120px;
     }
     
     .chart-bar {
-        width: 35px;
+        width: 30px;
     }
     
     .upload-area {
@@ -1236,6 +1288,14 @@
    Extra small screens
    ============================================ */
 @media (max-width: 480px) {
+    .content-header {
+        padding: 10px;
+    }
+    
+    .header-left h1 {
+        font-size: 0.9rem;
+    }
+    
     .content-area {
         padding: 8px;
     }
@@ -1249,26 +1309,54 @@
     }
     
     .stat-icon {
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
     }
     
     .stat-icon svg {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
     }
     
     .stat-info .stat-value {
-        font-size: 1.1rem;
+        font-size: 1rem;
+    }
+    
+    .stat-info .stat-label {
+        font-size: 0.6rem;
     }
     
     .data-table {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
+    }
+    
+    .data-table table {
+        min-width: 400px;
     }
     
     .data-table th,
     .data-table td {
         padding: 6px 4px;
+    }
+    
+    .data-table th {
+        font-size: 0.55rem;
+    }
+    
+    /* Hide less important columns on small screens */
+    .data-table th:nth-child(3),
+    .data-table td:nth-child(3) {
+        display: none;
+    }
+    
+    /* Also hide status column text, keep badge only */
+    .data-table td:nth-child(5) {
+        white-space: normal;
+    }
+    
+    .action-btn {
+        padding: 3px 6px;
+        font-size: 0.6rem;
     }
     
     .nav-item {
@@ -1277,11 +1365,23 @@
     }
     
     .modal-header h3 {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+    }
+    
+    .modal-header {
+        padding: 10px 12px;
+    }
+    
+    .modal-body {
+        padding: 12px;
     }
     
     .detail-id {
         font-size: 1rem;
+    }
+    
+    .detail-section h4 {
+        font-size: 0.75rem;
     }
     
     .btn {
@@ -1289,12 +1389,20 @@
         font-size: 0.8rem;
     }
     
+    .recent-section .section-title {
+        font-size: 0.85rem;
+    }
+    
     .chart-visual {
-        height: 120px;
+        height: 100px;
     }
     
     .chart-bar {
-        width: 28px;
+        width: 24px;
+    }
+    
+    .chart-bar span {
+        font-size: 0.7rem;
     }
 }
 
