@@ -726,15 +726,9 @@ const pages = {
                                 <tbody id="fieldChemicalsBody">
                                     <tr class="chemical-row" data-row="1">
                                         <td>
-                                            <select class="chemical-name" onchange="calculateChemicalVolume(this)">
+                                            <select class="chemical-name" onchange="onChemicalSelect(this)">
                                                 <option value="">Select chemical...</option>
-                                                <option value="glyphosate">Glyphosate 53.8%</option>
-                                                <option value="2-4d">2,4-D Amine</option>
-                                                <option value="dicamba">Dicamba</option>
-                                                <option value="atrazine">Atrazine</option>
-                                                <option value="permethrin">Permethrin</option>
-                                                <option value="malathion">Malathion</option>
-                                                <option value="custom">Custom</option>
+                                                <option value="loading">Loading chemicals...</option>
                                             </select>
                                             <input type="text" class="custom-chem-name" placeholder="Custom name" style="display:none; margin-top: 4px;">
                                         </td>
@@ -1031,6 +1025,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
         
         document.getElementById('pageTitle').textContent = page.title;
         document.getElementById('contentArea').innerHTML = page.content;
+        
+        // Fetch chemicals when calculator page is loaded
+        if (pageKey === 'calculator') {
+            setTimeout(() => {
+                fetchChemicalsForCalculator();
+            }, 100);
+        }
     });
 });
 
@@ -1599,6 +1600,96 @@ if (document.getElementById('applicationsTableBody')) {
 
 // Chemical Calculator Functions
 let chemicalRowCount = 1;
+let chemicalsDB = []; // Chemical database from API
+
+// Fetch chemicals from API on page load
+async function fetchChemicalsForCalculator() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chemicals`);
+        const data = await response.json();
+        chemicalsDB = data.chemicals || [];
+        populateChemicalDropdowns();
+    } catch (error) {
+        console.error('Error fetching chemicals:', error);
+        // Use fallback list
+        chemicalsDB = [
+            { id: 'glyphosate', name: 'Glyphosate 53.8%', category: 'herbicide', defaultRate: 32, rateUnit: 'oz' },
+            { id: '2-4d', name: '2,4-D Amine', category: 'herbicide', defaultRate: 2, rateUnit: 'pt' },
+            { id: 'dicamba', name: 'Dicamba', category: 'herbicide', defaultRate: 12, rateUnit: 'oz' },
+            { id: 'atrazine', name: 'Atrazine', category: 'herbicide', defaultRate: 2, rateUnit: 'qt' },
+            { id: 'permethrin', name: 'Permethrin', category: 'insecticide', defaultRate: 6.4, rateUnit: 'fl oz' },
+            { id: 'malathion', name: 'Malathion', category: 'insecticide', defaultRate: 12.8, rateUnit: 'fl oz' }
+        ];
+        populateChemicalDropdowns();
+    }
+}
+
+// Populate all chemical dropdowns with fetched data
+function populateChemicalDropdowns() {
+    const dropdowns = document.querySelectorAll('.chemical-name');
+    dropdowns.forEach(dropdown => {
+        const currentValue = dropdown.value;
+        dropdown.innerHTML = '<option value="">Select chemical...</option>';
+        
+        // Group by category
+        const grouped = {};
+        chemicalsDB.forEach(chem => {
+            const category = chem.category ? chem.category.charAt(0).toUpperCase() + chem.category.slice(1) : 'Other';
+            if (!grouped[category]) grouped[category] = [];
+            grouped[category].push(chem);
+        });
+        
+        // Add grouped options
+        Object.keys(grouped).sort().forEach(category => {
+            const optgroup = document.createElement('optgroup');
+            optgroup.label = category;
+            grouped[category].forEach(chem => {
+                const option = document.createElement('option');
+                option.value = chem.id || chem.name.toLowerCase().replace(/\s+/g, '-');
+                option.textContent = chem.name;
+                option.dataset.defaultRate = chem.defaultRate || '';
+                option.dataset.rateUnit = chem.rateUnit || 'oz';
+                optgroup.appendChild(option);
+            });
+            dropdown.appendChild(optgroup);
+        });
+        
+        // Add custom option at the end
+        const customOption = document.createElement('option');
+        customOption.value = 'custom';
+        customOption.textContent = 'Custom...';
+        dropdown.appendChild(customOption);
+        
+        if (currentValue) dropdown.value = currentValue;
+    });
+}
+
+// Handle chemical selection - auto-fill rate and unit
+function onChemicalSelect(selectElement) {
+    const row = selectElement.closest('.chemical-row');
+    const selectedOption = selectElement.options[selectElement.selectedIndex];
+    const customInput = row.querySelector('.custom-chem-name');
+    
+    if (selectElement.value === 'custom') {
+        customInput.style.display = 'block';
+        row.querySelector('.label-rate').value = '';
+    } else {
+        customInput.style.display = 'none';
+        
+        // Auto-fill default rate and unit from chemical data
+        const chem = chemicalsDB.find(c => (c.id || c.name.toLowerCase().replace(/\s+/g, '-')) === selectElement.value);
+        if (chem) {
+            if (chem.defaultRate) {
+                row.querySelector('.label-rate').value = chem.defaultRate;
+            }
+            if (chem.rateUnit) {
+                row.querySelector('.rate-unit').value = chem.rateUnit;
+            }
+        }
+    }
+    
+    calculateChemicalVolume(selectElement);
+}
 
 // Calculate total volume based on field size and GPA
 function calculateFieldVolume() {
@@ -1680,15 +1771,9 @@ function addChemicalRow() {
     newRow.dataset.row = chemicalRowCount;
     newRow.innerHTML = `
         <td>
-            <select class="chemical-name" onchange="calculateChemicalVolume(this)">
+            <select class="chemical-name" onchange="onChemicalSelect(this)">
                 <option value="">Select chemical...</option>
-                <option value="glyphosate">Glyphosate 53.8%</option>
-                <option value="2-4d">2,4-D Amine</option>
-                <option value="dicamba">Dicamba</option>
-                <option value="atrazine">Atrazine</option>
-                <option value="permethrin">Permethrin</option>
-                <option value="malathion">Malathion</option>
-                <option value="custom">Custom</option>
+                <option value="loading">Loading chemicals...</option>
             </select>
             <input type="text" class="custom-chem-name" placeholder="Custom name" style="display:none; margin-top: 4px;">
         </td>
@@ -1708,6 +1793,13 @@ function addChemicalRow() {
     `;
     
     tbody.appendChild(newRow);
+    
+    // Populate the new dropdown with chemicals
+    if (chemicalsDB.length > 0) {
+        populateChemicalDropdowns();
+    } else {
+        fetchChemicalsForCalculator();
+    }
 }
 
 // Remove a chemical row

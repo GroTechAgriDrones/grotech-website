@@ -311,6 +311,39 @@
         // API Configuration
         const API_BASE_URL = 'https://g82vp7wi5i.execute-api.us-east-2.amazonaws.com/prod';
 
+        // Chemical Database - fetched from S3 via API
+        let chemicalsDB = [];
+        
+        // Fetch chemicals from API
+        async function fetchChemicals() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/chemicals`);
+                const data = await response.json();
+                chemicalsDB = data.chemicals.map(chem => ({
+                    name: chem.name,
+                    type: chem.category.charAt(0).toUpperCase() + chem.category.slice(1),
+                    id: chem.id,
+                    defaultRate: chem.defaultRate,
+                    rateUnit: chem.rateUnit
+                }));
+            } catch (error) {
+                console.error('Error fetching chemicals:', error);
+                // Fallback to basic list if API fails
+                chemicalsDB = [
+                    { name: "Glyphosate", type: "Herbicide" },
+                    { name: "2,4-D", type: "Herbicide" },
+                    { name: "Dicamba", type: "Herbicide" },
+                    { name: "Atrazine", type: "Herbicide" },
+                    { name: "Permethrin", type: "Insecticide" },
+                    { name: "Malathion", type: "Insecticide" },
+                    { name: "Other", type: "Custom" }
+                ];
+            }
+        }
+        
+        // Fetch chemicals on page load
+        fetchChemicals();
+
         // Application form submission - sends to AWS API
         document.getElementById('applicationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -470,130 +503,7 @@
             });
         }
 
-        // Chemical Database (from Greenbook.net - common agricultural pesticides)
-        const chemicalsDB = [
-            // Herbicides
-            { name: "2,4-D", type: "Herbicide" },
-            { name: "2,4-D Choline", type: "Herbicide" },
-            { name: "2,4-D LV6", type: "Herbicide" },
-            { name: "Acetochlor", type: "Herbicide" },
-            { name: "Atrazine", type: "Herbicide" },
-            { name: "Bensulfuron-methyl", type: "Herbicide" },
-            { name: "Bentazon", type: "Herbicide" },
-            { name: "Bromoxynil", type: "Herbicide" },
-            { name: "Chlorimuron-ethyl", type: "Herbicide" },
-            { name: "Clethodim", type: "Herbicide" },
-            { name: "Dicamba", type: "Herbicide" },
-            { name: "Diquat", type: "Herbicide" },
-            { name: "Diuron", type: "Herbicide" },
-            { name: "EPTC", type: "Herbicide" },
-            { name: "Flumioxazin", type: "Herbicide" },
-            { name: "Fomesafen", type: "Herbicide" },
-            { name: "Glufosinate", type: "Herbicide" },
-            { name: "Glyphosate", type: "Herbicide" },
-            { name: "Halosulfuron-methyl", type: "Herbicide" },
-            { name: "Imazamox", type: "Herbicide" },
-            { name: "Imazapic", type: "Herbicide" },
-            { name: "Imazethapyr", type: "Herbicide" },
-            { name: "Lactofen", type: "Herbicide" },
-            { name: "Linuron", type: "Herbicide" },
-            { name: "Mesotrione", type: "Herbicide" },
-            { name: "Metolachlor", type: "Herbicide" },
-            { name: "Metribuzin", type: "Herbicide" },
-            { name: "Metsulfuron-methyl", type: "Herbicide" },
-            { name: "Nicosulfuron", type: "Herbicide" },
-            { name: "Paraquat", type: "Herbicide" },
-            { name: "Pendimethalin", type: "Herbicide" },
-            { name: "Picosulfuron", type: "Herbicide" },
-            { name: "Rimsulfuron", type: "Herbicide" },
-            { name: "Saflufenacil", type: "Herbicide" },
-            { name: "S-metolachlor", type: "Herbicide" },
-            { name: "Sulfentrazone", type: "Herbicide" },
-            { name: "Sulfometuron-methyl", type: "Herbicide" },
-            { name: "Tembotrione", type: "Herbicide" },
-            { name: "Thifensulfuron-methyl", type: "Herbicide" },
-            { name: "Topramezone", type: "Herbicide" },
-            { name: "Triclopyr", type: "Herbicide" },
-            { name: "Trifloxysulfuron", type: "Herbicide" },
-            { name: "Trifluralin", type: "Herbicide" },
-            { name: "Trinexapac-ethyl", type: "Herbicide" },
-            { name: "Valet", type: "Herbicide" },
-            { name: "Visitor", type: "Herbicide" },
-            
-            // Fungicides
-            { name: "Azoxystrobin", type: "Fungicide" },
-            { name: "Carbendazim", type: "Fungicide" },
-            { name: "Chlorothalonil", type: "Fungicide" },
-            { name: "Cyproconazole", type: "Fungicide" },
-            { name: "Epoxiconazole", type: "Fungicide" },
-            { name: "Fluopyram", type: "Fungicide" },
-            { name: "Fluxapyroxad", type: "Fungicide" },
-            { name: "Fosetyl-Al", type: "Fungicide" },
-            { name: "Hexaconazole", type: "Fungicide" },
-            { name: "Ipconazole", type: "Fungicide" },
-            { name: "Mancozeb", type: "Fungicide" },
-            { name: "Metalaxyl", type: "Fungicide" },
-            { name: "Metconazole", type: "Fungicide" },
-            { name: "Myclobutanil", type: "Fungicide" },
-            { name: "Picoxystrobin", type: "Fungicide" },
-            { name: "Propiconazole", type: "Fungicide" },
-            { name: "Pyraclostrobin", type: "Fungicide" },
-            { name: "Quinoxyfen", type: "Fungicide" },
-            { name: "Spiroxamine", type: "Fungicide" },
-            { name: "Tebuconazole", type: "Fungicide" },
-            { name: "Thiabendazole", type: "Fungicide" },
-            { name: "Thifluzamide", type: "Fungicide" },
-            { name: "Trifloxystrobin", type: "Fungicide" },
-            { name: "Triconazole", type: "Fungicide" },
-            { name: "Zoxamide", type: "Fungicide" },
-            
-            // Insecticides
-            { name: "Acephate", type: "Insecticide" },
-            { name: "Alpha-cypermethrin", type: "Insecticide" },
-            { name: "Bifenthrin", type: "Insecticide" },
-            { name: "Chlorantraniliprole", type: "Insecticide" },
-            { name: "Chlorpyrifos", type: "Insecticide" },
-            { name: "Cyfluthrin", type: "Insecticide" },
-            { name: "Deltamethrin", type: "Insecticide" },
-            { name: "Diazinon", type: "Insecticide" },
-            { name: "Dimethoate", type: "Insecticide" },
-            { name: "Dinotefuran", type: "Insecticide" },
-            { name: "Esfenvalerate", type: "Insecticide" },
-            { name: "Ethiprole", type: "Insecticide" },
-            { name: "Fenpropathrin", type: "Insecticide" },
-            { name: "Gamma-cyhalothrin", type: "Insecticide" },
-            { name: "Imidacloprid", type: "Insecticide" },
-            { name: "Lambda-cyhalothrin", type: "Insecticide" },
-            { name: "Malathion", type: "Insecticide" },
-            { name: "Methomyl", type: "Insecticide" },
-            { name: "Orthene", type: "Insecticide" },
-            { name: "Permethrin", type: "Insecticide" },
-            { name: "Phosmet", type: "Insecticide" },
-            { name: "Spinosad", type: "Insecticide" },
-            { name: "Thiamethoxam", type: "Insecticide" },
-            { name: "Zeta-cypermethrin", type: "Insecticide" },
-            
-            // Fumigants
-            { name: "1,3-Dichloropropene", type: "Fumigant" },
-            { name: "Metam Sodium", type: "Fumigant" },
-            { name: "Sodium Azide", type: "Fumigant" },
-            
-            // PGRs (Plant Growth Regulators)
-            { name: "Ethephon", type: "PGR" },
-            { name: "Gibberellic Acid", type: "PGR" },
-            { name: "Mepiquat Chloride", type: "PGR" },
-            
-            // Defoliants
-            { name: "Copper Sulfate", type: "Defoliant" },
-            { name: "Sodium Chlorate", type: "Defoliant" },
-            
-            // Soil Amendments
-            { name: "Elemental Sulfur", type: "Soil Amendment" },
-            { name: "Pelletized Lime", type: "Soil Amendment" },
-            
-            // Other
-            { name: "Other", type: "Custom" }
-        ];
+
 
         // Selected chemicals storage for each field
         const selectedChemicals = {};
