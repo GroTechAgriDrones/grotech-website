@@ -1229,12 +1229,25 @@ if (document.getElementById('applicationsTableBody')) {
 // Mobile menu toggle
 const mobileMenuBtn = document.getElementById('mobileMenuBtn');
 const sidebar = document.querySelector('.sidebar');
+const sidebarOverlay = document.getElementById('sidebarOverlay');
 
 if (mobileMenuBtn && sidebar) {
     mobileMenuBtn.addEventListener('click', function() {
         sidebar.classList.toggle('active');
         mobileMenuBtn.classList.toggle('active');
+        if (sidebarOverlay) {
+            sidebarOverlay.classList.toggle('active');
+        }
     });
+    
+    // Close sidebar when clicking overlay
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', function() {
+            sidebar.classList.remove('active');
+            mobileMenuBtn.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+        });
+    }
     
     // Close sidebar when clicking outside on mobile
     document.addEventListener('click', function(e) {
@@ -1242,6 +1255,9 @@ if (mobileMenuBtn && sidebar) {
             if (!sidebar.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
                 sidebar.classList.remove('active');
                 mobileMenuBtn.classList.remove('active');
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.remove('active');
+                }
             }
         }
     });
@@ -1252,6 +1268,9 @@ if (mobileMenuBtn && sidebar) {
             if (window.innerWidth <= 1024) {
                 sidebar.classList.remove('active');
                 mobileMenuBtn.classList.remove('active');
+                if (sidebarOverlay) {
+                    sidebarOverlay.classList.remove('active');
+                }
             }
         });
     });
@@ -1262,7 +1281,9 @@ window.addEventListener('resize', function() {
     if (window.innerWidth > 1024) {
         const sidebar = document.querySelector('.sidebar');
         const mobileBtn = document.getElementById('mobileMenuBtn');
+        const overlay = document.getElementById('sidebarOverlay');
         if (sidebar) sidebar.classList.remove('active');
         if (mobileBtn) mobileBtn.classList.remove('active');
+        if (overlay) overlay.classList.remove('active');
     }
 });
