@@ -1488,6 +1488,9 @@ async function updatePassword() {
         const result = await response.json();
         
         if (response.ok) {
+            // Show success popup
+            alert('Password was successfully changed!');
+            
             messageEl.textContent = 'Password updated successfully!';
             messageEl.className = 'password-message success';
             // Clear fields
