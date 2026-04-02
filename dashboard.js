@@ -1776,12 +1776,12 @@ function updateDashboardStats() {
 // ============================================
 
 // ============================================
-// JOBS MANAGEMENT
+// JOBS MANAGEMENT (File-based in S3)
 // ============================================
 
 let jobs = [];
 
-// Fetch jobs from S3
+// Fetch jobs from S3 jobs/ folder
 async function fetchJobs() {
     try {
         const response = await fetch(`${API_BASE_URL}/jobs`);
@@ -1798,39 +1798,7 @@ async function fetchJobs() {
     }
 }
 
-// Create a job from an approved application
-async function createJobFromApplication(app) {
-    const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
-    const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
-    
-    const jobData = {
-        id: app.id, // Same ID as application
-        client: app.fullName,
-        phone: app.phone,
-        email: app.email,
-        acres: totalAcres,
-        crops: cropTypes,
-        dateRequested: new Date(app.dateSubmitted).toLocaleDateString(),
-        scheduledDate: null,
-        status: 'pending'
-    };
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/jobs`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(jobData)
-        });
-        
-        if (response.ok) {
-            await fetchJobs();
-        }
-    } catch (error) {
-        console.error('Error creating job:', error);
-    }
-}
-
-// Update job schedule
+// Update job schedule (stored in jobs/ folder)
 async function updateJobSchedule(jobId, scheduledDate) {
     try {
         const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
@@ -1838,25 +1806,31 @@ async function updateJobSchedule(jobId, scheduledDate) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 scheduledDate: scheduledDate,
-                status: scheduledDate ? 'scheduled' : 'pending'
+                jobStatus: scheduledDate ? 'scheduled' : 'pending'
             })
         });
         
         if (response.ok) {
             await fetchJobs();
+            alert('Job scheduled successfully!');
         }
     } catch (error) {
         console.error('Error updating job:', error);
+        alert('Error scheduling job');
     }
 }
 
 // Update job status
 async function updateJobStatus(jobId, status) {
+    if (status === 'completed' && !confirm('Mark this job as completed?')) {
+        return;
+    }
+    
     try {
         const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: status })
+            body: JSON.stringify({ jobStatus: status })
         });
         
         if (response.ok) {
@@ -1867,42 +1841,154 @@ async function updateJobStatus(jobId, status) {
     }
 }
 
-// Update jobs table
+// Update jobs table - works with application data structure
 function updateJobsTable() {
     const tbody = document.getElementById('jobsTableBody');
     if (!tbody) return;
     
     if (jobs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="no-data">No jobs yet. Jobs are created when applications are approved.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="no-data">No jobs yet. Approve an application to create a job.</td></tr>';
         return;
     }
     
     tbody.innerHTML = jobs.map(job => {
-        const statusClass = job.status === 'scheduled' ? 'scheduled' : 
-                           job.status === 'completed' ? 'completed' : 'pending';
+        // Calculate fields from application data structure
+        const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
+        const cropTypes = (job.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
+        const dateRequested = job.dateSubmitted ? new Date(job.dateSubmitted).toLocaleDateString() : 'N/A';
+        const status = job.jobStatus || 'pending';
+        const statusClass = status === 'scheduled' ? 'scheduled' : 
+                           status === 'completed' ? 'completed' : 'pending';
         const scheduledDisplay = job.scheduledDate || '<span class="schedule-placeholder">Click to schedule</span>';
         
         return `
             <tr>
                 <td>${job.id}</td>
-                <td>${job.client}</td>
+                <td>${job.fullName || 'N/A'}</td>
                 <td>${job.phone || 'N/A'}</td>
-                <td>${job.acres} acres</td>
-                <td>${job.crops}</td>
-                <td>${job.dateRequested}</td>
+                <td>${totalAcres} acres</td>
+                <td>${cropTypes}</td>
+                <td>${dateRequested}</td>
                 <td class="schedule-cell">
                     <span class="scheduled-date" data-job-id="${job.id}">${scheduledDisplay}</span>
                     <button class="calendar-btn" onclick="openCalendarModal('${job.id}')" title="Schedule job">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     </button>
                 </td>
-                <td><span class="status ${statusClass}">${job.status.charAt(0).toUpperCase() + job.status.slice(1)}</span></td>
+                <td><span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 <td class="actions-cell">
-                    ${job.status !== 'completed' ? `<button class="action-btn" onclick="updateJobStatus('${job.id}', 'completed')">Complete</button>` : ''}
+                    <button class="action-btn" onclick="viewJob('${job.id}')">View</button>
+                    ${status !== 'completed' ? `<button class="action-btn" onclick="updateJobStatus('${job.id}', 'completed')">Complete</button>` : ''}
                 </td>
             </tr>
         `;
     }).join('');
+}
+
+// View job details (same modal as application)
+function viewJob(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    currentApplicationId = jobId; // Reuse the application modal
+    const date = job.dateSubmitted ? new Date(job.dateSubmitted).toLocaleString() : 'N/A';
+    const status = job.jobStatus || 'pending';
+    const statusClass = status === 'scheduled' ? 'scheduled' : 
+                       status === 'completed' ? 'completed' : 'pending';
+    
+    let fieldsHtml = '';
+    if (job.fields && job.fields.length > 0) {
+        fieldsHtml = job.fields.map((field, index) => `
+            <div class="detail-field-group">
+                <h4>Field ${index + 1}${field.fieldName ? ': ' + field.fieldName : ''}</h4>
+                <div class="detail-grid">
+                    <div class="detail-field">
+                        <label>Size</label>
+                        <span>${field.fieldSize || 'N/A'} acres</span>
+                    </div>
+                    <div class="detail-field">
+                        <label>Crop Type</label>
+                        <span>${field.cropType || 'N/A'}</span>
+                    </div>
+                    <div class="detail-field">
+                        <label>Location</label>
+                        <span>${field.fieldLocation || 'Not specified'}</span>
+                    </div>
+                </div>
+                ${field.chemicals && field.chemicals.length > 0 ? `
+                    <div class="detail-chemicals">
+                        <label>Chemicals</label>
+                        <div class="chemical-tags">
+                            ${field.chemicals.map(c => `<span class="chemical-tag">${c}</span>`).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+    
+    const content = `
+        <div class="application-detail">
+            <div class="application-detail-header">
+                <div>
+                    <span class="detail-id">${job.id}</span>
+                    <span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                </div>
+                ${job.scheduledDate ? `<div class="scheduled-info">Scheduled: ${job.scheduledDate}</div>` : ''}
+            </div>
+            
+            <div class="detail-section">
+                <h4>Client Information</h4>
+                <div class="detail-grid">
+                    <div class="detail-field">
+                        <label>Name</label>
+                        <span>${job.fullName || 'N/A'}</span>
+                    </div>
+                    <div class="detail-field">
+                        <label>Phone</label>
+                        <span>${job.phone || 'N/A'}</span>
+                    </div>
+                    <div class="detail-field">
+                        <label>Email</label>
+                        <span>${job.email || 'N/A'}</span>
+                    </div>
+                    <div class="detail-field">
+                        <label>Date Submitted</label>
+                        <span>${date}</span>
+                    </div>
+                </div>
+            </div>
+            
+            ${job.address || job.city || job.state || job.zip ? `
+            <div class="detail-section">
+                <h4>Address</h4>
+                <p>${job.address || ''} ${job.city || ''}, ${job.state || ''} ${job.zip || ''}</p>
+            </div>
+            ` : ''}
+            
+            <div class="detail-section">
+                <h4>Field Information</h4>
+                ${fieldsHtml}
+            </div>
+            
+            ${job.message ? `
+            <div class="detail-section">
+                <h4>Additional Notes</h4>
+                <p>${job.message}</p>
+            </div>
+            ` : ''}
+            
+            <div class="modal-footer">
+                ${status !== 'completed' ? `
+                    <button class="btn btn-success" onclick="updateJobStatus('${job.id}', 'completed'); closeApplicationModal();">Mark Completed</button>
+                ` : ''}
+                <button class="btn btn-secondary" onclick="closeApplicationModal()">Close</button>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('applicationDetailContent').innerHTML = content;
+    document.getElementById('applicationDetailModal').classList.add('active');
 }
 
 // Update jobs stats
@@ -1913,9 +1999,9 @@ function updateJobsStats() {
     const completedEl = document.getElementById('statCompletedJobs');
     
     if (totalEl) totalEl.textContent = jobs.length;
-    if (pendingEl) pendingEl.textContent = jobs.filter(j => j.status === 'pending').length;
-    if (scheduledEl) scheduledEl.textContent = jobs.filter(j => j.status === 'scheduled').length;
-    if (completedEl) completedEl.textContent = jobs.filter(j => j.status === 'completed').length;
+    if (pendingEl) pendingEl.textContent = jobs.filter(j => (j.jobStatus || 'pending') === 'pending').length;
+    if (scheduledEl) scheduledEl.textContent = jobs.filter(j => j.jobStatus === 'scheduled').length;
+    if (completedEl) completedEl.textContent = jobs.filter(j => j.jobStatus === 'completed').length;
 }
 
 // Calendar modal variables
