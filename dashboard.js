@@ -1375,6 +1375,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
                 fetchAccountInfo();
             }, 100);
         }
+        
+        // Fetch jobs when jobs page is loaded
+        if (pageKey === 'requests') {
+            setTimeout(() => {
+                fetchJobs();
+            }, 100);
+        }
     });
 });
 
