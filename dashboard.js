@@ -2056,15 +2056,11 @@ function onChemicalSelect(selectElement) {
         if (chem) {
             // Check if rate range exists and min !== max
             if (chem.rateRange && chem.rateRange.min !== chem.rateRange.max) {
-                // Display as range: "min - max"
+                // Pre-fill with range as suggestion, but allow editing
                 labelRateInput.value = `${chem.rateRange.min} - ${chem.rateRange.max}`;
-                labelRateInput.readOnly = true;
-                labelRateInput.style.cursor = 'default';
             } else if (chem.defaultRate) {
-                // Display as single value
+                // Pre-fill with default rate, but allow editing
                 labelRateInput.value = chem.defaultRate;
-                labelRateInput.readOnly = false;
-                labelRateInput.style.cursor = '';
             }
             if (chem.rateUnit) {
                 // Strip "/acre" suffix to match dropdown values (e.g., "oz/acre" -> "oz")
