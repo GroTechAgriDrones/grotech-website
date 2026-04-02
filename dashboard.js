@@ -2252,21 +2252,21 @@ function calculateTankMix() {
         const volumeInput = row.querySelector('.chemical-volume');
         const volumeValue = volumeInput.value;
         
-        // Check if volume is a range
-        const isRange = volumeValue.includes(' - ');
+        // Check if volume is a range using dataset or value
+        const minVol = parseFloat(volumeInput.dataset.minVolume) || 0;
+        const maxVol = parseFloat(volumeInput.dataset.maxVolume) || 0;
+        const isRange = minVol > 0 && maxVol > 0 && minVol !== maxVol;
         
         let perTankDisplay = '-';
         
         if (chemSelect.value && tanksNeeded > 0) {
             if (isRange) {
-                const parts = volumeValue.split(' - ');
-                const minVol = parseFloat(parts[0]) || 0;
-                const maxVol = parseFloat(parts[1]) || 0;
                 const minPerTank = minVol / tanksNeeded;
                 const maxPerTank = maxVol / tanksNeeded;
                 perTankDisplay = `${minPerTank.toFixed(2)} - ${maxPerTank.toFixed(2)} gal`;
             } else {
-                const fieldVolume = parseFloat(volumeValue) || 0;
+                // Try to parse from value or dataset
+                const fieldVolume = minVol || parseFloat(volumeValue) || 0;
                 const perTank = fieldVolume / tanksNeeded;
                 if (perTank > 0) {
                     perTankDisplay = perTank.toFixed(2) + ' gal';
