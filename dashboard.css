@@ -1466,6 +1466,164 @@
 }
 
 /* ============================================
+   JOBS - SCHEDULE CELL
+   ============================================ */
+.schedule-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.schedule-placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
+.calendar-btn {
+    background: rgba(54, 124, 43, 0.1);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    cursor: pointer;
+    color: var(--primary-light);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calendar-btn:hover {
+    background: rgba(54, 124, 43, 0.2);
+    border-color: var(--primary);
+}
+
+.scheduled-date {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+/* ============================================
+   CALENDAR MODAL
+   ============================================ */
+.calendar-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 10000;
+    justify-content: center;
+    align-items: center;
+}
+
+.calendar-modal.active {
+    display: flex;
+}
+
+.calendar-modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 24px;
+    width: 350px;
+    max-width: 95vw;
+    box-shadow: var(--shadow-lg);
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.calendar-header h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.calendar-nav {
+    background: rgba(54, 124, 43, 0.1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    cursor: pointer;
+    color: var(--primary-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.calendar-nav:hover {
+    background: rgba(54, 124, 43, 0.2);
+}
+
+.calendar-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 8px;
+}
+
+.calendar-close:hover {
+    color: var(--text-primary);
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.calendar-day-header {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    padding: 8px 0;
+}
+
+.calendar-day {
+    text-align: center;
+    padding: 10px 4px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.calendar-day:hover:not(.empty):not(.past) {
+    background: rgba(54, 124, 43, 0.2);
+    color: var(--primary-light);
+}
+
+.calendar-day.today {
+    background: rgba(54, 124, 43, 0.1);
+    border: 1px solid var(--primary);
+    font-weight: 600;
+}
+
+.calendar-day.past {
+    color: var(--text-muted);
+    cursor: default;
+    opacity: 0.5;
+}
+
+.calendar-day.empty {
+    cursor: default;
+}
+
+/* ============================================
    PRINT STYLES
    ============================================ */
 @media print {
