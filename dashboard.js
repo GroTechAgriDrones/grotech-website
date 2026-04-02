@@ -1875,11 +1875,8 @@ function updateJobsTable() {
                 <td>${totalAcres} acres</td>
                 <td>${cropTypes}</td>
                 <td>${dateRequested}</td>
-                <td class="schedule-cell">
+                <td class="schedule-cell clickable-schedule" onclick="event.stopPropagation(); openCalendarModal('${job.id}')">
                     <span class="scheduled-date" data-job-id="${job.id}">${scheduledDisplay}</span>
-                    <button class="calendar-btn" onclick="event.stopPropagation(); openCalendarModal('${job.id}')" title="Schedule job">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    </button>
                 </td>
                 <td><span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 <td class="actions-cell">
@@ -2048,16 +2045,16 @@ function createCalendarModal() {
                     </button>
                     <button class="calendar-close" onclick="closeCalendarModal()">&times;</button>
                 </div>
-                <div class="calendar-grid">
-                    <div class="calendar-day-header">Sun</div>
-                    <div class="calendar-day-header">Mon</div>
-                    <div class="calendar-day-header">Tue</div>
-                    <div class="calendar-day-header">Wed</div>
-                    <div class="calendar-day-header">Thu</div>
-                    <div class="calendar-day-header">Fri</div>
-                    <div class="calendar-day-header">Sat</div>
-                    <div id="calendarDays"></div>
+                <div class="calendar-weekdays">
+                    <div class="weekday">Sun</div>
+                    <div class="weekday">Mon</div>
+                    <div class="weekday">Tue</div>
+                    <div class="weekday">Wed</div>
+                    <div class="weekday">Thu</div>
+                    <div class="weekday">Fri</div>
+                    <div class="weekday">Sat</div>
                 </div>
+                <div id="calendarDays" class="calendar-days"></div>
             </div>
         </div>
     `;
