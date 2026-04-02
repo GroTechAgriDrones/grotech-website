@@ -696,7 +696,7 @@ const pages = {
                     <h3>Field Calculator</h3>
                     <div class="calc-form">
                         <!-- Row 1: Field Size, GPA, Total Volume -->
-                        <div class="calc-row">
+                        <div class="calc-row" style="grid-template-columns: repeat(3, 1fr);">
                             <div class="form-group">
                                 <label>Field Size (acres)</label>
                                 <input type="number" id="fieldSize" placeholder="e.g., 100" min="0" step="0.1" oninput="calculateFieldVolume()">
@@ -711,48 +711,49 @@ const pages = {
                             </div>
                         </div>
                         
-                        <!-- Chemical Rows Container -->
-                        <div id="chemicalRowsContainer">
-                            <!-- Chemical Row 1 (default) -->
-                            <div class="chemical-row" data-row="1">
-                                <div class="calc-row">
-                                    <div class="form-group">
-                                        <label>Chemical Name</label>
-                                        <select class="chemical-name" onchange="calculateChemicalVolume(this)">
-                                            <option value="">Select chemical...</option>
-                                            <option value="glyphosate">Glyphosate 53.8%</option>
-                                            <option value="2-4d">2,4-D Amine</option>
-                                            <option value="dicamba">Dicamba</option>
-                                            <option value="atrazine">Atrazine</option>
-                                            <option value="permethrin">Permethrin</option>
-                                            <option value="malathion">Malathion</option>
-                                            <option value="custom">Custom</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Label Rate</label>
-                                        <input type="number" class="label-rate" placeholder="e.g., 32" min="0" step="0.1" oninput="calculateChemicalVolume(this)">
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Rate Unit</label>
-                                        <select class="rate-unit" onchange="calculateChemicalVolume(this)">
-                                            <option value="oz">oz/acre</option>
-                                            <option value="fl oz">fl oz/acre</option>
-                                            <option value="pt">pt/acre</option>
-                                            <option value="qt">qt/acre</option>
-                                            <option value="gal">gal/acre</option>
-                                            <option value="lb">lb/acre</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label>Volume (gallons)</label>
-                                        <input type="number" class="chemical-volume" readonly placeholder="Auto-calculated" style="background: var(--border-light);">
-                                    </div>
-                                </div>
-                                <div class="custom-chemical-input" style="display:none;">
-                                    <input type="text" class="custom-chem-name" placeholder="Enter custom chemical name">
-                                </div>
-                            </div>
+                        <!-- Chemicals Table -->
+                        <div class="field-chemicals-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Chemical Name</th>
+                                        <th>Label Rate</th>
+                                        <th>Rate Unit</th>
+                                        <th>Volume (gal)</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fieldChemicalsBody">
+                                    <tr class="chemical-row" data-row="1">
+                                        <td>
+                                            <select class="chemical-name" onchange="calculateChemicalVolume(this)">
+                                                <option value="">Select chemical...</option>
+                                                <option value="glyphosate">Glyphosate 53.8%</option>
+                                                <option value="2-4d">2,4-D Amine</option>
+                                                <option value="dicamba">Dicamba</option>
+                                                <option value="atrazine">Atrazine</option>
+                                                <option value="permethrin">Permethrin</option>
+                                                <option value="malathion">Malathion</option>
+                                                <option value="custom">Custom</option>
+                                            </select>
+                                            <input type="text" class="custom-chem-name" placeholder="Custom name" style="display:none; margin-top: 4px;">
+                                        </td>
+                                        <td><input type="number" class="label-rate" placeholder="32" min="0" step="0.1" oninput="calculateChemicalVolume(this)"></td>
+                                        <td>
+                                            <select class="rate-unit" onchange="calculateChemicalVolume(this)">
+                                                <option value="oz">oz/acre</option>
+                                                <option value="fl oz">fl oz/acre</option>
+                                                <option value="pt">pt/acre</option>
+                                                <option value="qt">qt/acre</option>
+                                                <option value="gal">gal/acre</option>
+                                                <option value="lb">lb/acre</option>
+                                            </select>
+                                        </td>
+                                        <td><input type="number" class="chemical-volume" readonly placeholder="-" style="background: var(--border-light);"></td>
+                                        <td><button class="remove-chem-btn" onclick="removeChemicalRow(this)" title="Remove">&times;</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                         
                         <!-- Add Chemical Button -->
@@ -797,8 +798,6 @@ const pages = {
                                 </tbody>
                             </table>
                         </div>
-                        
-                        <button class="btn btn-primary" onclick="calculateTankMix()">Calculate Tank Mix</button>
                     </div>
                 </div>
                 
@@ -886,18 +885,58 @@ const pages = {
                     outline: none;
                     border-color: var(--primary);
                 }
-                .chemical-row {
-                    border: 1px solid var(--border-light);
-                    border-radius: 12px;
-                    padding: 16px;
-                    margin-bottom: 12px;
-                    background: rgba(0, 0, 0, 0.1);
-                    position: relative;
+                .field-chemicals-table,
+                .tank-chemicals-table {
+                    overflow-x: auto;
+                    margin: 8px 0;
                 }
-                .chemical-row .remove-chem-btn {
-                    position: absolute;
-                    top: 8px;
-                    right: 8px;
+                .field-chemicals-table table,
+                .tank-chemicals-table table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .field-chemicals-table th,
+                .field-chemicals-table td,
+                .tank-chemicals-table th,
+                .tank-chemicals-table td {
+                    padding: 10px 12px;
+                    text-align: left;
+                    border-bottom: 1px solid var(--border-light);
+                }
+                .field-chemicals-table th,
+                .tank-chemicals-table th {
+                    font-size: 0.7rem;
+                    font-weight: 600;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    background: rgba(0, 0, 0, 0.2);
+                }
+                .field-chemicals-table td,
+                .tank-chemicals-table td {
+                    font-size: 0.85rem;
+                    color: var(--text-secondary);
+                }
+                .field-chemicals-table input,
+                .field-chemicals-table select {
+                    padding: 8px 10px;
+                    background: var(--bg-dark);
+                    border: 1px solid var(--border-light);
+                    border-radius: 6px;
+                    color: var(--text-primary);
+                    font-size: 0.85rem;
+                    width: 100%;
+                }
+                .field-chemicals-table input:focus,
+                .field-chemicals-table select:focus {
+                    outline: none;
+                    border-color: var(--primary);
+                }
+                .field-chemicals-table input[readonly] {
+                    background: var(--border-light);
+                    cursor: default;
+                }
+                .remove-chem-btn {
                     background: rgba(239, 68, 68, 0.1);
                     border: 1px solid rgba(239, 68, 68, 0.3);
                     color: #ef4444;
@@ -911,46 +950,8 @@ const pages = {
                     font-size: 1.2rem;
                     line-height: 1;
                 }
-                .chemical-row .remove-chem-btn:hover {
+                .remove-chem-btn:hover {
                     background: rgba(239, 68, 68, 0.2);
-                }
-                .custom-chemical-input {
-                    margin-top: 12px;
-                }
-                .custom-chemical-input input {
-                    width: 100%;
-                    padding: 10px 12px;
-                    background: var(--bg-dark);
-                    border: 1px solid var(--border-light);
-                    border-radius: 6px;
-                    color: var(--text-primary);
-                    font-size: 0.9rem;
-                }
-                .tank-chemicals-table {
-                    overflow-x: auto;
-                    margin: 16px 0;
-                }
-                .tank-chemicals-table table {
-                    width: 100%;
-                    border-collapse: collapse;
-                }
-                .tank-chemicals-table th,
-                .tank-chemicals-table td {
-                    padding: 12px;
-                    text-align: left;
-                    border-bottom: 1px solid var(--border-light);
-                }
-                .tank-chemicals-table th {
-                    font-size: 0.75rem;
-                    font-weight: 600;
-                    color: var(--text-muted);
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    background: rgba(0, 0, 0, 0.2);
-                }
-                .tank-chemicals-table td {
-                    font-size: 0.9rem;
-                    color: var(--text-secondary);
                 }
                 .results-card {
                     border-color: var(--primary);
@@ -1608,8 +1609,11 @@ function calculateFieldVolume() {
     document.getElementById('totalVolume').value = totalVolume > 0 ? totalVolume.toFixed(1) : '';
     
     // Recalculate all chemical volumes
-    document.querySelectorAll('.chemical-row').forEach(row => {
-        calculateChemicalVolume(row.querySelector('.label-rate'));
+    document.querySelectorAll('#fieldChemicalsBody .chemical-row').forEach(row => {
+        const labelRateInput = row.querySelector('.label-rate');
+        if (labelRateInput.value) {
+            calculateChemicalVolume(labelRateInput);
+        }
     });
     
     // Update tank calculator
@@ -1620,45 +1624,42 @@ function calculateFieldVolume() {
 function calculateChemicalVolume(element) {
     const row = element.closest('.chemical-row');
     const labelRate = parseFloat(row.querySelector('.label-rate').value) || 0;
-    const totalVolume = parseFloat(document.getElementById('totalVolume').value) || 0;
-    const chemName = row.querySelector('.chemical-name');
+    const chemNameSelect = row.querySelector('.chemical-name');
+    const customNameInput = row.querySelector('.custom-chem-name');
     
     // Show/hide custom chemical input
-    const customInput = row.querySelector('.custom-chemical-input');
-    if (chemName.value === 'custom') {
-        customInput.style.display = 'block';
+    if (chemNameSelect.value === 'custom') {
+        customNameInput.style.display = 'block';
     } else {
-        customInput.style.display = 'none';
+        customNameInput.style.display = 'none';
     }
     
-    // Calculate chemical volume: labelRate * totalVolume / 128 (convert oz to gallons)
+    // Calculate chemical volume
     const rateUnit = row.querySelector('.rate-unit').value;
+    const fieldSize = parseFloat(document.getElementById('fieldSize').value) || 0;
     let chemVolume = 0;
     
-    if (labelRate > 0 && totalVolume > 0) {
-        // Volume = label rate * field size (since totalVolume = fieldSize * GPA)
-        // Then convert to gallons based on unit
-        const fieldSize = parseFloat(document.getElementById('fieldSize').value) || 0;
-        const totalOz = labelRate * fieldSize;
+    if (labelRate > 0 && fieldSize > 0) {
+        // Total amount = label rate * field size
+        const totalAmount = labelRate * fieldSize;
         
+        // Convert to gallons based on unit
         switch(rateUnit) {
             case 'oz':
-                chemVolume = totalOz / 128; // 128 oz = 1 gallon
-                break;
             case 'fl oz':
-                chemVolume = totalOz / 128;
+                chemVolume = totalAmount / 128; // 128 oz = 1 gallon
                 break;
             case 'pt':
-                chemVolume = (totalOz * 16) / 128; // 1 pt = 16 oz
+                chemVolume = (totalAmount * 16) / 128; // 1 pt = 16 oz
                 break;
             case 'qt':
-                chemVolume = (totalOz * 32) / 128; // 1 qt = 32 oz
+                chemVolume = (totalAmount * 32) / 128; // 1 qt = 32 oz
                 break;
             case 'gal':
-                chemVolume = totalOz; // already in gallons
+                chemVolume = totalAmount; // already in gallons
                 break;
             case 'lb':
-                chemVolume = totalOz; // approximate, assuming 1 lb ≈ 1 gallon for liquids
+                chemVolume = totalAmount; // approximate
                 break;
         }
     }
@@ -1672,62 +1673,50 @@ function calculateChemicalVolume(element) {
 // Add a new chemical row
 function addChemicalRow() {
     chemicalRowCount++;
-    const container = document.getElementById('chemicalRowsContainer');
+    const tbody = document.getElementById('fieldChemicalsBody');
     
-    const newRow = document.createElement('div');
+    const newRow = document.createElement('tr');
     newRow.className = 'chemical-row';
     newRow.dataset.row = chemicalRowCount;
     newRow.innerHTML = `
-        <button class="remove-chem-btn" onclick="removeChemicalRow(this)" title="Remove chemical">&times;</button>
-        <div class="calc-row">
-            <div class="form-group">
-                <label>Chemical Name</label>
-                <select class="chemical-name" onchange="calculateChemicalVolume(this)">
-                    <option value="">Select chemical...</option>
-                    <option value="glyphosate">Glyphosate 53.8%</option>
-                    <option value="2-4d">2,4-D Amine</option>
-                    <option value="dicamba">Dicamba</option>
-                    <option value="atrazine">Atrazine</option>
-                    <option value="permethrin">Permethrin</option>
-                    <option value="malathion">Malathion</option>
-                    <option value="custom">Custom</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Label Rate</label>
-                <input type="number" class="label-rate" placeholder="e.g., 32" min="0" step="0.1" oninput="calculateChemicalVolume(this)">
-            </div>
-            <div class="form-group">
-                <label>Rate Unit</label>
-                <select class="rate-unit" onchange="calculateChemicalVolume(this)">
-                    <option value="oz">oz/acre</option>
-                    <option value="fl oz">fl oz/acre</option>
-                    <option value="pt">pt/acre</option>
-                    <option value="qt">qt/acre</option>
-                    <option value="gal">gal/acre</option>
-                    <option value="lb">lb/acre</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Volume (gallons)</label>
-                <input type="number" class="chemical-volume" readonly placeholder="Auto-calculated" style="background: var(--border-light);">
-            </div>
-        </div>
-        <div class="custom-chemical-input" style="display:none;">
-            <input type="text" class="custom-chem-name" placeholder="Enter custom chemical name">
-        </div>
+        <td>
+            <select class="chemical-name" onchange="calculateChemicalVolume(this)">
+                <option value="">Select chemical...</option>
+                <option value="glyphosate">Glyphosate 53.8%</option>
+                <option value="2-4d">2,4-D Amine</option>
+                <option value="dicamba">Dicamba</option>
+                <option value="atrazine">Atrazine</option>
+                <option value="permethrin">Permethrin</option>
+                <option value="malathion">Malathion</option>
+                <option value="custom">Custom</option>
+            </select>
+            <input type="text" class="custom-chem-name" placeholder="Custom name" style="display:none; margin-top: 4px;">
+        </td>
+        <td><input type="number" class="label-rate" placeholder="32" min="0" step="0.1" oninput="calculateChemicalVolume(this)"></td>
+        <td>
+            <select class="rate-unit" onchange="calculateChemicalVolume(this)">
+                <option value="oz">oz/acre</option>
+                <option value="fl oz">fl oz/acre</option>
+                <option value="pt">pt/acre</option>
+                <option value="qt">qt/acre</option>
+                <option value="gal">gal/acre</option>
+                <option value="lb">lb/acre</option>
+            </select>
+        </td>
+        <td><input type="number" class="chemical-volume" readonly placeholder="-" style="background: var(--border-light);"></td>
+        <td><button class="remove-chem-btn" onclick="removeChemicalRow(this)" title="Remove">&times;</button></td>
     `;
     
-    container.appendChild(newRow);
+    tbody.appendChild(newRow);
 }
 
 // Remove a chemical row
 function removeChemicalRow(btn) {
     const row = btn.closest('.chemical-row');
-    const container = document.getElementById('chemicalRowsContainer');
+    const tbody = document.getElementById('fieldChemicalsBody');
     
     // Keep at least one row
-    if (container.querySelectorAll('.chemical-row').length > 1) {
+    if (tbody.querySelectorAll('.chemical-row').length > 1) {
         row.remove();
         calculateTankMix();
     }
@@ -1744,7 +1733,7 @@ function calculateTankMix() {
     document.getElementById('tanksNeeded').value = tanksNeeded > 0 ? tanksNeeded : '';
     
     // Get all chemical rows
-    const chemRows = document.querySelectorAll('.chemical-row');
+    const chemRows = document.querySelectorAll('#fieldChemicalsBody .chemical-row');
     let hasChemicals = false;
     let tableHtml = '';
     
