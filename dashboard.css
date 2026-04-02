@@ -1001,65 +1001,109 @@
 }
 
 /* ============================================
-   RESPONSIVE DESIGN - TABLET SMALL (max-width: 768px)
+   RESPONSIVE DESIGN - MOBILE (max-width: 768px)
+   Handles portrait phones and small tablets
    ============================================ */
 @media (max-width: 768px) {
     .content-header {
-        padding: 16px 20px;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+        padding: 12px 16px;
     }
     
     .header-left h1 {
         font-size: 1.25rem;
     }
     
-    .content-area {
-        padding: 20px;
+    .header-right {
+        justify-content: center;
     }
     
-    .page-header {
-        flex-direction: column;
-        gap: 12px;
+    .content-area {
+        padding: 12px;
     }
     
     .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
         gap: 12px;
     }
     
     .stat-card {
-        padding: 16px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
     }
     
     .stat-icon {
-        width: 48px;
-        height: 48px;
+        width: 40px;
+        height: 40px;
+    }
+    
+    .stat-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+    
+    .stat-info {
+        text-align: right;
     }
     
     .stat-info .stat-value {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
     }
     
     .stat-info .stat-label {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
     
     .data-table {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .data-table table {
+        min-width: 600px;
     }
     
     .data-table th,
     .data-table td {
-        padding: 10px 8px;
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+    
+    .action-btn {
+        padding: 4px 8px;
+        font-size: 0.7rem;
+    }
+    
+    .sidebar {
+        width: 100%;
+    }
+    
+    .sidebar-header {
+        padding: 16px;
+    }
+    
+    .nav-item {
+        padding: 12px 16px;
+        font-size: 0.9rem;
     }
     
     .modal-content {
         width: calc(100% - 16px);
         margin: 8px;
-        border-radius: 12px;
+        max-height: calc(100vh - 16px);
     }
     
     .modal-header {
-        padding: 16px;
+        padding: 12px 16px;
+    }
+    
+    .modal-header h3 {
+        font-size: 1rem;
     }
     
     .modal-body {
@@ -1069,23 +1113,79 @@
     .modal-footer {
         flex-direction: column;
         gap: 8px;
-        padding: 16px;
+        padding: 12px 16px;
     }
     
     .modal-footer .btn {
         width: 100%;
-        justify-content: center;
     }
     
-    .application-detail-header {
-        flex-direction: column;
-        gap: 12px;
-        align-items: flex-start;
+    .detail-id {
+        font-size: 1.2rem;
     }
     
     .detail-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 8px;
+    }
+    
+    .detail-field-group {
+        padding: 12px;
+    }
+    
+    .btn {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+    }
+    
+    .login-card {
+        padding: 32px 24px;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .page-header p {
+        font-size: 0.9rem;
+    }
+    
+    .category-manager {
+        padding: 12px;
+    }
+    
+    .add-category {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .add-category input {
+        width: 100%;
+    }
+    
+    .recent-section {
+        padding: 12px;
+    }
+    
+    .profile-card {
+        padding: 12px;
+    }
+    
+    .profiles-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-visual {
+        height: 150px;
+    }
+    
+    .chart-bar {
+        width: 35px;
     }
     
     .upload-area {
@@ -1100,7 +1200,7 @@
     
     .documents-filter {
         flex-direction: column;
-        gap: 12px;
+        gap: 8px;
     }
     
     .filter-group {
@@ -1123,61 +1223,47 @@
     .custom-chemical-input {
         flex-direction: column;
     }
+    
+    .application-detail-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
 }
 
 /* ============================================
-   RESPONSIVE DESIGN - MOBILE (max-width: 480px)
+   RESPONSIVE DESIGN - PORTRAIT PHONE (max-width: 480px)
+   Extra small screens
    ============================================ */
 @media (max-width: 480px) {
-    .content-header {
-        flex-direction: column;
-        gap: 8px;
-        text-align: center;
-    }
-    
-    .header-right {
-        justify-content: center;
-    }
-    
     .content-area {
-        padding: 12px;
+        padding: 8px;
     }
     
     .stats-grid {
-        grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 8px;
     }
     
     .stat-card {
-        flex-direction: column;
-        text-align: center;
-        gap: 12px;
+        padding: 10px;
     }
     
     .stat-icon {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
     }
     
     .stat-icon svg {
-        width: 18px;
-        height: 18px;
-    }
-    
-    .stat-info {
-        text-align: center;
+        width: 16px;
+        height: 16px;
     }
     
     .stat-info .stat-value {
-        font-size: 1.25rem;
-    }
-    
-    .stat-info .stat-label {
-        font-size: 0.7rem;
+        font-size: 1.1rem;
     }
     
     .data-table {
-        font-size: 0.75rem;
+        font-size: 0.7rem;
     }
     
     .data-table th,
@@ -1185,80 +1271,30 @@
         padding: 6px 4px;
     }
     
-    .action-btn {
-        padding: 4px 8px;
-        font-size: 0.7rem;
-    }
-    
-    .sidebar {
-        width: 100%;
-    }
-    
-    .sidebar-header {
-        padding: 16px;
-    }
-    
     .nav-item {
-        padding: 12px 16px;
-        font-size: 0.9rem;
-    }
-    
-    .modal-header h3 {
-        font-size: 1rem;
-    }
-    
-    .detail-id {
-        font-size: 1.2rem;
-    }
-    
-    .detail-field-group {
-        padding: 12px;
-    }
-    
-    .btn {
-        padding: 10px 16px;
+        padding: 10px 14px;
         font-size: 0.85rem;
     }
     
-    .login-card {
-        padding: 32px 24px;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-    }
-    
-    .page-header p {
+    .modal-header h3 {
         font-size: 0.9rem;
     }
     
-    .category-manager {
-        padding: 12px;
+    .detail-id {
+        font-size: 1rem;
     }
     
-    .add-category {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .add-category input {
-        width: 100%;
-    }
-    
-    .recent-section {
-        padding: 16px;
-    }
-    
-    .profile-card {
-        padding: 16px;
+    .btn {
+        padding: 8px 14px;
+        font-size: 0.8rem;
     }
     
     .chart-visual {
-        height: 150px;
+        height: 120px;
     }
     
     .chart-bar {
-        width: 40px;
+        width: 28px;
     }
 }
 
