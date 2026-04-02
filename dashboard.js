@@ -1865,7 +1865,9 @@ function updateJobsTable() {
         const status = job.jobStatus || 'pending';
         const statusClass = status === 'scheduled' ? 'scheduled' : 
                            status === 'completed' ? 'completed' : 'pending';
+        const hasDate = !!job.scheduledDate;
         const scheduledDisplay = job.scheduledDate || '<span class="schedule-placeholder">Click to schedule</span>';
+        const dateClass = hasDate ? 'scheduled-date has-date' : 'scheduled-date';
         
         return `
             <tr class="clickable-row" onclick="viewJob('${job.id}')">
@@ -1876,7 +1878,7 @@ function updateJobsTable() {
                 <td>${cropTypes}</td>
                 <td>${dateRequested}</td>
                 <td class="schedule-cell clickable-schedule" onclick="event.stopPropagation(); openCalendarModal('${job.id}')">
-                    <span class="scheduled-date" data-job-id="${job.id}">${scheduledDisplay}</span>
+                    <span class="${dateClass}" data-job-id="${job.id}">${scheduledDisplay}</span>
                 </td>
                 <td><span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 <td class="actions-cell">
