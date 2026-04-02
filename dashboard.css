@@ -483,6 +483,16 @@
     font-size: 0.85rem;
 }
 
+.scheduled-date {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.scheduled-date.has-date {
+    color: #3b82f6;
+    font-weight: 500;
+}
+
 /* Status Badges */
 .status {
     display: inline-block;
