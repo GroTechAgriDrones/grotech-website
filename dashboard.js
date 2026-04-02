@@ -743,7 +743,7 @@ const pages = {
                                                 <option value="lb">lb/acre</option>
                                             </select>
                                         </td>
-                                        <td><input type="number" class="chemical-volume" readonly placeholder="-" style="background: var(--border-light);"></td>
+<td><input type="text" class="chemical-volume" readonly placeholder="-" style="background: var(--border-light);"></td>
                                         <td><button class="remove-chem-btn" onclick="removeChemicalRow(this)" title="Remove">&times;</button></td>
                                     </tr>
                                 </tbody>
@@ -2198,7 +2198,7 @@ function addChemicalRow() {
                 <option value="lb">lb/acre</option>
             </select>
         </td>
-        <td><input type="number" class="chemical-volume" readonly placeholder="-" style="background: var(--border-light);"></td>
+        <td><input type="text" class="chemical-volume" readonly placeholder="-" style="background: var(--border-light);"></td>
         <td><button class="remove-chem-btn" onclick="removeChemicalRow(this)" title="Remove">&times;</button></td>
     `;
     
