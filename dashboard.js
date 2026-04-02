@@ -732,7 +732,7 @@ const pages = {
                                             </select>
                                             <input type="text" class="custom-chem-name" placeholder="Custom name" style="display:none; margin-top: 4px;">
                                         </td>
-                                        <td><input type="number" class="label-rate" placeholder="32" min="0" step="0.1" oninput="calculateChemicalVolume(this)"></td>
+<td><input type="text" class="label-rate" placeholder="32 or 16 - 64" oninput="calculateChemicalVolume(this)"></td>
                                         <td>
                                             <select class="rate-unit" onchange="calculateChemicalVolume(this)">
                                                 <option value="oz">oz/acre</option>
@@ -2042,18 +2042,29 @@ function onChemicalSelect(selectElement) {
     const row = selectElement.closest('.chemical-row');
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     const customInput = row.querySelector('.custom-chem-name');
+    const labelRateInput = row.querySelector('.label-rate');
     
     if (selectElement.value === 'custom') {
         customInput.style.display = 'block';
-        row.querySelector('.label-rate').value = '';
+        labelRateInput.value = '';
+        labelRateInput.readOnly = false;
     } else {
         customInput.style.display = 'none';
         
         // Auto-fill default rate and unit from chemical data
         const chem = chemicalsDB.find(c => (c.id || c.name.toLowerCase().replace(/\s+/g, '-')) === selectElement.value);
         if (chem) {
-            if (chem.defaultRate) {
-                row.querySelector('.label-rate').value = chem.defaultRate;
+            // Check if rate range exists and min !== max
+            if (chem.rateRange && chem.rateRange.min !== chem.rateRange.max) {
+                // Display as range: "min - max"
+                labelRateInput.value = `${chem.rateRange.min} - ${chem.rateRange.max}`;
+                labelRateInput.readOnly = true;
+                labelRateInput.style.cursor = 'default';
+            } else if (chem.defaultRate) {
+                // Display as single value
+                labelRateInput.value = chem.defaultRate;
+                labelRateInput.readOnly = false;
+                labelRateInput.style.cursor = '';
             }
             if (chem.rateUnit) {
                 row.querySelector('.rate-unit').value = chem.rateUnit;
@@ -2087,7 +2098,8 @@ function calculateFieldVolume() {
 // Calculate volume for a specific chemical
 function calculateChemicalVolume(element) {
     const row = element.closest('.chemical-row');
-    const labelRate = parseFloat(row.querySelector('.label-rate').value) || 0;
+    const labelRateInput = row.querySelector('.label-rate');
+    const labelRateValue = labelRateInput.value;
     const chemNameSelect = row.querySelector('.chemical-name');
     const customNameInput = row.querySelector('.custom-chem-name');
     
@@ -2101,37 +2113,64 @@ function calculateChemicalVolume(element) {
     // Calculate chemical volume
     const rateUnit = row.querySelector('.rate-unit').value;
     const fieldSize = parseFloat(document.getElementById('fieldSize').value) || 0;
-    let chemVolume = 0;
     
-    if (labelRate > 0 && fieldSize > 0) {
-        // Total amount = label rate * field size
-        const totalAmount = labelRate * fieldSize;
+    // Check if label rate is a range (contains " - ")
+    const isRange = labelRateValue.includes(' - ');
+    
+    if (isRange) {
+        // Parse range: "min - max"
+        const parts = labelRateValue.split(' - ');
+        const minRate = parseFloat(parts[0]) || 0;
+        const maxRate = parseFloat(parts[1]) || 0;
         
-        // Convert to gallons based on unit
-        switch(rateUnit) {
-            case 'oz':
-            case 'fl oz':
-                chemVolume = totalAmount / 128; // 128 oz = 1 gallon
-                break;
-            case 'pt':
-                chemVolume = (totalAmount * 16) / 128; // 1 pt = 16 oz
-                break;
-            case 'qt':
-                chemVolume = (totalAmount * 32) / 128; // 1 qt = 32 oz
-                break;
-            case 'gal':
-                chemVolume = totalAmount; // already in gallons
-                break;
-            case 'lb':
-                chemVolume = totalAmount; // approximate
-                break;
+        if (minRate > 0 && fieldSize > 0) {
+            const minVolume = convertToGallons(minRate * fieldSize, rateUnit);
+            const maxVolume = convertToGallons(maxRate * fieldSize, rateUnit);
+            row.querySelector('.chemical-volume').value = `${minVolume.toFixed(2)} - ${maxVolume.toFixed(2)}`;
+            row.querySelector('.chemical-volume').dataset.minVolume = minVolume;
+            row.querySelector('.chemical-volume').dataset.maxVolume = maxVolume;
+        } else {
+            row.querySelector('.chemical-volume').value = '';
+            row.querySelector('.chemical-volume').dataset.minVolume = '';
+            row.querySelector('.chemical-volume').dataset.maxVolume = '';
+        }
+    } else {
+        // Single rate value
+        const labelRate = parseFloat(labelRateValue) || 0;
+        
+        if (labelRate > 0 && fieldSize > 0) {
+            const chemVolume = convertToGallons(labelRate * fieldSize, rateUnit);
+            row.querySelector('.chemical-volume').value = chemVolume.toFixed(2);
+            row.querySelector('.chemical-volume').dataset.minVolume = '';
+            row.querySelector('.chemical-volume').dataset.maxVolume = '';
+        } else {
+            row.querySelector('.chemical-volume').value = '';
+            row.querySelector('.chemical-volume').dataset.minVolume = '';
+            row.querySelector('.chemical-volume').dataset.maxVolume = '';
         }
     }
     
-    row.querySelector('.chemical-volume').value = chemVolume > 0 ? chemVolume.toFixed(2) : '';
-    
     // Update tank calculator
     calculateTankMix();
+}
+
+// Helper function to convert to gallons based on unit
+function convertToGallons(totalAmount, rateUnit) {
+    switch(rateUnit) {
+        case 'oz':
+        case 'fl oz':
+            return totalAmount / 128; // 128 oz = 1 gallon
+        case 'pt':
+            return (totalAmount * 16) / 128; // 1 pt = 16 oz
+        case 'qt':
+            return (totalAmount * 32) / 128; // 1 qt = 32 oz
+        case 'gal':
+            return totalAmount; // already in gallons
+        case 'lb':
+            return totalAmount; // approximate
+        default:
+            return totalAmount;
+    }
 }
 
 // Add a new chemical row
@@ -2210,21 +2249,41 @@ function calculateTankMix() {
             chemName = customName || 'Custom Chemical';
         }
         
-        const labelRate = parseFloat(row.querySelector('.label-rate').value) || 0;
+        const labelRate = row.querySelector('.label-rate').value;
         const rateUnit = row.querySelector('.rate-unit').value;
-        const fieldVolume = parseFloat(row.querySelector('.chemical-volume').value) || 0;
+        const volumeInput = row.querySelector('.chemical-volume');
+        const volumeValue = volumeInput.value;
         
-        // Calculate per tank: fieldVolume / tanksNeeded
-        const perTank = tanksNeeded > 0 ? fieldVolume / tanksNeeded : 0;
+        // Check if volume is a range
+        const isRange = volumeValue.includes(' - ');
         
-        if (chemSelect.value && labelRate > 0) {
+        let perTankDisplay = '-';
+        
+        if (chemSelect.value && tanksNeeded > 0) {
+            if (isRange) {
+                const parts = volumeValue.split(' - ');
+                const minVol = parseFloat(parts[0]) || 0;
+                const maxVol = parseFloat(parts[1]) || 0;
+                const minPerTank = minVol / tanksNeeded;
+                const maxPerTank = maxVol / tanksNeeded;
+                perTankDisplay = `${minPerTank.toFixed(2)} - ${maxPerTank.toFixed(2)} gal`;
+            } else {
+                const fieldVolume = parseFloat(volumeValue) || 0;
+                const perTank = fieldVolume / tanksNeeded;
+                if (perTank > 0) {
+                    perTankDisplay = perTank.toFixed(2) + ' gal';
+                }
+            }
+        }
+        
+        if (chemSelect.value && labelRate) {
             hasChemicals = true;
             tableHtml += `
                 <tr>
                     <td>${chemName}</td>
                     <td>${labelRate}</td>
                     <td>${rateUnit}/acre</td>
-                    <td>${perTank > 0 ? perTank.toFixed(2) + ' gal' : '-'}</td>
+                    <td>${perTankDisplay}</td>
                 </tr>
             `;
         }
