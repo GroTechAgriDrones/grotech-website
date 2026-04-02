@@ -1570,7 +1570,7 @@ function renderApplicationsTable() {
         const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
         
         return `
-            <tr>
+            <tr class="clickable-row" onclick="viewApplication('${app.id}')">
                 <td>${app.id}</td>
                 <td>${app.fullName}</td>
                 <td>${app.phone}</td>
@@ -1579,8 +1579,7 @@ function renderApplicationsTable() {
                 <td>${date}</td>
                 <td><span class="status ${statusClass}">${app.status.charAt(0).toUpperCase() + app.status.slice(1)}</span></td>
                 <td class="actions-cell">
-                    <button class="action-btn" onclick="viewApplication('${app.id}')">View</button>
-                    <button class="action-btn delete-btn" onclick="deleteApplication('${app.id}')" title="Delete application">
+                    <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteApplication('${app.id}')" title="Delete application">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </td>
@@ -1869,7 +1868,7 @@ function updateJobsTable() {
         const scheduledDisplay = job.scheduledDate || '<span class="schedule-placeholder">Click to schedule</span>';
         
         return `
-            <tr>
+            <tr class="clickable-row" onclick="viewJob('${job.id}')">
                 <td>${job.id}</td>
                 <td>${job.fullName || 'N/A'}</td>
                 <td>${job.phone || 'N/A'}</td>
@@ -1878,14 +1877,13 @@ function updateJobsTable() {
                 <td>${dateRequested}</td>
                 <td class="schedule-cell">
                     <span class="scheduled-date" data-job-id="${job.id}">${scheduledDisplay}</span>
-                    <button class="calendar-btn" onclick="openCalendarModal('${job.id}')" title="Schedule job">
+                    <button class="calendar-btn" onclick="event.stopPropagation(); openCalendarModal('${job.id}')" title="Schedule job">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     </button>
                 </td>
                 <td><span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 <td class="actions-cell">
-                    <button class="action-btn" onclick="viewJob('${job.id}')">View</button>
-                    ${status !== 'completed' ? `<button class="action-btn" onclick="updateJobStatus('${job.id}', 'completed')">Complete</button>` : ''}
+                    ${status !== 'completed' ? `<button class="action-btn" onclick="event.stopPropagation(); updateJobStatus('${job.id}', 'completed')">Complete</button>` : ''}
                 </td>
             </tr>
         `;
