@@ -29,7 +29,7 @@ const pages = {
         `
     },
     applications: {
-        title: 'Client Applications',
+        title: 'Application Requests',
         content: `
             <div class="stats-grid" style="margin-bottom: 24px;">
                 <div class="stat-card">
@@ -70,7 +70,7 @@ const pages = {
                 </div>
             </div>
             <div class="page-header">
-                <p>View and manage all client service applications</p>
+                <p>View and manage all application requests</p>
             </div>
             <div class="data-table">
                 <table>
@@ -117,10 +117,10 @@ const pages = {
         `
     },
     requests: {
-        title: 'Service Requests',
+        title: 'Jobs',
         content: `
             <div class="page-header">
-                <p>Track and manage service requests</p>
+                <p>Track and manage jobs</p>
             </div>
             <div class="data-table">
                 <table>
@@ -642,6 +642,273 @@ const pages = {
                     background: var(--primary-light);
                     width: 0%;
                     transition: width 0.3s ease;
+                }
+            </style>
+        `
+    },
+    calculator: {
+        title: 'Chemical Calculator',
+        content: `
+            <div class="page-header">
+                <p>Calculate chemical mix rates for drone spraying</p>
+            </div>
+            <div class="calculator-container">
+                <div class="calculator-card">
+                    <h3>Rate Calculator</h3>
+                    <div class="calc-form">
+                        <div class="form-group">
+                            <label>Product Name</label>
+                            <select id="calcProduct">
+                                <option value="">Select a product...</option>
+                                <option value="glyphosate">Glyphosate 53.8%</option>
+                                <option value="2-4d">2,4-D Amine</option>
+                                <option value="dicamba">Dicamba</option>
+                                <option value="atrazine">Atrazine</option>
+                                <option value="permethrin">Permethrin</option>
+                                <option value="malathion">Malathion</option>
+                                <option value="custom">Custom Product</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="customProductGroup" style="display:none;">
+                            <label>Custom Product Name</label>
+                            <input type="text" id="customProductName" placeholder="Enter product name">
+                        </div>
+                        <div class="calc-row">
+                            <div class="form-group">
+                                <label>Field Size (acres)</label>
+                                <input type="number" id="calcAcres" placeholder="e.g., 100" min="0" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Label Rate</label>
+                                <input type="number" id="calcLabelRate" placeholder="e.g., 32" min="0" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label>Rate Unit</label>
+                                <select id="calcRateUnit">
+                                    <option value="oz/acre">oz/acre</option>
+                                    <option value="pt/acre">pt/acre</option>
+                                    <option value="qt/acre">qt/acre</option>
+                                    <option value="gal/acre">gal/acre</option>
+                                    <option value="lb/acre">lb/acre</option>
+                                    <option value="fl oz/acre">fl oz/acre</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="calc-row">
+                            <div class="form-group">
+                                <label>Tank Size (gallons)</label>
+                                <input type="number" id="calcTankSize" placeholder="e.g., 10" min="0" step="0.5">
+                            </div>
+                            <div class="form-group">
+                                <label>GPA (Gallons Per Acre)</label>
+                                <input type="number" id="calcGPA" placeholder="e.g., 15" min="0" step="0.5" value="15">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="calculateChemical()">Calculate</button>
+                    </div>
+                </div>
+                
+                <div class="calculator-card results-card" id="calcResults" style="display:none;">
+                    <h3>Results</h3>
+                    <div class="results-grid">
+                        <div class="result-item">
+                            <span class="result-label">Total Product Needed</span>
+                            <span class="result-value" id="resultTotalProduct">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Product Per Tank</span>
+                            <span class="result-value" id="resultPerTank">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Total Tanks Needed</span>
+                            <span class="result-value" id="resultTanks">-</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">Total Water Needed</span>
+                            <span class="result-value" id="resultWater">-</span>
+                        </div>
+                    </div>
+                    <div class="result-note">
+                        <p>Always verify rates with product label. Follow all safety guidelines and local regulations.</p>
+                    </div>
+                </div>
+                
+                <div class="calculator-card">
+                    <h3>Quick Reference - Common Mix Rates</h3>
+                    <div class="reference-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Crop</th>
+                                    <th>Target</th>
+                                    <th>Rate/Acre</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Glyphosate</td>
+                                    <td>Burndown</td>
+                                    <td>All weeds</td>
+                                    <td>32 oz</td>
+                                </tr>
+                                <tr>
+                                    <td>2,4-D Amine</td>
+                                    <td>Soybeans</td>
+                                    <td>Broadleaf weeds</td>
+                                    <td>1-2 pt</td>
+                                </tr>
+                                <tr>
+                                    <td>Dicamba</td>
+                                    <td>Dicamba-tolerant</td>
+                                    <td>Broadleaf weeds</td>
+                                    <td>8-16 oz</td>
+                                </tr>
+                                <tr>
+                                    <td>Atrazine</td>
+                                    <td>Corn</td>
+                                    <td>Broadleaf weeds</td>
+                                    <td>1-2 qt</td>
+                                </tr>
+                                <tr>
+                                    <td>Permethrin</td>
+                                    <td>Various</td>
+                                    <td>Insects</td>
+                                    <td>2-4 fl oz</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .calculator-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 24px;
+                    max-width: 900px;
+                }
+                .calculator-card {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: 16px;
+                    padding: 24px;
+                }
+                .calculator-card h3 {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    color: var(--text-primary);
+                    margin-bottom: 20px;
+                }
+                .calc-form {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+                }
+                .calc-row {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 16px;
+                }
+                @media (max-width: 768px) {
+                    .calc-row {
+                        grid-template-columns: 1fr;
+                    }
+                }
+                .calc-form .form-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                .calc-form label {
+                    font-size: 0.85rem;
+                    font-weight: 500;
+                    color: var(--text-secondary);
+                }
+                .calc-form input,
+                .calc-form select {
+                    padding: 12px 14px;
+                    background: var(--bg-dark);
+                    border: 1px solid var(--border-light);
+                    border-radius: 8px;
+                    color: var(--text-primary);
+                    font-size: 0.95rem;
+                }
+                .calc-form input:focus,
+                .calc-form select:focus {
+                    outline: none;
+                    border-color: var(--primary);
+                }
+                .results-card {
+                    border-color: var(--primary);
+                    background: rgba(54, 124, 43, 0.05);
+                }
+                .results-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 20px;
+                    margin-bottom: 16px;
+                }
+                @media (max-width: 480px) {
+                    .results-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+                .result-item {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    padding: 16px;
+                    background: var(--bg-card);
+                    border-radius: 10px;
+                    border: 1px solid var(--border-light);
+                }
+                .result-label {
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .result-value {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: var(--primary-light);
+                }
+                .result-note {
+                    padding: 12px 16px;
+                    background: rgba(251, 191, 36, 0.1);
+                    border: 1px solid rgba(251, 191, 36, 0.2);
+                    border-radius: 8px;
+                    font-size: 0.8rem;
+                    color: #fbbf24;
+                }
+                .reference-table {
+                    overflow-x: auto;
+                }
+                .reference-table table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+                .reference-table th,
+                .reference-table td {
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 1px solid var(--border-light);
+                }
+                .reference-table th {
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    background: rgba(0, 0, 0, 0.2);
+                }
+                .reference-table td {
+                    font-size: 0.9rem;
+                    color: var(--text-secondary);
                 }
             </style>
         `
@@ -1225,6 +1492,71 @@ if (document.getElementById('documentsGrid')) {
 if (document.getElementById('applicationsTableBody')) {
     fetchApplications();
 }
+
+// Chemical Calculator Functions
+function calculateChemical() {
+    const product = document.getElementById('calcProduct').value;
+    const acres = parseFloat(document.getElementById('calcAcres').value) || 0;
+    const labelRate = parseFloat(document.getElementById('calcLabelRate').value) || 0;
+    const rateUnit = document.getElementById('calcRateUnit').value;
+    const tankSize = parseFloat(document.getElementById('calcTankSize').value) || 0;
+    const gpa = parseFloat(document.getElementById('calcGPA').value) || 15;
+    
+    if (!product || acres <= 0 || labelRate <= 0 || tankSize <= 0 || gpa <= 0) {
+        alert('Please fill in all required fields with valid values.');
+        return;
+    }
+    
+    // Calculate total product needed
+    const totalProduct = acres * labelRate;
+    
+    // Calculate product per tank (based on water per tank / gpa * label rate)
+    const waterPerTank = tankSize;
+    const acresPerTank = waterPerTank / gpa;
+    const productPerTank = acresPerTank * labelRate;
+    
+    // Calculate total tanks needed
+    const totalWater = acres * gpa;
+    const totalTanks = Math.ceil(totalWater / tankSize);
+    
+    // Format results based on unit
+    let productUnit = rateUnit.split('/')[0];
+    let resultTotalProduct, resultPerTank;
+    
+    if (totalProduct >= 128) {
+        resultTotalProduct = (totalProduct / 128).toFixed(2) + ' gallons';
+    } else if (totalProduct >= 32) {
+        resultTotalProduct = (totalProduct / 32).toFixed(2) + ' quarts';
+    } else {
+        resultTotalProduct = totalProduct.toFixed(1) + ' ' + productUnit;
+    }
+    
+    if (productPerTank >= 128) {
+        resultPerTank = (productPerTank / 128).toFixed(2) + ' gallons';
+    } else if (productPerTank >= 32) {
+        resultPerTank = (productPerTank / 32).toFixed(2) + ' quarts';
+    } else {
+        resultPerTank = productPerTank.toFixed(1) + ' ' + productUnit;
+    }
+    
+    document.getElementById('resultTotalProduct').textContent = resultTotalProduct;
+    document.getElementById('resultPerTank').textContent = resultPerTank;
+    document.getElementById('resultTanks').textContent = totalTanks;
+    document.getElementById('resultWater').textContent = totalWater.toFixed(0) + ' gallons';
+    document.getElementById('calcResults').style.display = 'block';
+}
+
+// Toggle custom product input
+document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'calcProduct') {
+        const customGroup = document.getElementById('customProductGroup');
+        if (e.target.value === 'custom') {
+            customGroup.style.display = 'block';
+        } else {
+            customGroup.style.display = 'none';
+        }
+    }
+});
 
 // Mobile menu toggle
 const mobileMenuBtn = document.getElementById('mobileMenuBtn');
