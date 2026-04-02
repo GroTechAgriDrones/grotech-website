@@ -2114,16 +2114,26 @@ function selectDate(dateStr) {
         const date = new Date(dateStr + 'T00:00:00');
         const displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         
-        // Update job schedule
-        updateJobSchedule(currentCalendarJobId, displayDate);
-        
-        // Update display immediately
+        // Update display immediately (before API call for instant feedback)
         const dateEl = document.querySelector(`.scheduled-date[data-job-id="${currentCalendarJobId}"]`);
         if (dateEl) {
             dateEl.innerHTML = displayDate;
+            dateEl.classList.add('has-date');
         }
         
+        // Also update status display immediately
+        const row = dateEl?.closest('tr');
+        const statusCell = row?.querySelector('.status');
+        if (statusCell) {
+            statusCell.textContent = 'Scheduled';
+            statusCell.className = 'status scheduled';
+        }
+        
+        // Close modal
         closeCalendarModal();
+        
+        // Update job schedule via API
+        updateJobSchedule(currentCalendarJobId, displayDate);
     }
 }
 
