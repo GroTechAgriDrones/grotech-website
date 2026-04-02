@@ -449,6 +449,24 @@
     background: rgba(54, 124, 43, 0.03);
 }
 
+/* Clickable Table Rows */
+.clickable-row {
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.clickable-row:hover td {
+    background: rgba(54, 124, 43, 0.08) !important;
+}
+
+.clickable-row .actions-cell {
+    cursor: default;
+}
+
+.clickable-row .actions-cell button {
+    cursor: pointer;
+}
+
 /* Status Badges */
 .status {
     display: inline-block;
