@@ -2128,27 +2128,28 @@ const originalUpdateApplicationStatus = updateApplicationStatus;
 async function updateApplicationStatusWithJob(status) {
     if (!currentApplicationId) return;
     
-    // If approving, create a job first
-    if (status === 'approved') {
-        const app = applications.find(a => a.id === currentApplicationId);
-        if (app) {
-            await createJobFromApplication(app);
-        }
-    }
+    console.log('Updating application status:', currentApplicationId, status);
     
-    // Then update the application status
     try {
+        // Update the application status - Lambda handles job creation when approved
         const response = await fetch(`${API_BASE_URL}/applications/${currentApplicationId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: status })
         });
         
+        console.log('Response status:', response.status);
         const result = await response.json();
-        console.log('Status updated:', result);
+        console.log('Result:', result);
         
-        await fetchApplications();
-        closeApplicationModal();
+        if (response.ok) {
+            // Refresh applications and jobs lists
+            await fetchApplications();
+            await fetchJobs();
+            closeApplicationModal();
+        } else {
+            alert('Error: ' + (result.error || 'Failed to update status'));
+        }
         
     } catch (error) {
         console.error('Error updating status:', error);
