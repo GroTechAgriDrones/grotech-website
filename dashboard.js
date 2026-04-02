@@ -125,7 +125,7 @@ const pages = {
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
                     </div>
                     <div class="stat-info">
-                        <span class="stat-value" id="statTotalJobs">4</span>
+                        <span class="stat-value" id="statTotalJobs">0</span>
                         <span class="stat-label">Total Jobs</span>
                     </div>
                 </div>
@@ -134,7 +134,7 @@ const pages = {
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     </div>
                     <div class="stat-info">
-                        <span class="stat-value" id="statPendingJobs">2</span>
+                        <span class="stat-value" id="statPendingJobs">0</span>
                         <span class="stat-label">Pending Jobs</span>
                     </div>
                 </div>
@@ -143,7 +143,7 @@ const pages = {
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     </div>
                     <div class="stat-info">
-                        <span class="stat-value" id="statScheduledJobs">1</span>
+                        <span class="stat-value" id="statScheduledJobs">0</span>
                         <span class="stat-label">Scheduled Jobs</span>
                     </div>
                 </div>
@@ -152,63 +152,32 @@ const pages = {
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
                     <div class="stat-info">
-                        <span class="stat-value" id="statCompletedJobs">1</span>
+                        <span class="stat-value" id="statCompletedJobs">0</span>
                         <span class="stat-label">Completed Jobs</span>
                     </div>
                 </div>
             </div>
             <div class="page-header">
-                <p>Track and manage jobs</p>
+                <p>Track and manage jobs from approved applications</p>
             </div>
             <div class="data-table">
                 <table>
                     <thead>
                         <tr>
-                            <th>Request ID</th>
+                            <th>Job ID</th>
                             <th>Client</th>
-                            <th>Service Type</th>
-                            <th>Date Requested</th>
-                            <th>Scheduled Date</th>
+                            <th>Phone</th>
                             <th>Acres</th>
+                            <th>Crops</th>
+                            <th>Date Requested</th>
+                            <th>Schedule Date</th>
                             <th>Status</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="jobsTableBody">
                         <tr>
-                            <td>REQ-001</td>
-                            <td>Mike Johnson</td>
-                            <td>Precision Spraying</td>
-                            <td>2026-03-15</td>
-                            <td>2026-04-01</td>
-                            <td>320</td>
-                            <td><span class="status scheduled">Scheduled</span></td>
-                        </tr>
-                        <tr>
-                            <td>REQ-002</td>
-                            <td>Tom Wilson</td>
-                            <td>Variable Rate</td>
-                            <td>2026-03-20</td>
-                            <td>2026-04-05</td>
-                            <td>200</td>
-                            <td><span class="status pending">Pending</span></td>
-                        </tr>
-                        <tr>
-                            <td>REQ-003</td>
-                            <td>Sarah Davis</td>
-                            <td>Precision Spraying</td>
-                            <td>2026-03-10</td>
-                            <td>2026-03-28</td>
-                            <td>750</td>
-                            <td><span class="status completed">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>REQ-004</td>
-                            <td>John Smith</td>
-                            <td>Full Service</td>
-                            <td>2026-03-25</td>
-                            <td>TBD</td>
-                            <td>500</td>
-                            <td><span class="status pending">Pending</span></td>
+                            <td colspan="9" class="no-data">No jobs yet. Jobs are created when applications are approved.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -1804,6 +1773,311 @@ function updateDashboardStats() {
 }
 // ============================================
 // END APPLICATIONS API
+// ============================================
+
+// ============================================
+// JOBS MANAGEMENT
+// ============================================
+
+let jobs = [];
+
+// Fetch jobs from S3
+async function fetchJobs() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/jobs`);
+        if (response.ok) {
+            const data = await response.json();
+            jobs = data.jobs || [];
+            updateJobsTable();
+            updateJobsStats();
+        }
+    } catch (error) {
+        console.error('Error fetching jobs:', error);
+        jobs = [];
+        updateJobsTable();
+    }
+}
+
+// Create a job from an approved application
+async function createJobFromApplication(app) {
+    const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
+    const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
+    
+    const jobData = {
+        id: app.id, // Same ID as application
+        client: app.fullName,
+        phone: app.phone,
+        email: app.email,
+        acres: totalAcres,
+        crops: cropTypes,
+        dateRequested: new Date(app.dateSubmitted).toLocaleDateString(),
+        scheduledDate: null,
+        status: 'pending'
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/jobs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(jobData)
+        });
+        
+        if (response.ok) {
+            await fetchJobs();
+        }
+    } catch (error) {
+        console.error('Error creating job:', error);
+    }
+}
+
+// Update job schedule
+async function updateJobSchedule(jobId, scheduledDate) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                scheduledDate: scheduledDate,
+                status: scheduledDate ? 'scheduled' : 'pending'
+            })
+        });
+        
+        if (response.ok) {
+            await fetchJobs();
+        }
+    } catch (error) {
+        console.error('Error updating job:', error);
+    }
+}
+
+// Update job status
+async function updateJobStatus(jobId, status) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: status })
+        });
+        
+        if (response.ok) {
+            await fetchJobs();
+        }
+    } catch (error) {
+        console.error('Error updating job status:', error);
+    }
+}
+
+// Update jobs table
+function updateJobsTable() {
+    const tbody = document.getElementById('jobsTableBody');
+    if (!tbody) return;
+    
+    if (jobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="no-data">No jobs yet. Jobs are created when applications are approved.</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = jobs.map(job => {
+        const statusClass = job.status === 'scheduled' ? 'scheduled' : 
+                           job.status === 'completed' ? 'completed' : 'pending';
+        const scheduledDisplay = job.scheduledDate || '<span class="schedule-placeholder">Click to schedule</span>';
+        
+        return `
+            <tr>
+                <td>${job.id}</td>
+                <td>${job.client}</td>
+                <td>${job.phone || 'N/A'}</td>
+                <td>${job.acres} acres</td>
+                <td>${job.crops}</td>
+                <td>${job.dateRequested}</td>
+                <td class="schedule-cell">
+                    <span class="scheduled-date" data-job-id="${job.id}">${scheduledDisplay}</span>
+                    <button class="calendar-btn" onclick="openCalendarModal('${job.id}')" title="Schedule job">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </button>
+                </td>
+                <td><span class="status ${statusClass}">${job.status.charAt(0).toUpperCase() + job.status.slice(1)}</span></td>
+                <td class="actions-cell">
+                    ${job.status !== 'completed' ? `<button class="action-btn" onclick="updateJobStatus('${job.id}', 'completed')">Complete</button>` : ''}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Update jobs stats
+function updateJobsStats() {
+    const totalEl = document.getElementById('statTotalJobs');
+    const pendingEl = document.getElementById('statPendingJobs');
+    const scheduledEl = document.getElementById('statScheduledJobs');
+    const completedEl = document.getElementById('statCompletedJobs');
+    
+    if (totalEl) totalEl.textContent = jobs.length;
+    if (pendingEl) pendingEl.textContent = jobs.filter(j => j.status === 'pending').length;
+    if (scheduledEl) scheduledEl.textContent = jobs.filter(j => j.status === 'scheduled').length;
+    if (completedEl) completedEl.textContent = jobs.filter(j => j.status === 'completed').length;
+}
+
+// Calendar modal variables
+let currentCalendarJobId = null;
+let currentCalendarDate = new Date();
+
+// Open calendar modal
+function openCalendarModal(jobId) {
+    currentCalendarJobId = jobId;
+    currentCalendarDate = new Date();
+    
+    const modal = document.getElementById('calendarModal');
+    if (!modal) {
+        createCalendarModal();
+    }
+    
+    renderCalendar();
+    document.getElementById('calendarModal').classList.add('active');
+}
+
+// Close calendar modal
+function closeCalendarModal() {
+    document.getElementById('calendarModal').classList.remove('active');
+    currentCalendarJobId = null;
+}
+
+// Create calendar modal HTML
+function createCalendarModal() {
+    const modalHtml = `
+        <div id="calendarModal" class="calendar-modal">
+            <div class="calendar-modal-content">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="changeMonth(-1)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <h3 id="calendarTitle"></h3>
+                    <button class="calendar-nav" onclick="changeMonth(1)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button class="calendar-close" onclick="closeCalendarModal()">&times;</button>
+                </div>
+                <div class="calendar-grid">
+                    <div class="calendar-day-header">Sun</div>
+                    <div class="calendar-day-header">Mon</div>
+                    <div class="calendar-day-header">Tue</div>
+                    <div class="calendar-day-header">Wed</div>
+                    <div class="calendar-day-header">Thu</div>
+                    <div class="calendar-day-header">Fri</div>
+                    <div class="calendar-day-header">Sat</div>
+                    <div id="calendarDays"></div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+// Render calendar
+function renderCalendar() {
+    const year = currentCalendarDate.getFullYear();
+    const month = currentCalendarDate.getMonth();
+    
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    document.getElementById('calendarTitle').textContent = `${monthNames[month]} ${year}`;
+    
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    
+    let calendarDaysHtml = '';
+    
+    // Empty cells for days before first day of month
+    for (let i = 0; i < firstDay; i++) {
+        calendarDaysHtml += '<div class="calendar-day empty"></div>';
+    }
+    
+    // Days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+        const isPast = new Date(year, month, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        calendarDaysHtml += `
+            <div class="calendar-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}" 
+                 onclick="${!isPast ? `selectDate('${dateStr}')` : ''}">
+                ${day}
+            </div>
+        `;
+    }
+    
+    document.getElementById('calendarDays').innerHTML = calendarDaysHtml;
+}
+
+// Change month
+function changeMonth(delta) {
+    currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+    renderCalendar();
+}
+
+// Select date
+function selectDate(dateStr) {
+    if (currentCalendarJobId) {
+        // Format date for display
+        const date = new Date(dateStr + 'T00:00:00');
+        const displayDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        // Update job schedule
+        updateJobSchedule(currentCalendarJobId, displayDate);
+        
+        // Update display immediately
+        const dateEl = document.querySelector(`.scheduled-date[data-job-id="${currentCalendarJobId}"]`);
+        if (dateEl) {
+            dateEl.innerHTML = displayDate;
+        }
+        
+        closeCalendarModal();
+    }
+}
+
+// Override updateApplicationStatus to create job when approved
+const originalUpdateApplicationStatus = updateApplicationStatus;
+async function updateApplicationStatusWithJob(status) {
+    if (!currentApplicationId) return;
+    
+    // If approving, create a job first
+    if (status === 'approved') {
+        const app = applications.find(a => a.id === currentApplicationId);
+        if (app) {
+            await createJobFromApplication(app);
+        }
+    }
+    
+    // Then update the application status
+    try {
+        const response = await fetch(`${API_BASE_URL}/applications/${currentApplicationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: status })
+        });
+        
+        const result = await response.json();
+        console.log('Status updated:', result);
+        
+        await fetchApplications();
+        closeApplicationModal();
+        
+    } catch (error) {
+        console.error('Error updating status:', error);
+        alert('Error updating status. Please try again.');
+    }
+}
+
+// Replace the global updateApplicationStatus function
+window.updateApplicationStatus = updateApplicationStatusWithJob;
+
+// Initialize jobs when page loads
+fetchJobs();
+
+// ============================================
+// END JOBS MANAGEMENT
 // ============================================
 
 // Document Management System
