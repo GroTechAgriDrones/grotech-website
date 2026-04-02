@@ -467,6 +467,22 @@
     cursor: pointer;
 }
 
+/* Clickable Schedule Cell */
+.clickable-schedule {
+    cursor: pointer !important;
+    transition: background 0.2s ease;
+}
+
+.clickable-schedule:hover {
+    background: rgba(54, 124, 43, 0.15) !important;
+}
+
+.schedule-placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+    font-size: 0.85rem;
+}
+
 /* Status Badges */
 .status {
     display: inline-block;
@@ -1595,19 +1611,26 @@
     color: var(--text-primary);
 }
 
-.calendar-grid {
+.calendar-weekdays {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 4px;
+    margin-bottom: 8px;
 }
 
-.calendar-day-header {
+.weekday {
     text-align: center;
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
     padding: 8px 0;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
 }
 
 .calendar-day {
@@ -1618,6 +1641,10 @@
     color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .calendar-day:hover:not(.empty):not(.past) {
@@ -1639,6 +1666,7 @@
 
 .calendar-day.empty {
     cursor: default;
+    background: transparent;
 }
 
 /* ============================================

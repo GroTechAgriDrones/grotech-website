@@ -95,6 +95,19 @@
         </div>
     </main>
 
+    <!-- Global Modal for Applications & Jobs -->
+    <div id="applicationDetailModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Details</h3>
+                <button class="modal-close" onclick="closeApplicationModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="applicationDetailContent">
+                <!-- Content loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
     <script src="dashboard.js"></script>
     <script>
         // Update admin name from session storage
