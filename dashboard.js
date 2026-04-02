@@ -2067,7 +2067,9 @@ function onChemicalSelect(selectElement) {
                 labelRateInput.style.cursor = '';
             }
             if (chem.rateUnit) {
-                row.querySelector('.rate-unit').value = chem.rateUnit;
+                // Strip "/acre" suffix to match dropdown values (e.g., "oz/acre" -> "oz")
+                const unitValue = chem.rateUnit.replace('/acre', '');
+                row.querySelector('.rate-unit').value = unitValue;
             }
         }
     }
