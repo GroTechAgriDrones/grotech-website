@@ -1858,10 +1858,11 @@ function updateJobsTable() {
     }
     
     tbody.innerHTML = jobs.map(job => {
-        // Calculate fields from application data structure
-        const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
-        const cropTypes = (job.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
-        const dateRequested = job.dateSubmitted ? new Date(job.dateSubmitted).toLocaleDateString() : 'N/A';
+        // Calculate fields from application data structure (handle both old and new formats)
+        const clientName = job.fullName || job.client || 'N/A';
+        const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0) || job.acres || 0;
+        const cropTypes = (job.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || job.crops || 'N/A';
+        const dateRequested = job.dateSubmitted ? new Date(job.dateSubmitted).toLocaleDateString() : job.dateRequested || 'N/A';
         const status = job.jobStatus || 'pending';
         const statusClass = status === 'scheduled' ? 'scheduled' : 
                            status === 'completed' ? 'completed' : 'pending';
@@ -1872,7 +1873,7 @@ function updateJobsTable() {
         return `
             <tr class="clickable-row" onclick="viewJob('${job.id}')">
                 <td>${job.id}</td>
-                <td>${job.fullName || 'N/A'}</td>
+                <td>${clientName}</td>
                 <td>${job.phone || 'N/A'}</td>
                 <td>${totalAcres} acres</td>
                 <td>${cropTypes}</td>
@@ -1946,7 +1947,7 @@ function viewJob(jobId) {
                 <div class="detail-grid">
                     <div class="detail-field">
                         <label>Name</label>
-                        <span>${job.fullName || 'N/A'}</span>
+                        <span>${job.fullName || job.client || 'N/A'}</span>
                     </div>
                     <div class="detail-field">
                         <label>Phone</label>
