@@ -1010,8 +1010,352 @@ const pages = {
                 }
             </style>
         `
+    },
+    spraysettings: {
+        title: 'Spray/Spread Settings',
+        content: `
+            <div class="page-header">
+                <p>Reference spray and spread settings for DJI agricultural drones</p>
+            </div>
+            <div id="spraySettingsContent">
+                <!-- Initial drone selection -->
+                <div id="droneSelection">
+                    <div class="drone-cards-container">
+                        <div class="drone-card" onclick="selectDrone('t100')">
+                            <div class="drone-brand">DJI</div>
+                            <div class="drone-model">T100</div>
+                            <div class="drone-desc">Heavy-duty spraying for large operations</div>
+                        </div>
+                        <div class="drone-card" onclick="selectDrone('t50')">
+                            <div class="drone-brand">DJI</div>
+                            <div class="drone-model">T50</div>
+                            <div class="drone-desc">Versatile spraying for medium fields</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Category selection (hidden initially) -->
+                <div id="categorySelection" style="display:none;">
+                    <button class="back-btn" onclick="showDroneSelection()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        Back to Drones
+                    </button>
+                    <div id="selectedDroneTitle" class="selected-drone-title"></div>
+                    <div class="category-cards-container">
+                        <div class="category-card" onclick="showSettings('fungicide')">
+                            <div class="category-icon">🍄</div>
+                            <div class="category-name">Fungicide</div>
+                        </div>
+                        <div class="category-card" onclick="showSettings('herbicide')">
+                            <div class="category-icon">🌿</div>
+                            <div class="category-name">Herbicide</div>
+                        </div>
+                        <div class="category-card" onclick="showSettings('insecticide')">
+                            <div class="category-icon">🐛</div>
+                            <div class="category-name">Insecticide</div>
+                        </div>
+                        <div class="category-card" onclick="showSettings('fertilizer')">
+                            <div class="category-icon">🌱</div>
+                            <div class="category-name">Fertilizer</div>
+                        </div>
+                        <div class="category-card" onclick="showSettings('seeds')">
+                            <div class="category-icon">🌾</div>
+                            <div class="category-name">Seeds</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings display (hidden initially) -->
+                <div id="settingsDisplay" style="display:none;">
+                    <button class="back-btn" onclick="showCategorySelection()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                        Back to Categories
+                    </button>
+                    <div id="settingsTitle" class="settings-title"></div>
+                    <div class="settings-grid" id="settingsGrid">
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .drone-cards-container {
+                    display: flex;
+                    justify-content: center;
+                    gap: 40px;
+                    flex-wrap: wrap;
+                    margin-top: 24px;
+                }
+                .drone-card {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: 16px;
+                    padding: 40px 60px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    position: relative;
+                    overflow: hidden;
+                    min-width: 200px;
+                }
+                .drone-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 3px;
+                    background: var(--gradient);
+                    transform: scaleX(0);
+                    transition: transform 0.3s ease;
+                }
+                .drone-card:hover {
+                    transform: translateY(-8px);
+                    background: var(--bg-card-hover);
+                    border-color: var(--border);
+                    box-shadow: var(--shadow-lg);
+                }
+                .drone-card:hover::before {
+                    transform: scaleX(1);
+                }
+                .drone-brand {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 1rem;
+                    font-weight: 500;
+                    color: var(--text-secondary);
+                    text-transform: uppercase;
+                    letter-spacing: 2px;
+                    margin-bottom: 8px;
+                }
+                .drone-model {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 3rem;
+                    font-weight: 700;
+                    color: var(--primary-light);
+                    line-height: 1;
+                    margin-bottom: 16px;
+                }
+                .drone-desc {
+                    font-size: 0.9rem;
+                    color: var(--text-muted);
+                }
+                .back-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 10px 20px;
+                    background: rgba(54, 124, 43, 0.1);
+                    border: 1px solid var(--border);
+                    border-radius: 8px;
+                    color: var(--primary-light);
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    margin-bottom: 24px;
+                }
+                .back-btn:hover {
+                    background: rgba(54, 124, 43, 0.2);
+                }
+                .selected-drone-title {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                    text-align: center;
+                    margin-bottom: 24px;
+                }
+                .category-cards-container {
+                    display: flex;
+                    justify-content: center;
+                    gap: 24px;
+                    flex-wrap: wrap;
+                }
+                .category-card {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: 16px;
+                    padding: 32px 40px;
+                    text-align: center;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    min-width: 150px;
+                }
+                .category-card:hover {
+                    transform: translateY(-8px);
+                    background: var(--bg-card-hover);
+                    border-color: var(--border);
+                    box-shadow: var(--shadow-lg);
+                }
+                .category-icon {
+                    font-size: 2.5rem;
+                    margin-bottom: 12px;
+                }
+                .category-name {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: var(--text-primary);
+                }
+                .settings-title {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                    text-align: center;
+                    margin-bottom: 24px;
+                }
+                .settings-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 20px;
+                    max-width: 700px;
+                    margin: 0 auto;
+                }
+                @media (max-width: 600px) {
+                    .settings-grid {
+                        grid-template-columns: 1fr;
+                    }
+                    .drone-cards-container {
+                        flex-direction: column;
+                        align-items: center;
+                        gap: 20px;
+                    }
+                    .drone-card {
+                        padding: 30px 40px;
+                        width: 100%;
+                        max-width: 280px;
+                    }
+                    .drone-model {
+                        font-size: 2.5rem;
+                    }
+                    .category-cards-container {
+                        flex-direction: column;
+                        align-items: center;
+                    }
+                    .category-card {
+                        width: 100%;
+                        max-width: 280px;
+                    }
+                }
+                .setting-item {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: 12px;
+                    padding: 24px;
+                    text-align: center;
+                }
+                .setting-label {
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 8px;
+                }
+                .setting-value {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.75rem;
+                    font-weight: 700;
+                    color: var(--primary-light);
+                }
+                .setting-unit {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 0.9rem;
+                    color: var(--text-secondary);
+                    margin-left: 4px;
+                }
+            </style>
+        `
     }
 };
+
+// Spray Settings Data
+const spraySettingsData = {
+    t100: {
+        name: 'DJI T100',
+        settings: {
+            fungicide: { rate: 2, rateUnit: 'gpa', speed: 64, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 300, dropletUnit: 'microns' },
+            herbicide: { rate: 3, rateUnit: 'gpa', speed: 72, speedUnit: 'fps', height: 12, heightUnit: 'ft', droplet: 250, dropletUnit: 'microns' },
+            insecticide: { rate: 2, rateUnit: 'gpa', speed: 64, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 200, dropletUnit: 'microns' },
+            fertilizer: { rate: 5, rateUnit: 'gpa', speed: 48, speedUnit: 'fps', height: 8, heightUnit: 'ft', droplet: 350, dropletUnit: 'microns' },
+            seeds: { rate: 15, rateUnit: 'lb/acre', speed: 32, speedUnit: 'fps', height: 6, heightUnit: 'ft', droplet: 500, dropletUnit: 'microns' }
+        }
+    },
+    t50: {
+        name: 'DJI T50',
+        settings: {
+            fungicide: { rate: 2, rateUnit: 'gpa', speed: 32, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 300, dropletUnit: 'microns' },
+            herbicide: { rate: 3, rateUnit: 'gpa', speed: 36, speedUnit: 'fps', height: 12, heightUnit: 'ft', droplet: 250, dropletUnit: 'microns' },
+            insecticide: { rate: 2, rateUnit: 'gpa', speed: 32, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 200, dropletUnit: 'microns' },
+            fertilizer: { rate: 5, rateUnit: 'gpa', speed: 24, speedUnit: 'fps', height: 8, heightUnit: 'ft', droplet: 350, dropletUnit: 'microns' },
+            seeds: { rate: 15, rateUnit: 'lb/acre', speed: 16, speedUnit: 'fps', height: 6, heightUnit: 'ft', droplet: 500, dropletUnit: 'microns' }
+        }
+    }
+};
+
+let selectedDrone = null;
+
+function selectDrone(droneId) {
+    selectedDrone = droneId;
+    const drone = spraySettingsData[droneId];
+    
+    document.getElementById('droneSelection').style.display = 'none';
+    document.getElementById('categorySelection').style.display = 'block';
+    document.getElementById('settingsDisplay').style.display = 'none';
+    
+    document.getElementById('selectedDroneTitle').textContent = drone.name + ' Settings';
+}
+
+function showDroneSelection() {
+    document.getElementById('droneSelection').style.display = 'block';
+    document.getElementById('categorySelection').style.display = 'none';
+    document.getElementById('settingsDisplay').style.display = 'none';
+    selectedDrone = null;
+}
+
+function showCategorySelection() {
+    document.getElementById('droneSelection').style.display = 'none';
+    document.getElementById('categorySelection').style.display = 'block';
+    document.getElementById('settingsDisplay').style.display = 'none';
+}
+
+function showSettings(category) {
+    if (!selectedDrone) return;
+    
+    const drone = spraySettingsData[selectedDrone];
+    const settings = drone.settings[category];
+    const categoryNames = {
+        fungicide: 'Fungicide',
+        herbicide: 'Herbicide',
+        insecticide: 'Insecticide',
+        fertilizer: 'Fertilizer',
+        seeds: 'Seeds'
+    };
+    
+    document.getElementById('droneSelection').style.display = 'none';
+    document.getElementById('categorySelection').style.display = 'none';
+    document.getElementById('settingsDisplay').style.display = 'block';
+    
+    document.getElementById('settingsTitle').textContent = drone.name + ' - ' + categoryNames[category] + ' Settings';
+    
+    document.getElementById('settingsGrid').innerHTML = `
+        <div class="setting-item">
+            <div class="setting-label">Application Rate</div>
+            <div class="setting-value">${settings.rate}<span class="setting-unit">${settings.rateUnit}</span></div>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">Flight Speed</div>
+            <div class="setting-value">${settings.speed}<span class="setting-unit">${settings.speedUnit}</span></div>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">Spray Height</div>
+            <div class="setting-value">${settings.height}<span class="setting-unit">${settings.heightUnit}</span></div>
+        </div>
+        <div class="setting-item">
+            <div class="setting-label">Droplet Size</div>
+            <div class="setting-value">${settings.droplet}<span class="setting-unit">${settings.dropletUnit}</span></div>
+        </div>
+    `;
+}
 
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', function(e) {
