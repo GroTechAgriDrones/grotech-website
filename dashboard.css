@@ -985,6 +985,78 @@
     background: rgba(54, 124, 43, 0.2);
 }
 
+/* Calculator View Button */
+.calc-view-btn {
+    background: rgba(54, 124, 43, 0.1);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 6px;
+    margin-left: 8px;
+    cursor: pointer;
+    color: var(--primary-light);
+    vertical-align: middle;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.calc-view-btn:hover {
+    background: rgba(54, 124, 43, 0.2);
+}
+
+/* Field Header Row */
+.field-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.field-header-row h4 {
+    margin: 0;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+/* Field Status Buttons */
+.field-status-btn {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: none;
+}
+
+.field-status-btn.not-complete {
+    background: #ef4444;
+    color: white;
+}
+
+.field-status-btn.not-complete:hover {
+    background: #dc2626;
+}
+
+.field-status-btn.complete {
+    background: #22c55e;
+    color: white;
+}
+
+.field-status-btn.complete:hover {
+    background: #16a34a;
+}
+
+/* In Progress Status */
+.status.in_progress {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
 .detail-field-group {
     background: var(--bg-dark);
     border: 1px solid var(--border);

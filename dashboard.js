@@ -7,6 +7,44 @@ const pages = {
     overview: {
         title: 'Dashboard Overview',
         content: `
+            <div class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="overviewTotalJobs">0</span>
+                        <span class="stat-label">Total Jobs</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="overviewPendingJobs">0</span>
+                        <span class="stat-label">Pending Jobs</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="overviewScheduledJobs">0</span>
+                        <span class="stat-label">Scheduled Jobs</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="overviewCompletedJobs">0</span>
+                        <span class="stat-label">Completed Jobs</span>
+                    </div>
+                </div>
+            </div>
             <div class="recent-section">
                 <h2 class="section-title">Recent Applications</h2>
                 <div class="data-table">
@@ -739,7 +777,7 @@ const pages = {
                         <div class="calc-row" style="grid-template-columns: repeat(2, 1fr);">
                             <div class="form-group">
                                 <label>Tank Size (gallons)</label>
-                                <input type="number" id="tankSize" placeholder="e.g., 10" min="0" step="0.5" value="10" oninput="calculateTankMix()">
+                                <input type="number" id="tankSize" placeholder="e.g., 100" min="0" step="0.5" value="100" oninput="calculateTankMix()">
                             </div>
                             <div class="form-group">
                                 <label>Tanks Needed</label>
@@ -1487,7 +1525,7 @@ function updateDashboardStats() {
         if (apps.length === 0) {
             recentBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No applications yet</td></tr>';
         } else {
-            const recent = apps.slice(0, 5);
+            const recent = apps.slice(0, 3);
             recentBody.innerHTML = recent.map(app => {
                 const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
                 const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
@@ -1605,7 +1643,14 @@ function viewApplication(id) {
                     </div>
                     <div class="detail-item">
                         <label>Chemicals</label>
-                        <span>${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}</span>
+                        <span>
+                            ${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}
+                            ${field.chemicals && field.chemicals.length > 0 && field.fieldSize ? 
+                                `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
+                                 </button>` 
+                                : ''}
+                        </span>
                     </div>
                     <div class="detail-item">
                         <label>Optimal Date</label>
@@ -1879,7 +1924,7 @@ function updateDashboardStats() {
         if (applications.length === 0) {
             recentBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No applications yet</td></tr>';
         } else {
-            const recent = applications.slice(0, 5);
+            const recent = applications.slice(0, 3);
             recentBody.innerHTML = recent.map(app => {
                 const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
                 const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
@@ -1996,9 +2041,10 @@ function updateJobsTable() {
         const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0) || job.acres || 0;
         const cropTypes = (job.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || job.crops || 'N/A';
         const dateRequested = job.fields?.[0]?.optimalDate || job.optimalDate || 'Not set';
-        const status = job.jobStatus || 'pending';
+        const status = calculateJobStatus(job.jobStatus, job.fieldStatus) || job.jobStatus || 'pending';
         const statusClass = status === 'scheduled' ? 'scheduled' : 
-                           status === 'completed' ? 'completed' : 'pending';
+                           status === 'completed' ? 'completed' :
+                           status === 'in_progress' ? 'in_progress' : 'pending';
         const hasDate = !!job.scheduledDate;
         const scheduledDisplay = job.scheduledDate || '<span class="schedule-placeholder">Click to schedule</span>';
         const dateClass = hasDate ? 'scheduled-date has-date' : 'scheduled-date';
@@ -2032,15 +2078,30 @@ function viewJob(jobId) {
     
     currentApplicationId = jobId; // Reuse the application modal
     const date = job.dateSubmitted ? new Date(job.dateSubmitted).toLocaleString() : 'N/A';
-    const status = job.jobStatus || 'pending';
-    const statusClass = status === 'scheduled' ? 'scheduled' : 
-                       status === 'completed' ? 'completed' : 'pending';
+    
+    // Initialize fieldStatus array if not exists
+    if (!job.fieldStatus || job.fieldStatus.length !== (job.fields?.length || 0)) {
+        job.fieldStatus = (job.fields || []).map(() => 'not_complete');
+    }
+    
+    // Calculate display status based on field statuses
+    const displayStatus = calculateJobStatus(job.jobStatus, job.fieldStatus || []);
+    const displayStatusClass = displayStatus === 'scheduled' ? 'scheduled' : 
+                               displayStatus === 'completed' ? 'completed' :
+                               displayStatus === 'in_progress' ? 'in_progress' : 'pending';
     
     let fieldsHtml = '';
     if (job.fields && job.fields.length > 0) {
-        fieldsHtml = job.fields.map((field, index) => `
+        fieldsHtml = job.fields.map((field, index) => {
+            const fieldComplete = job.fieldStatus && job.fieldStatus[index] === 'complete';
+            const statusBtnClass = fieldComplete ? 'field-status-btn complete' : 'field-status-btn not-complete';
+            const statusBtnText = fieldComplete ? 'Completed' : 'Not Complete';
+            return `
             <div class="detail-field-group">
-                <h4>Field ${index + 1}${field.fieldName ? ': ' + field.fieldName : ''}</h4>
+                <div class="field-header-row">
+                    <h4>Field ${index + 1}${field.fieldName ? ': ' + field.fieldName : ''}</h4>
+                    <button class="${statusBtnClass}" onclick="event.stopPropagation(); toggleFieldStatus('${job.id}', ${index})">${statusBtnText}</button>
+                </div>
                 <div class="detail-grid">
                     <div class="detail-item">
                         <label>Size</label>
@@ -2063,7 +2124,14 @@ function viewJob(jobId) {
                     </div>
                     <div class="detail-item">
                         <label>Chemicals</label>
-                        <span>${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}</span>
+                        <span>
+                            ${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}
+                            ${field.chemicals && field.chemicals.length > 0 && field.fieldSize ? 
+                                `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
+                                 </button>` 
+                                : ''}
+                        </span>
                     </div>
                     <div class="detail-item">
                         <label>Optimal Date</label>
@@ -2071,14 +2139,15 @@ function viewJob(jobId) {
                     </div>
                 </div>
             </div>
-        `).join('');
+        `;
+        }).join('');
     }
     
     const content = `
         <div class="application-detail">
             <div class="application-detail-header">
                 <div class="detail-id">${job.id}</div>
-                <span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                <span class="status ${displayStatusClass}">${displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}</span>
             </div>
             
             <div class="detail-section">
@@ -2132,26 +2201,111 @@ function viewJob(jobId) {
     
     document.getElementById('applicationDetailContent').innerHTML = content;
     
-    // Populate modal footer for jobs
-    const footerHtml = status !== 'completed' ? 
-        `<button class="btn btn-success" onclick="updateJobStatus('${job.id}', 'completed'); closeApplicationModal();">Mark Completed</button>` : '';
-    document.getElementById('modalFooter').innerHTML = footerHtml;
-    document.getElementById('modalFooter').style.display = footerHtml ? 'flex' : 'none';
+    // Modal footer is now empty - field status buttons are in field headers
+    document.getElementById('modalFooter').innerHTML = '';
+    document.getElementById('modalFooter').style.display = 'none';
     
     document.getElementById('applicationDetailModal').classList.add('active');
 }
 
+// Calculate job status based on field statuses
+function calculateJobStatus(jobStatus, fieldStatus) {
+    if (!fieldStatus || fieldStatus.length === 0) return jobStatus || 'pending';
+    
+    const completedCount = fieldStatus.filter(s => s === 'complete').length;
+    
+    if (completedCount === fieldStatus.length) {
+        return 'completed';
+    } else if (completedCount > 0) {
+        return 'in_progress';
+    }
+    return jobStatus || 'pending'; // Keep original status
+}
+
+// Toggle field status between not_complete and complete
+async function toggleFieldStatus(jobId, fieldIndex) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    // Initialize fieldStatus if not exists
+    if (!job.fieldStatus) {
+        job.fieldStatus = (job.fields || []).map(() => 'not_complete');
+    }
+    
+    // Toggle the field status
+    const currentStatus = job.fieldStatus[fieldIndex] || 'not_complete';
+    job.fieldStatus[fieldIndex] = currentStatus === 'complete' ? 'not_complete' : 'complete';
+    
+    // Calculate new job status
+    const newStatus = calculateJobStatus(job.jobStatus, job.fieldStatus);
+    
+    try {
+        // Update job via API
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                fieldStatus: job.fieldStatus,
+                jobStatus: newStatus
+            })
+        });
+        
+        if (response.ok) {
+            // Update local job data
+            job.jobStatus = newStatus;
+            
+            // Refresh the view
+            viewJob(jobId);
+            fetchJobs();
+        } else {
+            console.error('Failed to update field status');
+            // Revert the change
+            job.fieldStatus[fieldIndex] = currentStatus;
+        }
+    } catch (error) {
+        console.error('Error updating field status:', error);
+        // Revert the change
+        job.fieldStatus[fieldIndex] = currentStatus;
+    }
+}
+
 // Update jobs stats
 function updateJobsStats() {
+    const totalJobs = jobs.length;
+    const pendingJobs = jobs.filter(j => {
+        const status = calculateJobStatus(j.jobStatus, j.fieldStatus);
+        return status === 'pending';
+    }).length;
+    const scheduledJobs = jobs.filter(j => {
+        const status = calculateJobStatus(j.jobStatus, j.fieldStatus);
+        return status === 'scheduled' || status === 'in_progress';
+    }).length;
+    const completedJobs = jobs.filter(j => {
+        const status = calculateJobStatus(j.jobStatus, j.fieldStatus);
+        return status === 'completed';
+    }).length;
+    
+    // Update Jobs tab stats
     const totalEl = document.getElementById('statTotalJobs');
     const pendingEl = document.getElementById('statPendingJobs');
     const scheduledEl = document.getElementById('statScheduledJobs');
     const completedEl = document.getElementById('statCompletedJobs');
     
-    if (totalEl) totalEl.textContent = jobs.length;
-    if (pendingEl) pendingEl.textContent = jobs.filter(j => (j.jobStatus || 'pending') === 'pending').length;
-    if (scheduledEl) scheduledEl.textContent = jobs.filter(j => j.jobStatus === 'scheduled').length;
-    if (completedEl) completedEl.textContent = jobs.filter(j => j.jobStatus === 'completed').length;
+    if (totalEl) totalEl.textContent = totalJobs;
+    if (pendingEl) pendingEl.textContent = pendingJobs;
+    if (scheduledEl) scheduledEl.textContent = scheduledJobs;
+    if (completedEl) completedEl.textContent = completedJobs;
+    
+    // Update Overview stats
+    const overviewTotalEl = document.getElementById('overviewTotalJobs');
+    const overviewPendingEl = document.getElementById('overviewPendingJobs');
+    const overviewScheduledEl = document.getElementById('overviewScheduledJobs');
+    const overviewCompletedEl = document.getElementById('overviewCompletedJobs');
+    
+    if (overviewTotalEl) overviewTotalEl.textContent = totalJobs;
+    if (overviewPendingEl) overviewPendingEl.textContent = pendingJobs;
+    if (overviewScheduledEl) overviewScheduledEl.textContent = scheduledJobs;
+    if (overviewCompletedEl) overviewCompletedEl.textContent = completedJobs;
 }
 
 // Calendar modal variables
@@ -2330,16 +2484,21 @@ fetchJobs();
 // END JOBS MANAGEMENT
 // ============================================
 
-// Document Management System
-let documents = JSON.parse(sessionStorage.getItem('documents') || '[]');
-let categories = JSON.parse(sessionStorage.getItem('documentCategories') || '["contracts", "reports", "invoices", "policies", "other"]');
+// Document Management System (S3-backed)
+let documents = [];
+let categories = [];
 
-function saveDocuments() {
-    sessionStorage.setItem('documents', JSON.stringify(documents));
-}
-
-function saveCategories() {
-    sessionStorage.setItem('documentCategories', JSON.stringify(categories));
+async function fetchDocuments() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/documents`);
+        const data = await response.json();
+        documents = data.documents || [];
+        categories = data.categories || [];
+        updateCategoryFilter();
+        renderDocuments();
+    } catch (error) {
+        console.error('Error fetching documents:', error);
+    }
 }
 
 function getCategoryOptions(selected = null) {
@@ -2377,48 +2536,57 @@ function toggleCategoryManager() {
     }
 }
 
-function addCategory() {
+async function addCategory() {
     const input = document.getElementById('newCategoryInput');
     if (input) {
         const newCat = input.value.trim().toLowerCase();
         if (newCat && !categories.includes(newCat)) {
-            categories.push(newCat);
-            saveCategories();
-            updateCategoryList();
-            updateCategoryFilter();
-            input.value = '';
+            const newCategories = [...categories, newCat];
+            try {
+                await fetch(`${API_BASE_URL}/documents/categories`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categories: newCategories })
+                });
+                categories = newCategories;
+                updateCategoryList();
+                updateCategoryFilter();
+                input.value = '';
+            } catch (error) {
+                console.error('Error adding category:', error);
+            }
         }
     }
 }
 
-function removeCategory(cat) {
+async function removeCategory(cat) {
     if (categories.length <= 1) {
         alert('You must have at least one category.');
         return;
     }
-    if (confirm(`Remove "${cat}" category? Documents in this category will be moved to "${categories[0]}".`)) {
-        // Move documents to first category
-        documents.forEach(doc => {
-            if (doc.category === cat) {
-                doc.category = categories[0];
-            }
-        });
-        saveDocuments();
-        
-        categories = categories.filter(c => c !== cat);
-        saveCategories();
-        updateCategoryList();
-        updateCategoryFilter();
-        renderDocuments();
+    if (confirm(`Remove "${cat}" category?`)) {
+        const newCategories = categories.filter(c => c !== cat);
+        try {
+            await fetch(`${API_BASE_URL}/documents/categories`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ categories: newCategories })
+            });
+            categories = newCategories;
+            updateCategoryList();
+            updateCategoryFilter();
+            await fetchDocuments();
+        } catch (error) {
+            console.error('Error removing category:', error);
+        }
     }
 }
 
-function changeDocumentCategory(docId, newCategory) {
-    const doc = documents.find(d => d.id === docId);
-    if (doc) {
-        doc.category = newCategory;
-        saveDocuments();
-    }
+function getCategoryFromType(type) {
+    if (type.includes('pdf') || type.includes('word') || type.includes('doc')) return 'contracts';
+    if (type.includes('sheet') || type.includes('excel') || type.includes('xls')) return 'reports';
+    if (type.includes('image')) return 'other';
+    return 'other';
 }
 
 function getFileIcon(type) {
@@ -2491,62 +2659,106 @@ function filterDocuments() {
     renderDocuments();
 }
 
-function viewDocument(id) {
-    const doc = documents.find(d => d.id === id);
-    if (doc && doc.dataUrl) {
-        const newWindow = window.open();
-        if (doc.type.includes('image')) {
-            newWindow.document.write(`<html><head><title>${doc.name}</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#1a1a1a;"><img src="${doc.dataUrl}" style="max-width:100%;max-height:100vh;"></body></html>`);
-        } else {
-            newWindow.document.write(`<html><head><title>${doc.name}</title></head><body style="margin:0;"><iframe src="${doc.dataUrl}" style="width:100%;height:100vh;border:none;"></iframe></body></html>`);
+async function viewDocument(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/documents/${id}`);
+        const data = await response.json();
+        if (data.downloadUrl) {
+            window.open(data.downloadUrl, '_blank');
+        }
+    } catch (error) {
+        console.error('Error viewing document:', error);
+    }
+}
+
+async function downloadDocument(id) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/documents/${id}`);
+        const data = await response.json();
+        if (data.downloadUrl) {
+            const a = document.createElement('a');
+            a.href = data.downloadUrl;
+            a.download = data.name;
+            a.click();
+        }
+    } catch (error) {
+        console.error('Error downloading document:', error);
+    }
+}
+
+async function deleteDocument(id) {
+    if (confirm('Are you sure you want to delete this document?')) {
+        try {
+            await fetch(`${API_BASE_URL}/documents/${id}`, {
+                method: 'DELETE'
+            });
+            await fetchDocuments();
+        } catch (error) {
+            console.error('Error deleting document:', error);
         }
     }
 }
 
-function downloadDocument(id) {
-    const doc = documents.find(d => d.id === id);
-    if (doc && doc.dataUrl) {
-        const a = document.createElement('a');
-        a.href = doc.dataUrl;
-        a.download = doc.name;
-        a.click();
+async function changeDocumentCategory(docId, newCategory) {
+    try {
+        await fetch(`${API_BASE_URL}/documents/${docId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ category: newCategory })
+        });
+        await fetchDocuments();
+    } catch (error) {
+        console.error('Error updating category:', error);
     }
 }
 
-function deleteDocument(id) {
-    if (confirm('Are you sure you want to delete this document?')) {
-        documents = documents.filter(d => d.id !== id);
-        saveDocuments();
-        renderDocuments();
+async function handleFileUpload(files) {
+    console.log('handleFileUpload called', files);
+    for (const file of Array.from(files)) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/documents`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName: file.name,
+                    fileType: file.type,
+                    fileSize: file.size
+                })
+            });
+            const data = await response.json();
+            
+            if (data.error) {
+                alert('Error: ' + data.error);
+                continue;
+            }
+            
+            await fetch(data.uploadUrl, {
+                method: 'PUT',
+                body: file,
+                headers: { 'Content-Type': file.type }
+            });
+            
+            await fetch(`${API_BASE_URL}/documents/confirm`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    docId: data.docId,
+                    storedName: data.storedName,
+                    folderKey: data.folderKey,
+                    name: file.name,
+                    category: getCategoryFromType(file.type),
+                    type: file.type,
+                    size: file.size
+                })
+            });
+            
+            await fetchDocuments();
+            
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Error uploading ' + file.name);
+        }
     }
-}
-
-function handleFileUpload(files) {
-    Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const doc = {
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
-                name: file.name,
-                size: file.size,
-                type: file.type,
-                category: getCategoryFromType(file.type),
-                date: new Date().toISOString(),
-                dataUrl: e.target.result
-            };
-            documents.unshift(doc);
-            saveDocuments();
-            renderDocuments();
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-function getCategoryFromType(type) {
-    if (type.includes('pdf') || type.includes('word') || type.includes('doc')) return 'contracts';
-    if (type.includes('sheet') || type.includes('excel') || type.includes('xls')) return 'reports';
-    if (type.includes('image')) return 'other';
-    return 'other';
 }
 
 // Initialize document event listeners
@@ -2557,6 +2769,8 @@ function initUploadHandlers() {
     
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('fileInput');
+    
+    console.log('initUploadHandlers called', { uploadArea, fileInput });
     
     if (uploadArea && fileInput) {
         uploadArea.addEventListener('dragover', function(e) {
@@ -2575,10 +2789,12 @@ function initUploadHandlers() {
         });
         
         fileInput.addEventListener('change', function() {
+            console.log('File input changed', this.files);
             handleFileUpload(this.files);
         });
         
         uploadInitialized = true;
+        console.log('Upload handlers initialized');
     }
 }
 
@@ -2589,8 +2805,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         if (pageKey === 'documents') {
             uploadInitialized = false;
             setTimeout(function() {
-                updateCategoryFilter();
-                renderDocuments();
+                fetchDocuments();
                 initUploadHandlers();
             }, 50);
         }
@@ -2602,6 +2817,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         if (pageKey === 'overview') {
             setTimeout(function() {
                 fetchApplications();
+                fetchJobs();
             }, 50);
         }
     });
@@ -2609,12 +2825,14 @@ document.querySelectorAll('.nav-item').forEach(item => {
 
 // Initial render on page load
 if (document.getElementById('documentsGrid')) {
-    updateCategoryFilter();
-    renderDocuments();
+    fetchDocuments();
     initUploadHandlers();
 }
-if (document.getElementById('applicationsTableBody')) {
+if (document.getElementById('applicationsTableBody') || document.getElementById('recentApplicationsBody')) {
     fetchApplications();
+}
+if (document.getElementById('recentApplicationsBody') || document.getElementById('jobsTableBody')) {
+    fetchJobs();
 }
 
 // Chemical Calculator Functions
@@ -2867,6 +3085,91 @@ function addChemicalRow() {
     } else {
         fetchChemicalsForCalculator();
     }
+}
+
+// Open calculator with field data from job
+function openCalculatorWithField(fieldSize, chemicals) {
+    // Close the application detail modal if open
+    closeApplicationModal();
+    
+    // Navigate to calculator page by simulating click
+    const calcNavItem = document.querySelector('[data-page="calculator"]');
+    if (calcNavItem) {
+        calcNavItem.click();
+    }
+    
+    // Wait for page to load and chemicals to be fetched
+    setTimeout(() => {
+        // Set field size
+        document.getElementById('fieldSize').value = fieldSize;
+        calculateFieldVolume();
+        
+        // Clear existing chemical rows except the first one
+        const tbody = document.getElementById('fieldChemicalsBody');
+        const rows = tbody.querySelectorAll('.chemical-row');
+        rows.forEach((row, index) => {
+            if (index > 0) row.remove();
+        });
+        
+        // Reset first row
+        const firstRow = tbody.querySelector('.chemical-row');
+        firstRow.querySelector('.chemical-name').value = '';
+        firstRow.querySelector('.label-rate').value = '';
+        firstRow.querySelector('.rate-unit').value = 'oz';
+        firstRow.querySelector('.chemical-volume').value = '';
+        
+        // Add rows and select chemicals
+        if (chemicalsDB.length > 0) {
+            // Chemicals already loaded
+            fillChemicalsInCalculator(chemicals);
+        } else {
+            // Wait for chemicals to load
+            fetchChemicalsForCalculator().then(() => {
+                fillChemicalsInCalculator(chemicals);
+            });
+        }
+    }, 300);
+}
+
+// Fill chemicals in calculator after data is loaded
+function fillChemicalsInCalculator(chemicals) {
+    const tbody = document.getElementById('fieldChemicalsBody');
+    
+    chemicals.forEach((chemName, index) => {
+        if (index === 0) {
+            // Use first row
+            const firstRow = tbody.querySelector('.chemical-row');
+            const select = firstRow.querySelector('.chemical-name');
+            
+            // Find the matching chemical in dropdown
+            for (let option of select.options) {
+                if (option.textContent.toLowerCase().includes(chemName.toLowerCase()) ||
+                    chemName.toLowerCase().includes(option.textContent.toLowerCase().split(' ')[0])) {
+                    select.value = option.value;
+                    onChemicalSelect(select);
+                    break;
+                }
+            }
+        } else {
+            // Add new row for additional chemicals
+            addChemicalRow();
+            const rows = tbody.querySelectorAll('.chemical-row');
+            const newRow = rows[rows.length - 1];
+            const select = newRow.querySelector('.chemical-name');
+            
+            // Find the matching chemical in dropdown
+            setTimeout(() => {
+                for (let option of select.options) {
+                    if (option.textContent.toLowerCase().includes(chemName.toLowerCase()) ||
+                        chemName.toLowerCase().includes(option.textContent.toLowerCase().split(' ')[0])) {
+                        select.value = option.value;
+                        onChemicalSelect(select);
+                        break;
+                    }
+                }
+            }, 50);
+        }
+    });
 }
 
 // Remove a chemical row
