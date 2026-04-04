@@ -1022,6 +1022,27 @@ const pages = {
             </style>
         `
     },
+    chemicallist: {
+        title: 'Chemical Information Management System',
+        content: `
+            <div class="page-header">
+                <input type="text" id="chemicalSearchInput" class="chemical-search" placeholder="Search brand or chemical name..." oninput="filterChemicals()">
+                <button class="status scheduled" onclick="openColumnManagerModal()">Manage Columns</button>
+            </div>
+            <div class="chemical-list-container">
+                <div class="chemical-table-wrapper">
+                    <table class="chemical-manager-table">
+                        <thead id="chemicalManagerTableHead"></thead>
+                        <tbody id="chemicalManagerTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="chemical-list-actions">
+                    <button class="btn btn-secondary btn-sm" onclick="addChemicalManagerRow()">+ Add Chemical</button>
+                    <button class="btn btn-primary" onclick="saveChemicals()">Save Changes</button>
+                </div>
+            </div>
+        `
+    },
     spraysettings: {
         title: 'Spray/Spread Settings',
         content: `
@@ -2761,6 +2782,350 @@ async function handleFileUpload(files) {
     }
 }
 
+// ============================================
+// CHEMICAL INFORMATION MANAGEMENT SYSTEM
+// ============================================
+
+// Chemical database and columns
+let chemicalDB = [];
+let chemicalColumns = [
+    { key: 'brandName', label: 'Brand Name', type: 'text' },
+    { key: 'chemName', label: 'Chemical Name', type: 'text' },
+    { key: 'category', label: 'Category', type: 'select', options: ['Herbicide', 'Insecticide', 'Fungicide', 'Other'] },
+    { key: 'rateRange', label: 'Rate Range', type: 'text' },
+    { key: 'rateUnit', label: 'Rate Unit', type: 'select', options: ['oz/acre', 'pt/acre', 'qt/acre', 'gal/acre', 'lb/acre'] },
+    { key: 'verified', label: 'Verified', type: 'verified' }
+];
+
+async function initChemicalListPage() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chemicals`);
+        const data = await response.json();
+        
+        // Load columns from API
+        if (data.columns && data.columns.length > 0) {
+            chemicalColumns = data.columns;
+        }
+        
+        // Load chemicals
+        chemicalDB = data.chemicals || [];
+        
+        // Also update global chemicalsDB for calculator
+        chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
+        
+        renderChemicalManagerTable();
+    } catch (error) {
+        console.error('Error loading chemicals:', error);
+        // Keep default columns and empty chemicals
+        chemicalDB = [];
+        renderChemicalManagerTable();
+    }
+}
+
+function filterChemicals() {
+    renderChemicalManagerTable();
+}
+
+function renderChemicalManagerTable() {
+    const thead = document.getElementById('chemicalManagerTableHead');
+    const tbody = document.getElementById('chemicalManagerTableBody');
+    const searchInput = document.getElementById('chemicalSearchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    
+    if (!thead || !tbody) return;
+    
+    // Render header
+    let headerHtml = '<tr>';
+    chemicalColumns.forEach((col) => {
+        if (col.type === 'verified') {
+            headerHtml += `<th>${col.label}</th>`;
+        } else {
+            headerHtml += `<th>${col.label}</th>`;
+        }
+    });
+    headerHtml += '<th style="width: 50px;"></th></tr>';
+    thead.innerHTML = headerHtml;
+    
+    // Filter chemicals by search term
+    const filteredChemDB = chemicalDB.filter(chem => {
+        const brandName = (chem.brandName || '').toLowerCase();
+        const chemName = (chem.chemName || '').toLowerCase();
+        return brandName.includes(searchTerm) || chemName.includes(searchTerm);
+    });
+    
+    // Render body
+    if (filteredChemDB.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="' + (chemicalColumns.length + 1) + '" style="text-align: center; padding: 40px; color: var(--text-muted);">' + 
+            (chemicalDB.length === 0 ? 'No chemicals added yet. Click "+ Add Chemical" to start.' : 'No chemicals match your search.') + '</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = filteredChemDB.map((chem, rowIndex) => {
+        let rowHtml = '<tr data-index="' + rowIndex + '">';
+        chemicalColumns.forEach(col => {
+            if (col.type === 'text') {
+                rowHtml += `
+                    <td>
+                        <input type="text" value="${chem[col.key] || ''}" 
+                            onchange="updateChemField(${rowIndex}, '${col.key}', this.value)">
+                    </td>
+                `;
+            } else if (col.type === 'select') {
+                const value = chem[col.key] || '';
+                rowHtml += `
+                    <td>
+                        <select onchange="updateChemField(${rowIndex}, '${col.key}', this.value)">
+                            ${col.options.map(opt => 
+                                `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
+                            ).join('')}
+                        </select>
+                    </td>
+                `;
+            } else if (col.type === 'verified') {
+                const isVerified = chem.verified === true;
+                rowHtml += `
+                    <td>
+                        <button class="verified-btn ${isVerified ? 'verified' : 'unverified'}" 
+                            onclick="toggleVerified(${rowIndex})">
+                            ${isVerified ? 'Verified' : 'Unverified'}
+                        </button>
+                    </td>
+                `;
+            }
+        });
+        rowHtml += `
+            <td>
+                <button class="delete-row-btn" onclick="deleteChemRow(${rowIndex})" title="Delete">&times;</button>
+            </td>
+        </tr>`;
+        return rowHtml;
+    }).join('');
+}
+
+function addChemicalManagerRow() {
+    const newChem = { verified: false };
+    chemicalColumns.forEach(col => {
+        if (col.key !== 'verified') {
+            newChem[col.key] = '';
+        }
+    });
+    newChem.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+    chemicalDB.push(newChem);
+    renderChemicalManagerTable();
+}
+
+function deleteChemRow(index) {
+    if (confirm('Delete this chemical?')) {
+        chemicalDB.splice(index, 1);
+        renderChemicalManagerTable();
+    }
+}
+
+function updateChemField(index, key, value) {
+    chemicalDB[index][key] = value;
+}
+
+function toggleVerified(index) {
+    chemicalDB[index].verified = !chemicalDB[index].verified;
+    renderChemicalManagerTable();
+}
+
+function showAddColumnInput() {
+    const input = document.getElementById('newColumnInput');
+    input.style.display = 'inline-block';
+    input.focus();
+}
+
+function handleColumnKeypress(event) {
+    if (event.key === 'Enter') {
+        const input = event.target;
+        const colName = input.value.trim();
+        if (colName) {
+            addColumn(colName);
+            input.value = '';
+            input.style.display = 'none';
+        }
+    }
+}
+
+function addColumn(colName) {
+    const key = colName.toLowerCase().replace(/\s+/g, '_');
+    chemicalColumns.push({
+        key: key,
+        label: colName,
+        type: 'text'
+    });
+    chemicalDB.forEach(chem => {
+        chem[key] = '';
+    });
+    renderChemicalManagerTable();
+}
+
+function removeColumn(index) {
+    const col = chemicalColumns[index];
+    if (confirm(`Remove "${col.label}" column?`)) {
+        chemicalColumns.splice(index, 1);
+        chemicalDB.forEach(chem => {
+            delete chem[col.key];
+        });
+        renderChemicalManagerTable();
+    }
+}
+
+async function saveChemicals() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/chemicals`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                columns: chemicalColumns,
+                chemicals: chemicalDB
+            })
+        });
+        
+        if (response.ok) {
+            // Update global chemicalsDB for calculator
+            chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
+            
+            // Refresh calculator dropdowns if they exist
+            populateChemicalDropdowns();
+            
+            alert('Chemical list saved successfully!');
+        } else {
+            const error = await response.json();
+            alert('Error saving: ' + (error.error || 'Unknown error'));
+        }
+    } catch (error) {
+        console.error('Error saving chemicals:', error);
+        alert('Error saving chemicals. Please try again.');
+    }
+}
+
+// ============================================
+// COLUMN MANAGER MODAL
+// ============================================
+
+// Temporary columns for editing
+let editingColumns = [];
+
+const columnManagerModalHTML = `
+    <div class="modal-overlay" id="columnManagerModal">
+        <div class="modal-content column-manager-modal">
+            <div class="modal-header">
+                <h3>Manage Columns</h3>
+                <button class="modal-close" onclick="closeColumnManagerModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="columnListContainer"></div>
+                <button class="btn btn-secondary btn-sm" onclick="addColumnInManager()" style="margin-top: 16px;">+ Add Column</button>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="saveColumnChanges()">Save</button>
+                <button class="btn btn-secondary" onclick="closeColumnManagerModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+`;
+
+document.body.insertAdjacentHTML('beforeend', columnManagerModalHTML);
+
+function openColumnManagerModal() {
+    editingColumns = JSON.parse(JSON.stringify(chemicalColumns));
+    renderColumnList();
+    document.getElementById('columnManagerModal').classList.add('active');
+}
+
+function closeColumnManagerModal() {
+    document.getElementById('columnManagerModal').classList.remove('active');
+}
+
+function renderColumnList() {
+    const container = document.getElementById('columnListContainer');
+    if (!container) return;
+    
+    container.innerHTML = editingColumns.map((col, index) => `
+        <div class="column-item" draggable="true" data-index="${index}">
+            <span class="drag-handle">&#9776;</span>
+            <input type="text" value="${col.label}" onchange="updateColumnLabel(${index}, this.value)">
+            ${index >= 6 ? `<button class="remove-col-btn" onclick="removeColumnInManager(${index})">&times;</button>` : '<span class="col-locked"></span>'}
+        </div>
+    `).join('');
+    
+    // Add drag and drop event listeners
+    const items = container.querySelectorAll('.column-item');
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+        item.addEventListener('dragover', handleDragOver);
+        item.addEventListener('drop', handleDrop);
+        item.addEventListener('dragleave', handleDragLeave);
+    });
+}
+
+let draggedIndex = null;
+
+function handleDragStart(e) {
+    draggedIndex = parseInt(e.target.closest('.column-item').dataset.index);
+    e.target.closest('.column-item').classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    e.target.closest('.column-item').classList.remove('dragging');
+    document.querySelectorAll('.column-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    e.target.closest('.column-item')?.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    e.target.closest('.column-item')?.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const dropIndex = parseInt(e.target.closest('.column-item').dataset.index);
+    
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+        const item = editingColumns.splice(draggedIndex, 1)[0];
+        editingColumns.splice(dropIndex, 0, item);
+        renderColumnList();
+    }
+    
+    draggedIndex = null;
+}
+
+function updateColumnLabel(index, value) {
+    const key = value.toLowerCase().replace(/\s+/g, '_');
+    editingColumns[index].label = value;
+    editingColumns[index].key = key;
+}
+
+function addColumnInManager() {
+    editingColumns.push({
+        key: 'new_column_' + Date.now(),
+        label: 'New Column',
+        type: 'text'
+    });
+    renderColumnList();
+}
+
+function removeColumnInManager(index) {
+    editingColumns.splice(index, 1);
+    renderColumnList();
+}
+
+function saveColumnChanges() {
+    chemicalColumns = JSON.parse(JSON.stringify(editingColumns));
+    closeColumnManagerModal();
+    renderChemicalManagerTable();
+}
+
 // Initialize document event listeners
 let uploadInitialized = false;
 
@@ -2818,6 +3183,11 @@ document.querySelectorAll('.nav-item').forEach(item => {
             setTimeout(function() {
                 fetchApplications();
                 fetchJobs();
+            }, 50);
+        }
+        if (pageKey === 'chemicallist') {
+            setTimeout(function() {
+                initChemicalListPage();
             }, 50);
         }
     });
