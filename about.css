@@ -202,6 +202,36 @@
     line-height: 1.7;
 }
 
+.values-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+    text-align: left;
+}
+
+.value-item {
+    padding: 14px;
+    background: rgba(54, 124, 43, 0.08);
+    border-radius: 10px;
+    border: 1px solid rgba(54, 124, 43, 0.15);
+}
+
+.value-item strong {
+    display: block;
+    color: var(--primary-light);
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.value-item p {
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin: 0;
+    color: var(--text-secondary);
+}
+
 /* Gallery Section */
 .about-gallery {
     padding: 100px 0;
@@ -353,6 +383,10 @@
     
     .mission-card {
         padding: 24px;
+    }
+    
+    .values-grid {
+        grid-template-columns: 1fr;
     }
     
     .about-gallery {
