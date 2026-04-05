@@ -214,11 +214,11 @@
                                             </div>
                                             <button type="button" class="btn btn-secondary btn-sm" onclick="addChemical(0)">Add</button>
                                         </div>
-                                        <div class="selected-chemicals" id="selectedChemicals0"></div>
                                         <div class="custom-chemical-input" id="customChemical0" style="display: none;">
                                             <input type="text" class="custom-chem-field" placeholder="Enter chemical name..." onkeypress="if(event.key==='Enter'){submitCustomChemical(0); return false;}">
                                             <button type="button" class="btn btn-primary btn-sm" onclick="submitCustomChemical(0)">Confirm</button>
                                         </div>
+                                        <div class="selected-chemicals" id="selectedChemicals0"></div>
                                     </div>
                                 </div>
                             </div>
@@ -328,24 +328,15 @@
                 const response = await fetch(`${API_BASE_URL}/chemicals`);
                 const data = await response.json();
                 chemicalsDB = data.chemicals.map(chem => ({
-                    name: chem.name,
-                    type: chem.category.charAt(0).toUpperCase() + chem.category.slice(1),
+                    name: `${chem.brandName || ''} ${chem.chemName || ''}`.trim(),
+                    type: chem.category ? chem.category.charAt(0).toUpperCase() + chem.category.slice(1) : 'Other',
                     id: chem.id,
-                    defaultRate: chem.defaultRate,
+                    rateRange: chem.rateRange,
                     rateUnit: chem.rateUnit
                 }));
             } catch (error) {
                 console.error('Error fetching chemicals:', error);
-                // Fallback to basic list if API fails
-                chemicalsDB = [
-                    { name: "Glyphosate", type: "Herbicide" },
-                    { name: "2,4-D", type: "Herbicide" },
-                    { name: "Dicamba", type: "Herbicide" },
-                    { name: "Atrazine", type: "Herbicide" },
-                    { name: "Permethrin", type: "Insecticide" },
-                    { name: "Malathion", type: "Insecticide" },
-                    { name: "Other", type: "Custom" }
-                ];
+                chemicalsDB = [];
             }
         }
         
@@ -493,11 +484,11 @@
                         </div>
                         <button type="button" class="btn btn-secondary btn-sm" onclick="addChemical(${fieldCount})">Add</button>
                     </div>
-                    <div class="selected-chemicals" id="selectedChemicals${fieldCount}"></div>
                     <div class="custom-chemical-input" id="customChemical${fieldCount}" style="display: none;">
                         <input type="text" class="custom-chem-field" placeholder="Enter chemical name..." onkeypress="if(event.key==='Enter'){submitCustomChemical(${fieldCount}); return false;}">
                         <button type="button" class="btn btn-primary btn-sm" onclick="submitCustomChemical(${fieldCount})">Confirm</button>
                     </div>
+                    <div class="selected-chemicals" id="selectedChemicals${fieldCount}"></div>
                 </div>
             `;
             fieldGroupsContainer.appendChild(newFieldGroup);
@@ -530,6 +521,9 @@
             const optionsContainer = document.getElementById(`chemicalOptions${fieldIndex}`);
             const searchTerm = searchInput.value.toLowerCase();
             
+            // Always show "Other" option at the top
+            let html = `<div class="chemical-option" onclick="selectChemical(${fieldIndex}, 'Other')">Other</div>`;
+            
             const filtered = chemicalsDB.filter(chem => 
                 chem.name.toLowerCase().includes(searchTerm) || 
                 chem.type.toLowerCase().includes(searchTerm)
@@ -542,7 +536,6 @@
                 grouped[chem.type].push(chem);
             });
             
-            let html = '';
             Object.keys(grouped).sort().forEach(type => {
                 html += `<div class="chemical-type-header">${type}</div>`;
                 grouped[type].forEach(chem => {
@@ -550,8 +543,8 @@
                 });
             });
             
-            if (filtered.length === 0) {
-                html = '<div class="chemical-no-results">No chemicals found</div>';
+            if (filtered.length === 0 && searchTerm.length > 0) {
+                html += '<div class="chemical-no-results">No chemicals found</div>';
             }
             
             optionsContainer.innerHTML = html;
@@ -569,7 +562,18 @@
         }
 
         function selectChemical(fieldIndex, chemicalName) {
-            document.getElementById(`chemicalSearch${fieldIndex}`).value = chemicalName;
+            const searchInput = document.getElementById(`chemicalSearch${fieldIndex}`);
+            const customChemInput = document.getElementById(`customChemical${fieldIndex}`);
+            
+            if (chemicalName === 'Other') {
+                searchInput.value = '';
+                customChemInput.style.display = 'flex';
+                customChemInput.querySelector('input').focus();
+            } else {
+                searchInput.value = chemicalName;
+                customChemInput.style.display = 'none';
+                customChemInput.querySelector('input').value = '';
+            }
             hideDropdown(fieldIndex);
         }
 

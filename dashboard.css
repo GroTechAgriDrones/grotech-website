@@ -2138,3 +2138,59 @@
 .chemical-search::placeholder {
     color: var(--text-muted);
 }
+
+/* Chemical Searchable Dropdown */
+.chemical-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.chemical-search-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+}
+
+.chemical-search-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.chemical-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.chemical-dropdown .dropdown-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.85rem;
+}
+
+.chemical-dropdown .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.chemical-dropdown .dropdown-item:hover {
+    background: rgba(54, 124, 43, 0.1);
+}
+
+.chemical-dropdown .dropdown-item.hidden {
+    display: none;
+}
