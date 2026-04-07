@@ -2091,6 +2091,9 @@ function updateJobsTable() {
                 </td>
                 <td><span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
                 <td class="actions-cell">
+                    <button class="action-btn edit-btn" onclick="event.stopPropagation(); openEditJobModal('${job.id}')" title="Edit job">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
                     <button class="action-btn delete-btn" onclick="event.stopPropagation(); deleteJob('${job.id}')" title="Delete job">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
@@ -2296,6 +2299,525 @@ async function toggleFieldStatus(jobId, fieldIndex) {
         // Revert the change
         job.fieldStatus[fieldIndex] = currentStatus;
     }
+}
+
+// Open edit job modal
+async function openEditJobModal(jobId) {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    currentApplicationId = jobId;
+    
+    // Fetch chemicals if not already loaded
+    if (chemicalsDB.length === 0) {
+        await fetchChemicalsForCalculator();
+    }
+    
+    let fieldsHtml = '';
+    if (job.fields && job.fields.length > 0) {
+        fieldsHtml = job.fields.map((field, index) => {
+            const chemicalsJson = JSON.stringify(field.chemicals || []).replace(/'/g, "\\'");
+            return `
+                <div class="edit-field-group">
+                    <h4>Field ${index + 1}</h4>
+                    <div class="edit-form-grid">
+                        <div class="form-group">
+                            <label>Field Name</label>
+                            <input type="text" id="edit_fieldName_${index}" value="${field.fieldName || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label>Field Size (acres)</label>
+                            <input type="number" id="edit_fieldSize_${index}" value="${field.fieldSize || ''}">
+                        </div>
+                        <div class="form-group">
+                            <label>Crop Type</label>
+                            <select id="edit_cropType_${index}">
+                                <option value="">Select crop...</option>
+                                <option value="Corn" ${field.cropType === 'Corn' ? 'selected' : ''}>Corn</option>
+                                <option value="Soybeans" ${field.cropType === 'Soybeans' ? 'selected' : ''}>Soybeans</option>
+                                <option value="Wheat" ${field.cropType === 'Wheat' ? 'selected' : ''}>Wheat</option>
+                                <option value="Alfalfa" ${field.cropType === 'Alfalfa' ? 'selected' : ''}>Alfalfa</option>
+                                <option value="Cotton" ${field.cropType === 'Cotton' ? 'selected' : ''}>Cotton</option>
+                                <option value="Sorghum" ${field.cropType === 'Sorghum' ? 'selected' : ''}>Sorghum</option>
+                                <option value="Rice" ${field.cropType === 'Rice' ? 'selected' : ''}>Rice</option>
+                                <option value="Other" ${field.cropType === 'Other' ? 'selected' : ''}>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Field Location</label>
+                            <div class="location-input-wrapper">
+                                <input type="text" id="edit_fieldLocation_${index}" value="${field.fieldLocation || ''}" placeholder="Click map to select location" readonly>
+                                <button type="button" class="location-map-btn" onclick="openEditFieldMap(${index})" title="Select location on map">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                            <label>Chemicals</label>
+                            <div class="chemical-selector">
+                                <div class="chemical-input-wrapper">
+                                    <input type="text" id="edit_chemicalSearch_${index}" class="chemical-search" placeholder="Search chemicals..." oninput="filterEditChemicals(${index})" onfocus="showEditChemicalDropdown(${index})">
+                                    <div class="chemical-dropdown" id="edit_chemicalDropdown_${index}">
+                                        <div class="chemical-options" id="edit_chemicalOptions_${index}"></div>
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-secondary btn-sm" onclick="addEditChemical(${index})">Add</button>
+                            </div>
+                            <div class="custom-chemical-input" id="edit_customChemical_${index}" style="display: none;">
+                                <input type="text" class="custom-chem-field" placeholder="Enter chemical name..." onkeypress="if(event.key==='Enter'){submitEditCustomChemical(${index}); return false;}">
+                                <button type="button" class="btn btn-primary btn-sm" onclick="submitEditCustomChemical(${index})">Confirm</button>
+                            </div>
+                            <div class="selected-chemicals" id="edit_selectedChemicals_${index}"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Optimal Date</label>
+                            <input type="text" id="edit_optimalDate_${index}" value="${field.optimalDate || ''}" placeholder="Click to select date" readonly onclick="openEditFieldCalendar(${index})">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    const content = `
+        <div class="edit-job-form">
+            <div class="edit-section">
+                <h4>Client Information</h4>
+                <div class="edit-form-grid">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="edit_fullName" value="${job.fullName || job.client || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" id="edit_phone" value="${job.phone || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="edit_email" value="${job.email || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Scheduled Date</label>
+                        <input type="text" id="edit_scheduledDate" value="${job.scheduledDate || ''}" placeholder="Click to select date" readonly onclick="openScheduledCalendar()">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="edit-section">
+                <h4>Address</h4>
+                <div class="edit-form-grid">
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Street Address</label>
+                        <input type="text" id="edit_address" value="${job.address || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input type="text" id="edit_city" value="${job.city || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input type="text" id="edit_state" value="${job.state || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Zip Code</label>
+                        <input type="text" id="edit_zip" value="${job.zip || ''}">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="edit-section">
+                <h4>Field Information</h4>
+                ${fieldsHtml}
+            </div>
+            
+            <div class="edit-section">
+                <h4>Additional Notes</h4>
+                <div class="form-group">
+                    <textarea id="edit_message" rows="3">${job.message || ''}</textarea>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('editJobContent').innerHTML = content;
+    document.getElementById('editJobModal').classList.add('active');
+    
+    // Initialize selected chemicals for each field
+    if (job.fields && job.fields.length > 0) {
+        job.fields.forEach((field, index) => {
+            initializeEditChemicals(job, index);
+        });
+    }
+}
+
+// Close edit job modal
+function closeEditJobModal() {
+    document.getElementById('editJobModal').classList.remove('active');
+}
+
+// Save edited job
+async function saveEditedJob() {
+    const jobId = currentApplicationId;
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    // Collect form data
+    const updatedJob = {
+        fullName: document.getElementById('edit_fullName').value,
+        phone: document.getElementById('edit_phone').value,
+        email: document.getElementById('edit_email').value,
+        scheduledDate: document.getElementById('edit_scheduledDate').value,
+        address: document.getElementById('edit_address').value,
+        city: document.getElementById('edit_city').value,
+        state: document.getElementById('edit_state').value,
+        zip: document.getElementById('edit_zip').value,
+        message: document.getElementById('edit_message').value,
+        fields: []
+    };
+    
+    // Update fields
+    if (job.fields && job.fields.length > 0) {
+        job.fields.forEach((field, index) => {
+            const chemicals = window[`editSelectedChemicals_${index}`] || [];
+            updatedJob.fields.push({
+                fieldName: document.getElementById(`edit_fieldName_${index}`).value,
+                fieldSize: document.getElementById(`edit_fieldSize_${index}`).value,
+                cropType: document.getElementById(`edit_cropType_${index}`).value,
+                fieldLocation: document.getElementById(`edit_fieldLocation_${index}`).value,
+                chemicals: chemicals,
+                optimalDate: document.getElementById(`edit_optimalDate_${index}`).value
+            });
+        });
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedJob)
+        });
+        
+        if (response.ok) {
+            // Update local data
+            Object.assign(job, updatedJob);
+            closeEditJobModal();
+            fetchJobs();
+        } else {
+            alert('Error saving job. Please try again.');
+        }
+    } catch (error) {
+        console.error('Error saving job:', error);
+        alert('Error saving job. Please try again.');
+    }
+}
+
+// Chemical selector functions for edit modal
+function filterEditChemicals(fieldIndex) {
+    const searchInput = document.getElementById(`edit_chemicalSearch_${fieldIndex}`);
+    const optionsContainer = document.getElementById(`edit_chemicalOptions_${fieldIndex}`);
+    const searchTerm = searchInput.value.toLowerCase();
+    
+    let html = '<div class="chemical-option" onclick="selectEditChemical(' + fieldIndex + ', \'Other\')">Other</div>';
+    
+    const filtered = chemicalsDB.filter(chem => {
+        const chemName = `${chem.brandName || ''} ${chem.chemName || ''}`.trim().toLowerCase();
+        const category = chem.category ? chem.category.toLowerCase() : '';
+        return chemName.includes(searchTerm) || category.includes(searchTerm);
+    });
+    
+    const grouped = {};
+    filtered.forEach(chem => {
+        const type = chem.category ? chem.category.charAt(0).toUpperCase() + chem.category.slice(1) : 'Other';
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(chem);
+    });
+    
+    Object.keys(grouped).sort().forEach(type => {
+        html += '<div class="chemical-type-header">' + type + '</div>';
+        grouped[type].forEach(chem => {
+            const displayName = `${chem.brandName || ''} ${chem.chemName || ''}`.trim();
+            html += '<div class="chemical-option" onclick="selectEditChemical(' + fieldIndex + ', \'' + displayName.replace(/'/g, "\\'") + '\')">' + displayName + '</div>';
+        });
+    });
+    
+    if (filtered.length === 0 && searchTerm.length > 0) {
+        html += '<div class="chemical-no-results">No chemicals found</div>';
+    }
+    
+    optionsContainer.innerHTML = html;
+}
+
+function showEditChemicalDropdown(fieldIndex) {
+    const dropdown = document.getElementById(`edit_chemicalDropdown_${fieldIndex}`);
+    dropdown.classList.add('active');
+    filterEditChemicals(fieldIndex);
+}
+
+function hideEditChemicalDropdown(fieldIndex) {
+    const dropdown = document.getElementById(`edit_chemicalDropdown_${fieldIndex}`);
+    dropdown.classList.remove('active');
+}
+
+// Global handler to close dropdowns when clicking outside
+let editDropdownHandler = null;
+document.addEventListener('click', function(e) {
+    // Close dropdown if clicking outside the selector and dropdown
+    const selectors = document.querySelectorAll('.edit-job-form .chemical-selector');
+    const dropdowns = document.querySelectorAll('.edit-job-form .chemical-dropdown');
+    
+    let clickedInside = false;
+    selectors.forEach(function(sel) {
+        if (sel.contains(e.target)) clickedInside = true;
+    });
+    dropdowns.forEach(function(dd) {
+        if (dd.contains(e.target)) clickedInside = true;
+    });
+    
+    if (!clickedInside) {
+        dropdowns.forEach(function(dd) {
+            dd.classList.remove('active');
+        });
+    }
+});
+
+function selectEditChemical(fieldIndex, chemicalName) {
+    const searchInput = document.getElementById(`edit_chemicalSearch_${fieldIndex}`);
+    const customChemInput = document.getElementById(`edit_customChemical_${fieldIndex}`);
+    
+    if (chemicalName === 'Other') {
+        searchInput.value = '';
+        customChemInput.style.display = 'flex';
+        customChemInput.querySelector('input').focus();
+    } else {
+        searchInput.value = chemicalName;
+        customChemInput.style.display = 'none';
+        customChemInput.querySelector('input').value = '';
+    }
+    hideEditChemicalDropdown(fieldIndex);
+}
+
+function addEditChemical(fieldIndex) {
+    const searchInput = document.getElementById(`edit_chemicalSearch_${fieldIndex}`);
+    const chemicalName = searchInput.value.trim();
+    const customChemInput = document.getElementById(`edit_customChemical_${fieldIndex}`);
+    
+    if (!chemicalName) return;
+    
+    // Initialize selected chemicals array for this field
+    if (!window[`editSelectedChemicals_${fieldIndex}`]) {
+        window[`editSelectedChemicals_${fieldIndex}`] = [];
+    }
+    
+    const selectedChems = window[`editSelectedChemicals_${fieldIndex}`];
+    
+    // Check if already added
+    if (selectedChems.includes(chemicalName)) {
+        searchInput.value = '';
+        return;
+    }
+    
+    selectedChems.push(chemicalName);
+    renderEditSelectedChemicals(fieldIndex);
+    searchInput.value = '';
+    customChemInput.style.display = 'none';
+}
+
+function submitEditCustomChemical(fieldIndex) {
+    const customInput = document.getElementById(`edit_customChemical_${fieldIndex}`).querySelector('input');
+    const chemicalName = customInput.value.trim();
+    
+    if (!chemicalName) return;
+    
+    // Initialize selected chemicals array for this field
+    if (!window[`editSelectedChemicals_${fieldIndex}`]) {
+        window[`editSelectedChemicals_${fieldIndex}`] = [];
+    }
+    
+    const selectedChems = window[`editSelectedChemicals_${fieldIndex}`];
+    
+    // Check if already added
+    if (selectedChems.includes(chemicalName)) {
+        customInput.value = '';
+        return;
+    }
+    
+    selectedChems.push(chemicalName);
+    renderEditSelectedChemicals(fieldIndex);
+    customInput.value = '';
+    document.getElementById(`edit_customChemical_${fieldIndex}`).style.display = 'none';
+}
+
+function removeEditChemical(fieldIndex, chemicalName) {
+    if (!window[`editSelectedChemicals_${fieldIndex}`]) return;
+    
+    window[`editSelectedChemicals_${fieldIndex}`] = window[`editSelectedChemicals_${fieldIndex}`].filter(c => c !== chemicalName);
+    renderEditSelectedChemicals(fieldIndex);
+}
+
+function renderEditSelectedChemicals(fieldIndex) {
+    const container = document.getElementById(`edit_selectedChemicals_${fieldIndex}`);
+    const chemicals = window[`editSelectedChemicals_${fieldIndex}`] || [];
+    
+    container.innerHTML = chemicals.map(chem => {
+        const chemical = chemicalsDB.find(c => {
+            const displayName = `${c.brandName || ''} ${c.chemName || ''}`.trim();
+            return displayName === chem;
+        });
+        const type = chemical && chemical.category ? chemical.category.charAt(0).toUpperCase() + chemical.category.slice(1) : '';
+        return '<span class="chemical-tag" data-type="' + type + '">' + chem + '<button type="button" onclick="removeEditChemical(' + fieldIndex + ', \'' + chem.replace(/'/g, "\\'") + '\')">&times;</button></span>';
+    }).join('');
+}
+
+// Initialize selected chemicals when opening edit modal
+function initializeEditChemicals(job, fieldIndex) {
+    const field = job.fields[fieldIndex];
+    if (field && field.chemicals) {
+        window[`editSelectedChemicals_${fieldIndex}`] = [...field.chemicals];
+        renderEditSelectedChemicals(fieldIndex);
+    } else {
+        window[`editSelectedChemicals_${fieldIndex}`] = [];
+        renderEditSelectedChemicals(fieldIndex);
+    }
+}
+
+// Open calendar for scheduled date in edit modal
+function openScheduledCalendar() {
+    const input = document.getElementById('edit_scheduledDate');
+    const currentDate = input.value;
+    
+    // Simple date picker prompt
+    const dateStr = prompt('Enter scheduled date (YYYY-MM-DD):', currentDate || new Date().toISOString().split('T')[0]);
+    if (dateStr) {
+        input.value = dateStr;
+    }
+}
+
+// Open calendar for field optimal date in edit modal
+function openEditFieldCalendar(fieldIndex) {
+    const input = document.getElementById(`edit_optimalDate_${fieldIndex}`);
+    const currentDate = input.value;
+    
+    // Simple date picker prompt
+    const dateStr = prompt('Enter optimal date (YYYY-MM-DD):', currentDate || new Date().toISOString().split('T')[0]);
+    if (dateStr) {
+        input.value = dateStr;
+    }
+}
+
+// Open map for field location in edit modal
+let editFieldMapIndex = null;
+let editFieldMap = null;
+let editFieldMarker = null;
+let editFieldMapInitialized = false;
+
+function openEditFieldMap(fieldIndex) {
+    editFieldMapIndex = fieldIndex;
+    document.getElementById('fieldMapModal').classList.add('active');
+    
+    // Set map title based on context
+    const modalTitle = document.querySelector('#fieldMapModal .map-modal-header h3');
+    if (modalTitle) modalTitle.textContent = 'Locate Your Field';
+    
+    if (!editFieldMapInitialized) {
+        initEditFieldMap();
+    }
+    
+    // Parse existing coordinates and set marker if present
+    const locationInput = document.getElementById(`edit_fieldLocation_${fieldIndex}`);
+    const existingCoords = locationInput.value;
+    
+    if (existingCoords && existingCoords.includes(',')) {
+        const parts = existingCoords.split(',');
+        if (parts.length === 2) {
+            const lat = parseFloat(parts[0].trim());
+            const lng = parseFloat(parts[1].trim());
+            if (!isNaN(lat) && !isNaN(lng)) {
+                // Clear existing marker
+                if (editFieldMarker) {
+                    editFieldMap.removeLayer(editFieldMarker);
+                }
+                // Add marker at existing location
+                editFieldMarker = L.marker([lat, lng], { draggable: true }).addTo(editFieldMap);
+                
+                // Set view to existing location
+                editFieldMap.setView([lat, lng], 15);
+                
+                // Update coords when marker is dragged
+                editFieldMarker.on('dragend', function(e) {
+                    // Coordinates updated silently
+                });
+            }
+        }
+    } else {
+        // Reset to default view if no existing coords
+        editFieldMap.setView([42.2975, -89.6438], 10);
+    }
+    
+    // Invalidate map size when modal opens
+    setTimeout(() => editFieldMap.invalidateSize(), 100);
+}
+
+function closeFieldMapModal() {
+    document.getElementById('fieldMapModal').classList.remove('active');
+}
+
+function initEditFieldMap() {
+    // Center on Northern Illinois (Freeport area)
+    editFieldMap = L.map('fieldMapView').setView([42.2975, -89.6438], 10);
+
+    // ESRI World Imagery (satellite)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 18
+    }).addTo(editFieldMap);
+
+    // ESRI World Boundaries and Places (labels overlay)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Labels &copy; Esri',
+        maxZoom: 18
+    }).addTo(editFieldMap);
+
+    // ESRI World Transportation (roads overlay)
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Roads &copy; Esri',
+        maxZoom: 18
+    }).addTo(editFieldMap);
+
+    // Click to place pin
+    editFieldMap.on('click', function(e) {
+        if (editFieldMarker) {
+            editFieldMap.removeLayer(editFieldMarker);
+        }
+        editFieldMarker = L.marker(e.latlng, {
+            draggable: true
+        }).addTo(editFieldMap);
+
+        // Update coords when marker is dragged
+        editFieldMarker.on('dragend', function(ev) {
+            // Coordinates updated silently
+        });
+    });
+
+    editFieldMapInitialized = true;
+}
+
+function clearEditFieldPin() {
+    if (editFieldMarker) {
+        editFieldMap.removeLayer(editFieldMarker);
+        editFieldMarker = null;
+    }
+}
+
+function getEditFieldCoordinates() {
+    if (!editFieldMarker) {
+        alert('Please click on the map to place a pin first.');
+        return;
+    }
+    const latlng = editFieldMarker.getLatLng();
+    const lat = latlng.lat.toFixed(6);
+    const lng = latlng.lng.toFixed(6);
+    document.getElementById(`edit_fieldLocation_${editFieldMapIndex}`).value = `${lat}, ${lng}`;
+    closeFieldMapModal();
 }
 
 // Update jobs stats
@@ -3202,9 +3724,24 @@ async function fetchChemicalsForCalculator() {
         buildChemicalDropdownOptions();
     } catch (error) {
         console.error('Error fetching chemicals:', error);
-        chemicalsDB = [];
+        chemicalsDB = getDefaultChemicals();
         buildChemicalDropdownOptions();
     }
+}
+
+function getDefaultChemicals() {
+    return [
+        { id: 1, brandName: 'BASF', chemName: 'Veltyma', category: 'Fungicide' },
+        { id: 2, brandName: 'Syngenta', chemName: 'Miravis Neo', category: 'Fungicide' },
+        { id: 3, brandName: 'Corteva', chemName: 'LumiAlive', category: 'Fungicide' },
+        { id: 4, brandName: 'FMC', chemName: 'Authority MTZ', category: 'Herbicide' },
+        { id: 5, brandName: 'BASF', chemName: 'Zidua SC', category: 'Herbicide' },
+        { id: 6, brandName: 'Corteva', chemName: 'Enlist Duo', category: 'Herbicide' },
+        { id: 7, brandName: 'Bayer', chemName: 'Silwet', category: 'Surfactant' },
+        { id: 8, brandName: 'WinField', chemName: 'Rank', category: 'Adjuvant' },
+        { id: 9, brandName: 'BASF', chemName: 'Engage', category: 'Adjuvant' },
+        { id: 10, brandName: 'Syngenta', chemName: 'Fortenza', category: 'Insecticide' }
+    ];
 }
 
 // Build dropdown options for all search inputs
@@ -3808,9 +4345,11 @@ window.addEventListener('resize', function() {
 
 // Close chemical dropdown when clicking outside
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.chemical-search-wrapper')) {
+    if (!e.target.closest('.chemical-search-wrapper') && !e.target.closest('#editJobModal')) {
         document.querySelectorAll('.chemical-dropdown').forEach(dropdown => {
-            dropdown.style.display = 'none';
+            if (!dropdown.closest('#editJobModal')) {
+                dropdown.style.display = 'none';
+            }
         });
     }
 });
