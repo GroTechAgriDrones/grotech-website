@@ -116,6 +116,23 @@
         </div>
     </div>
 
+    <!-- Edit Job Modal -->
+    <div id="editJobModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Edit Job</h3>
+                <button class="modal-close" onclick="closeEditJobModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="editJobContent" style="max-height: 70vh; overflow-y: auto;">
+                <!-- Form loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditJobModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEditedJob()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Delete Confirmation Modal -->
     <div id="deleteConfirmModal" class="modal">
         <div class="modal-content delete-modal">
@@ -138,17 +155,21 @@
     </div>
 
     <!-- Field Map Modal -->
-    <div id="fieldMapModal" class="modal">
-        <div class="modal-content" style="max-width: 600px; width: 90%;">
-            <div class="modal-header">
-                <h3>Field Location</h3>
-                <button class="modal-close" onclick="closeFieldMapModal()">&times;</button>
+    <div id="fieldMapModal" class="map-modal">
+        <div class="map-modal-content">
+            <div class="map-modal-header">
+                <h3>Locate Your Field</h3>
+                <button class="map-close-btn" onclick="closeFieldMapModal()">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 0;">
-                <div id="fieldMapView" style="height: 400px; width: 100%;"></div>
+            <div class="map-modal-body">
+                <div id="fieldMapView"></div>
             </div>
-            <div class="modal-footer">
-                <span id="fieldMapCoords" style="color: var(--text-muted); font-size: 0.9rem;"></span>
+            <div class="map-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="clearEditFieldPin()">Clear Pin</button>
+                <button type="button" class="btn btn-primary" onclick="getEditFieldCoordinates()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Get Pin Coordinates
+                </button>
             </div>
         </div>
     </div>

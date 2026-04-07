@@ -547,6 +547,17 @@
     align-items: center;
 }
 
+.edit-btn {
+    padding: 6px 8px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.edit-btn:hover {
+    background: #3b82f6;
+    color: white;
+}
+
 .delete-btn {
     padding: 6px 8px;
     background: rgba(239, 68, 68, 0.1);
@@ -1167,13 +1178,12 @@
         min-width: 700px;
     }
     
-    .detail-grid {
+    .edit-form-grid {
         grid-template-columns: 1fr;
     }
     
-    .modal-content {
-        margin: 16px;
-        max-height: calc(100vh - 32px);
+    .edit-form-grid .form-group[style*="grid-column"] {
+        grid-column: span 1;
     }
 }
 
@@ -1786,6 +1796,233 @@
 .calendar-day.empty {
     cursor: default;
     background: transparent;
+}
+
+/* Edit Job Form Styles */
+.edit-job-form {
+    padding: 8px;
+}
+
+.edit-section {
+    margin-bottom: 24px;
+}
+
+.edit-section h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.edit-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.edit-form-grid .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.edit-form-grid .form-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.edit-form-grid .form-group input,
+.edit-form-grid .form-group select,
+.edit-form-grid .form-group textarea {
+    padding: 10px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.edit-form-grid .form-group input:focus,
+.edit-form-grid .form-group select:focus,
+.edit-form-grid .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.edit-form-grid .form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.edit-field-group {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.edit-field-group h4 {
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.edit-field-group:last-child {
+    margin-bottom: 0;
+}
+
+.location-input-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.location-input-wrapper input {
+    flex: 1;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.location-input-wrapper input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.location-map-btn {
+    padding: 8px 12px;
+    background: rgba(54, 124, 43, 0.1);
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    color: var(--primary-light);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.location-map-btn:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Ensure chemical dropdown appears above modal content */
+#editJobModal .chemical-dropdown {
+    z-index: 2050 !important;
+    position: absolute !important;
+}
+
+/* Make sure the input wrapper is positioned */
+#editJobModal .chemical-input-wrapper {
+    position: relative !important;
+}
+
+/* ============================================
+   MAP MODAL STYLES (from application page)
+   ============================================ */
+.map-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.map-modal.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.map-modal-content {
+    background: var(--bg-card);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.map-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.map-modal-header h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.map-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text-secondary);
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.map-close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary);
+}
+
+.map-modal-body {
+    padding: 20px 24px;
+    flex: 1;
+    overflow: auto;
+}
+
+.map-instructions {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+}
+
+#fieldMapView {
+    height: 400px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.map-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-light);
+}
+
+.map-modal-footer .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* ============================================
