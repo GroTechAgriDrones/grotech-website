@@ -253,7 +253,7 @@ ul {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 120px 24px 80px;
+    padding: 145px 24px 80px;
     overflow: hidden;
 }
 
@@ -399,9 +399,17 @@ ul {
     letter-spacing: 1px;
 }
 
+.stats-footnote {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-align: center;
+    opacity: 0.8;
+}
+
 .scroll-indicator {
     position: absolute;
-    bottom: 40px;
+    bottom: 15px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
