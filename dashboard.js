@@ -2082,7 +2082,7 @@ function updateJobsTable() {
         const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0) || job.acres || 0;
         const cropTypes = (job.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || job.crops || 'N/A';
         const dateRequested = job.fields?.[0]?.optimalDate || job.optimalDate || 'Not set';
-        const status = calculateJobStatus(job.jobStatus, job.fieldStatus) || job.jobStatus || 'pending';
+        const status = calculateJobStatus(job.jobStatus, job.fieldStatus, job.scheduledDate) || job.jobStatus || 'pending';
         const statusClass = status === 'scheduled' ? 'scheduled' : 
                            status === 'completed' ? 'completed' :
                            status === 'in_progress' ? 'in_progress' : 'pending';
@@ -2129,7 +2129,7 @@ function viewJob(jobId) {
     }
     
     // Calculate display status based on field statuses
-    const displayStatus = calculateJobStatus(job.jobStatus, job.fieldStatus || []);
+    const displayStatus = calculateJobStatus(job.jobStatus, job.fieldStatus || [], job.scheduledDate);
     const displayStatusClass = displayStatus === 'scheduled' ? 'scheduled' : 
                                displayStatus === 'completed' ? 'completed' :
                                displayStatus === 'in_progress' ? 'in_progress' : 'pending';
@@ -2257,8 +2257,10 @@ function viewJob(jobId) {
 }
 
 // Calculate job status based on field statuses
-function calculateJobStatus(jobStatus, fieldStatus) {
-    if (!fieldStatus || fieldStatus.length === 0) return jobStatus || 'pending';
+function calculateJobStatus(jobStatus, fieldStatus, scheduledDate) {
+    if (!fieldStatus || fieldStatus.length === 0) {
+        return jobStatus || (scheduledDate ? 'scheduled' : 'pending');
+    }
     
     const completedCount = fieldStatus.filter(s => s === 'complete').length;
     
@@ -2267,7 +2269,7 @@ function calculateJobStatus(jobStatus, fieldStatus) {
     } else if (completedCount > 0) {
         return 'in_progress';
     }
-    return jobStatus || 'pending'; // Keep original status
+    return scheduledDate ? 'scheduled' : 'pending';
 }
 
 // Toggle field status between not_complete and complete
@@ -2293,7 +2295,7 @@ async function toggleFieldStatus(jobId, fieldIndex) {
     job.fieldCompletionDates[fieldIndex] = newStatusValue === 'complete' ? new Date().toISOString() : null;
     
     // Calculate new job status
-    const newJobStatus = calculateJobStatus(job.jobStatus, job.fieldStatus);
+    const newJobStatus = calculateJobStatus(job.jobStatus, job.fieldStatus, job.scheduledDate);
     
     try {
         // Update job via API
@@ -2897,15 +2899,15 @@ function updateAcresStats() {
 function updateJobsStats() {
     const totalJobs = jobs.length;
     const pendingJobs = jobs.filter(j => {
-        const status = calculateJobStatus(j.jobStatus, j.fieldStatus);
+        const status = calculateJobStatus(j.jobStatus, j.fieldStatus, j.scheduledDate);
         return status === 'pending';
     }).length;
     const scheduledJobs = jobs.filter(j => {
-        const status = calculateJobStatus(j.jobStatus, j.fieldStatus);
+        const status = calculateJobStatus(j.jobStatus, j.fieldStatus, j.scheduledDate);
         return status === 'scheduled' || status === 'in_progress';
     }).length;
     const completedJobs = jobs.filter(j => {
-        const status = calculateJobStatus(j.jobStatus, j.fieldStatus);
+        const status = calculateJobStatus(j.jobStatus, j.fieldStatus, j.scheduledDate);
         return status === 'completed';
     }).length;
     
