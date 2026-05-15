@@ -3,15 +3,15 @@
     --primary-light: #4CAF50;
     --primary-dark: #2a5f21;
     --accent: #367C2B;
-    --bg-dark: #0d0d1a;
-    --bg-card: #151528;
-    --bg-card-hover: #1a1a35;
+    --bg-dark: #1C1C1E;
+    --bg-card: #2C2C2E;
+    --bg-card-hover: #3A3A3C;
     --text-primary: #ffffff;
     --text-secondary: #a0a0b0;
     --text-muted: #6b6b7b;
     --border: rgba(54, 124, 43, 0.2);
     --border-light: rgba(255, 255, 255, 0.1);
-    --glass: rgba(21, 21, 40, 0.8);
+    --glass: rgba(44, 44, 46, 0.8);
     --gradient: linear-gradient(135deg, #367C2B 0%, #1a4d17 100%);
     --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.5);
@@ -1692,6 +1692,11 @@ ul {
     font-size: 0.8rem;
     color: var(--text-muted);
     font-weight: 400;
+}
+
+.label-hint-other {
+    font-weight: 700;
+    color: #FF8C00;
 }
 
 .custom-chemical-input {

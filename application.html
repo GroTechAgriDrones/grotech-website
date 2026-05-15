@@ -139,19 +139,19 @@
                             <label>Preferred Contact Method *</label>
                             <div class="radio-group">
                                 <label class="radio-label">
-                                    <input type="radio" name="contactMethod" value="phone" required>
+                                    <input type="checkbox" name="contactMethod[]" value="phone" required>
                                     <span class="radio-custom"></span>
                                     <span>Phone Call</span>
                                 </label>
                                 <label class="radio-label">
-                                    <input type="radio" name="contactMethod" value="email">
+                                    <input type="checkbox" name="contactMethod[]" value="email">
                                     <span class="radio-custom"></span>
                                     <span>Email</span>
                                 </label>
                                 <label class="radio-label">
-                                    <input type="radio" name="contactMethod" value="both">
+                                    <input type="checkbox" name="contactMethod[]" value="text">
                                     <span class="radio-custom"></span>
-                                    <span>Both</span>
+                                    <span>Text Message</span>
                                 </label>
                             </div>
                         </div>
@@ -204,7 +204,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group">
-                                        <label>Chemicals / Pesticides <span class="label-hint">(If not in list, add "Other")</span></label>
+                                        <label>Chemicals / Pesticides <span class="label-hint label-hint-other">(If not in list, add "Other")</span></label>
                                         <div class="chemical-selector">
                                             <div class="chemical-input-wrapper">
                                                 <input type="text" id="chemicalSearch0" class="chemical-search" placeholder="Search chemicals..." oninput="filterChemicals(0)" onfocus="showDropdown(0)">
@@ -380,7 +380,7 @@
                 city: formData.get('city'),
                 state: formData.get('state'),
                 zip: formData.get('zip'),
-                contactMethod: formData.get('contactMethod'),
+                contactMethod: formData.getAll('contactMethod[]').join(', '),
                 fields: fields,
                 message: formData.get('message')
             };
@@ -483,7 +483,7 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Chemicals / Pesticides <span class="label-hint">(If not in list, add "Other")</span></label>
+                    <label>Chemicals / Pesticides <span class="label-hint label-hint-other">(If not in list, add "Other")</span></label>
                     <div class="chemical-selector">
                         <div class="chemical-input-wrapper">
                             <input type="text" id="chemicalSearch${fieldCount}" class="chemical-search" placeholder="Search chemicals..." oninput="filterChemicals(${fieldCount})" onfocus="showDropdown(${fieldCount})">

@@ -7,6 +7,17 @@ const pages = {
     overview: {
         title: 'Dashboard Overview',
         content: `
+            <div class="acres-hero">
+                <div class="acres-hero-item">
+                    <span class="acres-hero-number" id="overviewGroTechAcres">0</span>
+                    <span class="acres-hero-label">GroTech's Total Acres Sprayed</span>
+                </div>
+                <div class="acres-hero-divider"></div>
+                <div class="acres-hero-item">
+                    <span class="acres-hero-number" id="overviewYearAcres">0</span>
+                    <span class="acres-hero-label">This Year's Acres Sprayed</span>
+                </div>
+            </div>
             <div class="stats-grid" style="margin-bottom: 24px;">
                 <div class="stat-card">
                     <div class="stat-icon">
@@ -1980,6 +1991,7 @@ async function deleteJob(id) {
 // ============================================
 
 let jobs = [];
+const ACRES_BASELINE = 3694;
 
 // Fetch jobs from S3 jobs/ folder
 async function fetchJobs() {
@@ -2198,6 +2210,10 @@ function viewJob(jobId) {
                         <span>${job.email || 'N/A'}</span>
                     </div>
                     <div class="detail-item">
+                        <label>Preferred Contact</label>
+                        <span>${job.contactMethod || 'N/A'}</span>
+                    </div>
+                    <div class="detail-item">
                         <label>Date Submitted</label>
                         <span>${date}</span>
                     </div>
@@ -2263,13 +2279,21 @@ async function toggleFieldStatus(jobId, fieldIndex) {
     if (!job.fieldStatus) {
         job.fieldStatus = (job.fields || []).map(() => 'not_complete');
     }
+    // Initialize fieldCompletionDates if not exists
+    if (!job.fieldCompletionDates) {
+        job.fieldCompletionDates = (job.fields || []).map(() => null);
+    }
     
     // Toggle the field status
     const currentStatus = job.fieldStatus[fieldIndex] || 'not_complete';
-    job.fieldStatus[fieldIndex] = currentStatus === 'complete' ? 'not_complete' : 'complete';
+    const newStatusValue = currentStatus === 'complete' ? 'not_complete' : 'complete';
+    job.fieldStatus[fieldIndex] = newStatusValue;
+    
+    // Track completion date
+    job.fieldCompletionDates[fieldIndex] = newStatusValue === 'complete' ? new Date().toISOString() : null;
     
     // Calculate new job status
-    const newStatus = calculateJobStatus(job.jobStatus, job.fieldStatus);
+    const newJobStatus = calculateJobStatus(job.jobStatus, job.fieldStatus);
     
     try {
         // Update job via API
@@ -2278,13 +2302,14 @@ async function toggleFieldStatus(jobId, fieldIndex) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 fieldStatus: job.fieldStatus,
-                jobStatus: newStatus
+                fieldCompletionDates: job.fieldCompletionDates,
+                jobStatus: newJobStatus
             })
         });
         
         if (response.ok) {
             // Update local job data
-            job.jobStatus = newStatus;
+            job.jobStatus = newJobStatus;
             
             // Refresh the view
             viewJob(jobId);
@@ -2293,11 +2318,13 @@ async function toggleFieldStatus(jobId, fieldIndex) {
             console.error('Failed to update field status');
             // Revert the change
             job.fieldStatus[fieldIndex] = currentStatus;
+            job.fieldCompletionDates[fieldIndex] = null;
         }
     } catch (error) {
         console.error('Error updating field status:', error);
         // Revert the change
         job.fieldStatus[fieldIndex] = currentStatus;
+        job.fieldCompletionDates[fieldIndex] = null;
     }
 }
 
@@ -2397,6 +2424,23 @@ async function openEditJobModal(jobId) {
                         <input type="email" id="edit_email" value="${job.email || ''}">
                     </div>
                     <div class="form-group">
+                        <label>Preferred Contact</label>
+                        <div class="edit-checkbox-group">
+                            <label class="edit-checkbox-label">
+                                <input type="checkbox" name="edit_contactMethod" value="phone" ${job.contactMethod && job.contactMethod.includes('phone') ? 'checked' : ''}>
+                                <span>Phone Call</span>
+                            </label>
+                            <label class="edit-checkbox-label">
+                                <input type="checkbox" name="edit_contactMethod" value="email" ${job.contactMethod && job.contactMethod.includes('email') ? 'checked' : ''}>
+                                <span>Email</span>
+                            </label>
+                            <label class="edit-checkbox-label">
+                                <input type="checkbox" name="edit_contactMethod" value="text" ${job.contactMethod && job.contactMethod.includes('text') ? 'checked' : ''}>
+                                <span>Text Message</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Scheduled Date</label>
                         <input type="text" id="edit_scheduledDate" value="${job.scheduledDate || ''}" placeholder="Click to select date" readonly onclick="openScheduledCalendar()">
                     </div>
@@ -2467,6 +2511,7 @@ async function saveEditedJob() {
         phone: document.getElementById('edit_phone').value,
         email: document.getElementById('edit_email').value,
         scheduledDate: document.getElementById('edit_scheduledDate').value,
+        contactMethod: Array.from(document.querySelectorAll('input[name="edit_contactMethod"]:checked')).map(cb => cb.value).join(', '),
         address: document.getElementById('edit_address').value,
         city: document.getElementById('edit_city').value,
         state: document.getElementById('edit_state').value,
@@ -2821,6 +2866,34 @@ function getEditFieldCoordinates() {
 }
 
 // Update jobs stats
+function updateAcresStats() {
+    const currentYear = new Date().getFullYear();
+    let allCompletedAcres = 0;
+    let thisYearCompletedAcres = 0;
+    
+    jobs.forEach(job => {
+        if (!job.fields || !job.fieldStatus || !job.fieldCompletionDates) return;
+        job.fields.forEach((field, index) => {
+            if (job.fieldStatus[index] === 'complete') {
+                const acres = parseInt(field.fieldSize) || 0;
+                allCompletedAcres += acres;
+                const completionDate = job.fieldCompletionDates[index];
+                if (completionDate) {
+                    const completionYear = new Date(completionDate).getFullYear();
+                    if (completionYear === currentYear) {
+                        thisYearCompletedAcres += acres;
+                    }
+                }
+            }
+        });
+    });
+    
+    const groTechEl = document.getElementById('overviewGroTechAcres');
+    const yearEl = document.getElementById('overviewYearAcres');
+    if (groTechEl) groTechEl.textContent = (ACRES_BASELINE + allCompletedAcres).toLocaleString();
+    if (yearEl) yearEl.textContent = thisYearCompletedAcres.toLocaleString();
+}
+
 function updateJobsStats() {
     const totalJobs = jobs.length;
     const pendingJobs = jobs.filter(j => {
@@ -2857,6 +2930,8 @@ function updateJobsStats() {
     if (overviewPendingEl) overviewPendingEl.textContent = pendingJobs;
     if (overviewScheduledEl) overviewScheduledEl.textContent = scheduledJobs;
     if (overviewCompletedEl) overviewCompletedEl.textContent = completedJobs;
+    
+    updateAcresStats();
 }
 
 // Calendar modal variables
