@@ -1339,7 +1339,8 @@ const spraySettingsData = {
                 { gpa: 2, routeSpacing: 36, speed: 66, height: 12, droplet: 300 }
             ],
             herbicide: [
-                { gpa: 5, routeSpacing: 33, speed: 40, height: 12, droplet: 500 }
+                { gpa: 5, routeSpacing: 30, speed: 40, height: 12, droplet: 500 },
+                { gpa: 3, routeSpacing: 30, speed: 40, height: 12, droplet: 500 }
             ],
             insecticide: [
                 { gpa: 2, routeSpacing: 38, speed: 64, height: 10, droplet: 250 }
