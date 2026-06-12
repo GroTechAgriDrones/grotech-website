@@ -2598,7 +2598,12 @@ async function openEditJobModal(jobId) {
             
             <div class="edit-section">
                 <h4>Field Information</h4>
-                ${fieldsHtml}
+                <div id="editFieldGroups">
+                    ${fieldsHtml}
+                </div>
+                <button type="button" class="btn btn-secondary add-field-btn" onclick="addEditFieldGroup()">
+                    + Add Another Field
+                </button>
             </div>
             
             <div class="edit-section">
@@ -2613,6 +2618,8 @@ async function openEditJobModal(jobId) {
     document.getElementById('editJobContent').innerHTML = content;
     document.getElementById('editJobModal').classList.add('active');
     
+    window.editFieldCount = job.fields ? job.fields.length : 0;
+    
     // Initialize selected chemicals and rates for each field
     if (job.fields && job.fields.length > 0) {
         job.fields.forEach((field, index) => {
@@ -2622,6 +2629,84 @@ async function openEditJobModal(jobId) {
             initializeEditChemicals(job, index);
         });
     }
+}
+
+// Add a new field group in the edit job modal
+function addEditFieldGroup() {
+    const index = window.editFieldCount;
+    window.editFieldCount = index + 1;
+
+    const html = `
+        <div class="edit-field-group">
+            <h4>Field ${index + 1}</h4>
+            <div class="edit-form-grid">
+                <div class="form-group">
+                    <label>Field Name</label>
+                    <input type="text" id="edit_fieldName_${index}" value="">
+                </div>
+                <div class="form-group">
+                    <label>Field Size (acres)</label>
+                    <input type="number" id="edit_fieldSize_${index}" value="">
+                </div>
+                <div class="form-group">
+                    <label>Crop Type</label>
+                    <select id="edit_cropType_${index}">
+                        <option value="">Select crop...</option>
+                        <option value="Corn">Corn</option>
+                        <option value="Soybeans">Soybeans</option>
+                        <option value="Wheat">Wheat</option>
+                        <option value="Alfalfa">Alfalfa</option>
+                        <option value="Cotton">Cotton</option>
+                        <option value="Sorghum">Sorghum</option>
+                        <option value="Rice">Rice</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Field Location</label>
+                    <div class="location-input-wrapper">
+                        <input type="text" id="edit_fieldLocation_${index}" value="" placeholder="Click map to select location" readonly>
+                        <button type="button" class="location-map-btn" onclick="openEditFieldMap(${index})" title="Select location on map">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                    <label>Chemicals</label>
+                    <div class="chemical-selector">
+                        <div class="chemical-input-wrapper">
+                            <input type="text" id="edit_chemicalSearch_${index}" class="chemical-search" placeholder="Search chemicals..." oninput="filterEditChemicals(${index})" onfocus="showEditChemicalDropdown(${index})">
+                            <div class="chemical-dropdown" id="edit_chemicalDropdown_${index}">
+                                <div class="chemical-options" id="edit_chemicalOptions_${index}"></div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addEditChemical(${index})">Add</button>
+                    </div>
+                    <div class="custom-chemical-input" id="edit_customChemical_${index}" style="display: none;">
+                        <input type="text" class="custom-chem-field" placeholder="Enter chemical name..." onkeypress="if(event.key==='Enter'){submitEditCustomChemical(${index}); return false;}">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="submitEditCustomChemical(${index})">Confirm</button>
+                    </div>
+                    <div class="selected-chemicals" id="edit_selectedChemicals_${index}"></div>
+                </div>
+                <div class="form-group">
+                    <label>Optimal Date</label>
+                    <input type="text" id="edit_optimalDate_${index}" value="" placeholder="Click to select date" readonly onclick="openEditFieldCalendar(${index})">
+                </div>
+            </div>
+        </div>
+    `;
+
+    const container = document.getElementById('editFieldGroups');
+    container.insertAdjacentHTML('beforeend', html);
+
+    // Initialize window arrays for this field
+    window[`editSelectedChemicals_${index}`] = [];
+    window[`editChemicalRates_${index}`] = [];
+    window[`editChemicalRateUnits_${index}`] = [];
+
+    // Scroll to the new field
+    const newField = document.getElementById(`edit_fieldName_${index}`);
+    if (newField) newField.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 // Close edit job modal
@@ -2662,24 +2747,23 @@ async function saveEditedJob() {
         fields: []
     };
     
-    // Update fields
-    if (job.fields && job.fields.length > 0) {
-        job.fields.forEach((field, index) => {
-            const chemicals = window[`editSelectedChemicals_${index}`] || [];
-            const chemicalRates = window[`editChemicalRates_${index}`] || [];
-            const chemicalRateUnits = window[`editChemicalRateUnits_${index}`] || [];
-            updatedJob.fields.push({
-                fieldName: document.getElementById(`edit_fieldName_${index}`).value,
-                fieldSize: document.getElementById(`edit_fieldSize_${index}`).value,
-                cropType: document.getElementById(`edit_cropType_${index}`).value,
-                fieldLocation: document.getElementById(`edit_fieldLocation_${index}`).value,
-                chemicals: chemicals,
-                chemicalRates: chemicalRates,
-                chemicalRateUnits: chemicalRateUnits,
-                optimalDate: document.getElementById(`edit_optimalDate_${index}`).value
-            });
+    // Update fields — iterate DOM field groups (includes dynamically added fields)
+    const fieldGroups = document.querySelectorAll('#editFieldGroups .edit-field-group');
+    fieldGroups.forEach((group, index) => {
+        const chemicals = window[`editSelectedChemicals_${index}`] || [];
+        const chemicalRates = window[`editChemicalRates_${index}`] || [];
+        const chemicalRateUnits = window[`editChemicalRateUnits_${index}`] || [];
+        updatedJob.fields.push({
+            fieldName: document.getElementById(`edit_fieldName_${index}`).value,
+            fieldSize: document.getElementById(`edit_fieldSize_${index}`).value,
+            cropType: document.getElementById(`edit_cropType_${index}`).value,
+            fieldLocation: document.getElementById(`edit_fieldLocation_${index}`).value,
+            chemicals: chemicals,
+            chemicalRates: chemicalRates,
+            chemicalRateUnits: chemicalRateUnits,
+            optimalDate: document.getElementById(`edit_optimalDate_${index}`).value
         });
-    }
+    });
     
     try {
         const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
