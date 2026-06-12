@@ -1248,16 +1248,60 @@ const pages = {
                     text-align: center;
                     margin-bottom: 24px;
                 }
-                .settings-grid {
-                    display: grid;
-                    grid-template-columns: repeat(2, 1fr);
-                    gap: 20px;
-                    max-width: 700px;
+                .settings-table {
+                    max-width: 800px;
                     margin: 0 auto;
                 }
+                .settings-header-row {
+                    display: grid;
+                    grid-template-columns: 1fr 1.6fr 1.4fr 1fr 1.2fr;
+                    padding: 0 16px 10px;
+                    text-align: center;
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: var(--text-muted);
+                    font-weight: 500;
+                }
+                .settings-row-card {
+                    display: grid;
+                    grid-template-columns: 1fr 1.6fr 1.4fr 1fr 1.2fr;
+                    align-items: center;
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: 10px;
+                    padding: 14px 16px;
+                    margin-bottom: 8px;
+                    transition: border-color 0.2s, box-shadow 0.2s;
+                }
+                .settings-row-card:hover {
+                    border-color: var(--primary-light);
+                    box-shadow: 0 0 20px rgba(74, 222, 128, 0.08);
+                }
+                .settings-row-card .cell {
+                    text-align: center;
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    color: var(--primary-light);
+                }
+                .settings-row-card .cell-unit {
+                    font-family: 'Inter', sans-serif;
+                    font-size: 0.75rem;
+                    font-weight: 400;
+                    color: var(--text-secondary);
+                    margin-left: 3px;
+                }
                 @media (max-width: 600px) {
-                    .settings-grid {
-                        grid-template-columns: 1fr;
+                    .settings-header-row {
+                        font-size: 0.65rem;
+                        padding: 0 10px 8px;
+                    }
+                    .settings-row-card {
+                        padding: 10px 10px;
+                    }
+                    .settings-row-card .cell {
+                        font-size: 0.85rem;
                     }
                     .drone-cards-container {
                         flex-direction: column;
@@ -1281,32 +1325,6 @@ const pages = {
                         max-width: 280px;
                     }
                 }
-                .setting-item {
-                    background: var(--bg-card);
-                    border: 1px solid var(--border-light);
-                    border-radius: 12px;
-                    padding: 24px;
-                    text-align: center;
-                }
-                .setting-label {
-                    font-size: 0.8rem;
-                    color: var(--text-muted);
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    margin-bottom: 8px;
-                }
-                .setting-value {
-                    font-family: 'Orbitron', sans-serif;
-                    font-size: 1.75rem;
-                    font-weight: 700;
-                    color: var(--primary-light);
-                }
-                .setting-unit {
-                    font-family: 'Inter', sans-serif;
-                    font-size: 0.9rem;
-                    color: var(--text-secondary);
-                    margin-left: 4px;
-                }
             </style>
         `
     }
@@ -1317,21 +1335,42 @@ const spraySettingsData = {
     t100: {
         name: 'DJI T100',
         settings: {
-            fungicide: { rate: 2, rateUnit: 'gpa', speed: 64, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 300, dropletUnit: 'microns' },
-            herbicide: { rate: 3, rateUnit: 'gpa', speed: 72, speedUnit: 'fps', height: 12, heightUnit: 'ft', droplet: 250, dropletUnit: 'microns' },
-            insecticide: { rate: 2, rateUnit: 'gpa', speed: 64, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 200, dropletUnit: 'microns' },
-            fertilizer: { rate: 5, rateUnit: 'gpa', speed: 48, speedUnit: 'fps', height: 8, heightUnit: 'ft', droplet: 350, dropletUnit: 'microns' },
-            seeds: { rate: 15, rateUnit: 'lb/acre', speed: 32, speedUnit: 'fps', height: 6, heightUnit: 'ft', droplet: 500, dropletUnit: 'microns' }
+            fungicide: [
+                { gpa: 2, routeSpacing: 36, speed: 66, height: 12, droplet: 300 }
+            ],
+            herbicide: [
+                { gpa: 5, routeSpacing: 33, speed: 40, height: 12, droplet: 500 }
+            ],
+            insecticide: [
+                { gpa: 2, routeSpacing: 38, speed: 64, height: 10, droplet: 250 }
+            ],
+            fertilizer: [
+                { gpa: 5, routeSpacing: 42, speed: 48, height: 8, droplet: 400 }
+            ],
+            seeds: [
+                { gpa: 15, routeSpacing: 48, speed: 32, height: 6, droplet: 500 }
+            ]
         }
     },
     t50: {
         name: 'DJI T50',
         settings: {
-            fungicide: { rate: 2, rateUnit: 'gpa', speed: 32, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 300, dropletUnit: 'microns' },
-            herbicide: { rate: 3, rateUnit: 'gpa', speed: 36, speedUnit: 'fps', height: 12, heightUnit: 'ft', droplet: 250, dropletUnit: 'microns' },
-            insecticide: { rate: 2, rateUnit: 'gpa', speed: 32, speedUnit: 'fps', height: 10, heightUnit: 'ft', droplet: 200, dropletUnit: 'microns' },
-            fertilizer: { rate: 5, rateUnit: 'gpa', speed: 24, speedUnit: 'fps', height: 8, heightUnit: 'ft', droplet: 350, dropletUnit: 'microns' },
-            seeds: { rate: 15, rateUnit: 'lb/acre', speed: 16, speedUnit: 'fps', height: 6, heightUnit: 'ft', droplet: 500, dropletUnit: 'microns' }
+            fungicide: [
+                { gpa: 2, routeSpacing: 26, speed: 32, height: 12, droplet: 300 }
+            ],
+            herbicide: [
+                { gpa: 5, routeSpacing: 23, speed: 25, height: 12, droplet: 500 },
+                { gpa: 3, routeSpacing: 23, speed: 25, height: 12, droplet: 500 }
+            ],
+            insecticide: [
+                { gpa: 2, routeSpacing: 38, speed: 32, height: 10, droplet: 250 }
+            ],
+            fertilizer: [
+                { gpa: 5, routeSpacing: 42, speed: 24, height: 8, droplet: 400 }
+            ],
+            seeds: [
+                { gpa: 15, routeSpacing: 48, speed: 16, height: 6, droplet: 500 }
+            ]
         }
     }
 };
@@ -1382,21 +1421,23 @@ function showSettings(category) {
     document.getElementById('settingsTitle').textContent = drone.name + ' - ' + categoryNames[category] + ' Settings';
     
     document.getElementById('settingsGrid').innerHTML = `
-        <div class="setting-item">
-            <div class="setting-label">Application Rate</div>
-            <div class="setting-value">${settings.rate}<span class="setting-unit">${settings.rateUnit}</span></div>
-        </div>
-        <div class="setting-item">
-            <div class="setting-label">Flight Speed</div>
-            <div class="setting-value">${settings.speed}<span class="setting-unit">${settings.speedUnit}</span></div>
-        </div>
-        <div class="setting-item">
-            <div class="setting-label">Spray Height</div>
-            <div class="setting-value">${settings.height}<span class="setting-unit">${settings.heightUnit}</span></div>
-        </div>
-        <div class="setting-item">
-            <div class="setting-label">Droplet Size</div>
-            <div class="setting-value">${settings.droplet}<span class="setting-unit">${settings.dropletUnit}</span></div>
+        <div class="settings-table">
+            <div class="settings-header-row">
+                <span>GPA</span>
+                <span>Route Spacing</span>
+                <span>Flight Speed</span>
+                <span>Height</span>
+                <span>Droplet Size</span>
+            </div>
+            ${Array.isArray(settings) ? settings.slice().sort((a, b) => a.gpa - b.gpa).map(row => `
+                <div class="settings-row-card">
+                    <span class="cell">${row.gpa}<span class="cell-unit">gpa</span></span>
+                    <span class="cell">${row.routeSpacing}<span class="cell-unit">ft</span></span>
+                    <span class="cell">${row.speed}<span class="cell-unit">fps</span></span>
+                    <span class="cell">${row.height}<span class="cell-unit">ft</span></span>
+                    <span class="cell">${row.droplet}<span class="cell-unit">μ</span></span>
+                </div>
+            `).join('') : ''}
         </div>
     `;
 }
@@ -2169,7 +2210,26 @@ function viewJob(jobId) {
                     <div class="detail-item">
                         <label>Chemicals</label>
                         <span>
-                            ${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}
+                            ${field.chemicals && field.chemicals.length > 0 ? 
+                                '<div class="chemical-rates-list">' + field.chemicals.map((chem, ci) => {
+                                    const rateVal = (field.chemicalRates && field.chemicalRates[ci]) || '';
+                                    const unitVal = (field.chemicalRateUnits && field.chemicalRateUnits[ci]) || '';
+                                    return '<div class="chemical-rate-row">' +
+                                        '<span class="chem-name">' + chem.replace(/'/g, "\\'") + '</span>' +
+                                        '<span class="chem-rate-sep">@</span>' +
+                                        '<input type="text" class="chem-rate-input" value="' + rateVal.replace(/"/g, '&quot;') + '" placeholder="rate" data-job-id="' + job.id + '" data-field-index="' + index + '" data-chem-index="' + ci + '" oninput="debouncedSaveChemicalRates()">' +
+                                        '<select class="chem-rate-unit" data-job-id="' + job.id + '" data-field-index="' + index + '" data-chem-index="' + ci + '" onchange="debouncedSaveChemicalRates()">' +
+                                            '<option value="fl oz"' + (unitVal === 'fl oz' ? ' selected' : '') + '>fl oz/acre</option>' +
+                                            '<option value="oz"' + (unitVal === 'oz' ? ' selected' : '') + '>oz/acre</option>' +
+                                            '<option value="pt"' + (unitVal === 'pt' ? ' selected' : '') + '>pt/acre</option>' +
+                                            '<option value="qt"' + (unitVal === 'qt' ? ' selected' : '') + '>qt/acre</option>' +
+                                            '<option value="gal"' + (unitVal === 'gal' ? ' selected' : '') + '>gal/acre</option>' +
+                                            '<option value="lb"' + (unitVal === 'lb' ? ' selected' : '') + '>lb/acre</option>' +
+                                            '<option value="vv"' + (unitVal === 'vv' ? ' selected' : '') + '>% v/v</option>' +
+                                        '</select>' +
+                                    '</div>';
+                                }).join('') + '</div>'
+                                : 'Not specified'}
                             ${field.chemicals && field.chemicals.length > 0 && field.fieldSize ? 
                                 `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
@@ -2256,6 +2316,56 @@ function viewJob(jobId) {
     document.getElementById('applicationDetailModal').classList.add('active');
 }
 
+// Auto-save chemical rates for job detail view
+let saveChemicalRatesTimeout = null;
+function debouncedSaveChemicalRates() {
+    if (saveChemicalRatesTimeout) clearTimeout(saveChemicalRatesTimeout);
+    saveChemicalRatesTimeout = setTimeout(() => {
+        saveChemicalRates();
+    }, 500);
+}
+
+async function saveChemicalRates() {
+    const jobId = currentApplicationId;
+    const job = jobs.find(j => j.id === jobId);
+    if (!job || !job.fields) return;
+
+    const fieldRates = {};
+    const fieldUnits = {};
+
+    document.querySelectorAll('.chem-rate-input').forEach(input => {
+        const fieldIdx = parseInt(input.dataset.fieldIndex);
+        const chemIdx = parseInt(input.dataset.chemIndex);
+        if (!fieldRates[fieldIdx]) fieldRates[fieldIdx] = [];
+        fieldRates[fieldIdx][chemIdx] = input.value;
+    });
+
+    document.querySelectorAll('.chem-rate-unit').forEach(select => {
+        const fieldIdx = parseInt(select.dataset.fieldIndex);
+        const chemIdx = parseInt(select.dataset.chemIndex);
+        if (!fieldUnits[fieldIdx]) fieldUnits[fieldIdx] = [];
+        fieldUnits[fieldIdx][chemIdx] = select.value;
+    });
+
+    job.fields.forEach((field, idx) => {
+        field.chemicalRates = fieldRates[idx] || (field.chemicals || []).map(() => '');
+        field.chemicalRateUnits = fieldUnits[idx] || (field.chemicals || []).map(() => 'fl oz');
+    });
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fields: job.fields })
+        });
+        if (!response.ok) {
+            console.error('Failed to save chemical rates');
+        }
+    } catch (error) {
+        console.error('Error saving chemical rates:', error);
+    }
+}
+
 // Calculate job status based on field statuses
 function calculateJobStatus(jobStatus, fieldStatus, scheduledDate) {
     if (!fieldStatus || fieldStatus.length === 0) {
@@ -2289,6 +2399,21 @@ async function toggleFieldStatus(jobId, fieldIndex) {
     // Toggle the field status
     const currentStatus = job.fieldStatus[fieldIndex] || 'not_complete';
     const newStatusValue = currentStatus === 'complete' ? 'not_complete' : 'complete';
+    
+    // Validate chemical rates before completing field
+    if (newStatusValue === 'complete') {
+        const field = job.fields[fieldIndex];
+        if (field && field.chemicals && field.chemicals.length > 0) {
+            const rates = field.chemicalRates || [];
+            const allHaveRates = field.chemicals.every((chem, i) => {
+                return rates[i] && rates[i].trim() !== '' && !isNaN(parseFloat(rates[i]));
+            });
+            if (!allHaveRates) {
+                alert('Please enter a chemical rate for all chemicals before marking this field as complete.');
+                return;
+            }
+        }
+    }
     job.fieldStatus[fieldIndex] = newStatusValue;
     
     // Track completion date
@@ -2488,9 +2613,12 @@ async function openEditJobModal(jobId) {
     document.getElementById('editJobContent').innerHTML = content;
     document.getElementById('editJobModal').classList.add('active');
     
-    // Initialize selected chemicals for each field
+    // Initialize selected chemicals and rates for each field
     if (job.fields && job.fields.length > 0) {
         job.fields.forEach((field, index) => {
+            const chemCount = (field.chemicals || []).length;
+            window[`editChemicalRates_${index}`] = [...(field.chemicalRates || Array(chemCount).fill(''))];
+            window[`editChemicalRateUnits_${index}`] = [...(field.chemicalRateUnits || Array(chemCount).fill('fl oz'))];
             initializeEditChemicals(job, index);
         });
     }
@@ -2500,6 +2628,18 @@ async function openEditJobModal(jobId) {
 function closeEditJobModal() {
     document.getElementById('editJobModal').classList.remove('active');
 }
+
+// Close modals when clicking outside content area
+document.addEventListener('click', function(e) {
+    const appModal = document.getElementById('applicationDetailModal');
+    if (appModal && appModal.classList.contains('active') && e.target === appModal) {
+        closeApplicationModal();
+    }
+    const editModal = document.getElementById('editJobModal');
+    if (editModal && editModal.classList.contains('active') && e.target === editModal) {
+        closeEditJobModal();
+    }
+});
 
 // Save edited job
 async function saveEditedJob() {
@@ -2526,12 +2666,16 @@ async function saveEditedJob() {
     if (job.fields && job.fields.length > 0) {
         job.fields.forEach((field, index) => {
             const chemicals = window[`editSelectedChemicals_${index}`] || [];
+            const chemicalRates = window[`editChemicalRates_${index}`] || [];
+            const chemicalRateUnits = window[`editChemicalRateUnits_${index}`] || [];
             updatedJob.fields.push({
                 fieldName: document.getElementById(`edit_fieldName_${index}`).value,
                 fieldSize: document.getElementById(`edit_fieldSize_${index}`).value,
                 cropType: document.getElementById(`edit_cropType_${index}`).value,
                 fieldLocation: document.getElementById(`edit_fieldLocation_${index}`).value,
                 chemicals: chemicals,
+                chemicalRates: chemicalRates,
+                chemicalRateUnits: chemicalRateUnits,
                 optimalDate: document.getElementById(`edit_optimalDate_${index}`).value
             });
         });
@@ -2654,6 +2798,12 @@ function addEditChemical(fieldIndex) {
     if (!window[`editSelectedChemicals_${fieldIndex}`]) {
         window[`editSelectedChemicals_${fieldIndex}`] = [];
     }
+    if (!window[`editChemicalRates_${fieldIndex}`]) {
+        window[`editChemicalRates_${fieldIndex}`] = [];
+    }
+    if (!window[`editChemicalRateUnits_${fieldIndex}`]) {
+        window[`editChemicalRateUnits_${fieldIndex}`] = [];
+    }
     
     const selectedChems = window[`editSelectedChemicals_${fieldIndex}`];
     
@@ -2664,6 +2814,8 @@ function addEditChemical(fieldIndex) {
     }
     
     selectedChems.push(chemicalName);
+    window[`editChemicalRates_${fieldIndex}`].push('');
+    window[`editChemicalRateUnits_${fieldIndex}`].push('fl oz');
     renderEditSelectedChemicals(fieldIndex);
     searchInput.value = '';
     customChemInput.style.display = 'none';
@@ -2679,6 +2831,12 @@ function submitEditCustomChemical(fieldIndex) {
     if (!window[`editSelectedChemicals_${fieldIndex}`]) {
         window[`editSelectedChemicals_${fieldIndex}`] = [];
     }
+    if (!window[`editChemicalRates_${fieldIndex}`]) {
+        window[`editChemicalRates_${fieldIndex}`] = [];
+    }
+    if (!window[`editChemicalRateUnits_${fieldIndex}`]) {
+        window[`editChemicalRateUnits_${fieldIndex}`] = [];
+    }
     
     const selectedChems = window[`editSelectedChemicals_${fieldIndex}`];
     
@@ -2689,6 +2847,8 @@ function submitEditCustomChemical(fieldIndex) {
     }
     
     selectedChems.push(chemicalName);
+    window[`editChemicalRates_${fieldIndex}`].push('');
+    window[`editChemicalRateUnits_${fieldIndex}`].push('fl oz');
     renderEditSelectedChemicals(fieldIndex);
     customInput.value = '';
     document.getElementById(`edit_customChemical_${fieldIndex}`).style.display = 'none';
@@ -2697,22 +2857,67 @@ function submitEditCustomChemical(fieldIndex) {
 function removeEditChemical(fieldIndex, chemicalName) {
     if (!window[`editSelectedChemicals_${fieldIndex}`]) return;
     
-    window[`editSelectedChemicals_${fieldIndex}`] = window[`editSelectedChemicals_${fieldIndex}`].filter(c => c !== chemicalName);
+    const idx = window[`editSelectedChemicals_${fieldIndex}`].indexOf(chemicalName);
+    if (idx === -1) return;
+    
+    window[`editSelectedChemicals_${fieldIndex}`].splice(idx, 1);
+    if (window[`editChemicalRates_${fieldIndex}`]) {
+        window[`editChemicalRates_${fieldIndex}`].splice(idx, 1);
+    }
+    if (window[`editChemicalRateUnits_${fieldIndex}`]) {
+        window[`editChemicalRateUnits_${fieldIndex}`].splice(idx, 1);
+    }
     renderEditSelectedChemicals(fieldIndex);
 }
 
 function renderEditSelectedChemicals(fieldIndex) {
     const container = document.getElementById(`edit_selectedChemicals_${fieldIndex}`);
     const chemicals = window[`editSelectedChemicals_${fieldIndex}`] || [];
+    const rates = window[`editChemicalRates_${fieldIndex}`] || [];
+    const units = window[`editChemicalRateUnits_${fieldIndex}`] || [];
     
-    container.innerHTML = chemicals.map(chem => {
+    container.innerHTML = chemicals.map((chem, ci) => {
         const chemical = chemicalsDB.find(c => {
             const displayName = `${c.brandName || ''} ${c.chemName || ''}`.trim();
             return displayName === chem;
         });
         const type = chemical && chemical.category ? chemical.category.charAt(0).toUpperCase() + chemical.category.slice(1) : '';
-        return '<span class="chemical-tag" data-type="' + type + '">' + chem + '<button type="button" onclick="removeEditChemical(' + fieldIndex + ', \'' + chem.replace(/'/g, "\\'") + '\')">&times;</button></span>';
+        const rateVal = rates[ci] || '';
+        const unitVal = units[ci] || 'fl oz';
+        return '<div class="chemical-rate-row">' +
+            '<span class="chemical-tag" data-type="' + type + '">' + chem +
+                '<button type="button" onclick="removeEditChemical(' + fieldIndex + ', \'' + chem.replace(/'/g, "\\'") + '\')">&times;</button>' +
+            '</span>' +
+            '<span class="chem-rate-sep">@</span>' +
+            '<input type="text" class="chem-rate-input" value="' + rateVal.replace(/"/g, '&quot;') + '" placeholder="rate" oninput="editChemicalRateChanged(' + fieldIndex + ', ' + ci + ', this.value)">' +
+            '<select class="chem-rate-unit" onchange="editChemicalRateUnitChanged(' + fieldIndex + ', ' + ci + ', this.value)">' +
+                '<option value="fl oz"' + (unitVal === 'fl oz' ? ' selected' : '') + '>fl oz/acre</option>' +
+                '<option value="oz"' + (unitVal === 'oz' ? ' selected' : '') + '>oz/acre</option>' +
+                '<option value="pt"' + (unitVal === 'pt' ? ' selected' : '') + '>pt/acre</option>' +
+                '<option value="qt"' + (unitVal === 'qt' ? ' selected' : '') + '>qt/acre</option>' +
+                '<option value="gal"' + (unitVal === 'gal' ? ' selected' : '') + '>gal/acre</option>' +
+                '<option value="lb"' + (unitVal === 'lb' ? ' selected' : '') + '>lb/acre</option>' +
+                '<option value="vv"' + (unitVal === 'vv' ? ' selected' : '') + '>% v/v</option>' +
+            '</select>' +
+        '</div>';
     }).join('');
+}
+
+// Edit modal chemical rate change handlers
+function editChemicalRateChanged(fieldIndex, chemIndex, value) {
+    if (!window[`editChemicalRates_${fieldIndex}`]) {
+        const chemicals = window[`editSelectedChemicals_${fieldIndex}`] || [];
+        window[`editChemicalRates_${fieldIndex}`] = chemicals.map(() => '');
+    }
+    window[`editChemicalRates_${fieldIndex}`][chemIndex] = value;
+}
+
+function editChemicalRateUnitChanged(fieldIndex, chemIndex, value) {
+    if (!window[`editChemicalRateUnits_${fieldIndex}`]) {
+        const chemicals = window[`editSelectedChemicals_${fieldIndex}`] || [];
+        window[`editChemicalRateUnits_${fieldIndex}`] = chemicals.map(() => 'fl oz');
+    }
+    window[`editChemicalRateUnits_${fieldIndex}`][chemIndex] = value;
 }
 
 // Initialize selected chemicals when opening edit modal

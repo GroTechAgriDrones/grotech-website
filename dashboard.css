@@ -1060,6 +1060,60 @@
     background: rgba(54, 124, 43, 0.2);
 }
 
+/* Chemical Rate Rows */
+.chemical-rates-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.chemical-rate-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.chem-name {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.chem-rate-sep {
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 0 2px;
+}
+
+.chem-rate-input {
+    width: 60px;
+    padding: 3px 6px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.chem-rate-input:focus {
+    border-color: var(--primary);
+}
+
+.chem-rate-unit {
+    width: auto;
+    min-width: 90px;
+    padding: 3px 4px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+}
+
 /* Field Header Row */
 .field-header-row {
     display: flex;
