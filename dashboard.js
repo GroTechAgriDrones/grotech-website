@@ -1888,7 +1888,8 @@ function viewFieldMap(coordinates) {
     
     // Show modal
     document.getElementById('fieldMapModal').classList.add('active');
-    document.getElementById('fieldMapCoords').textContent = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+    const coordsEl = document.getElementById('fieldMapCoords');
+    if (coordsEl) coordsEl.textContent = `Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     
     // Initialize map (remove existing if any)
     if (fieldMap) {
@@ -3216,9 +3217,7 @@ function openEditFieldMap(fieldIndex) {
     setTimeout(() => editFieldMap.invalidateSize(), 100);
 }
 
-function closeFieldMapModal() {
-    document.getElementById('fieldMapModal').classList.remove('active');
-}
+
 
 function initEditFieldMap() {
     // Center on Northern Illinois (Freeport area)
