@@ -487,6 +487,9 @@
 .data-table td {
     font-size: 0.9rem;
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .data-table tr:hover td {
@@ -1020,6 +1023,25 @@
     color: var(--text-primary);
 }
 
+/* Field Detail Layout - 2 column: info left, chemicals right */
+.field-detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.field-info-left {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.field-chemicals-right {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 /* Map View Button */
 .map-view-btn {
     background: rgba(54, 124, 43, 0.1);
@@ -1077,6 +1099,18 @@
 .chem-name {
     font-weight: 500;
     white-space: nowrap;
+}
+
+.chem-name-link {
+    color: #3b82f6;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.chem-name-link:hover {
+    color: #2563eb;
 }
 
 .chem-rate-sep {
@@ -1745,15 +1779,20 @@
    JOBS - SCHEDULE CELL
    ============================================ */
 .schedule-cell {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    vertical-align: middle;
 }
 
 .schedule-placeholder {
     color: var(--text-muted);
     font-style: italic;
-    font-size: 0.85rem;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed rgba(255,255,255,0.1);
+    cursor: pointer;
+}
+
+.schedule-placeholder:hover {
+    background: rgba(255,255,255,0.06);
+    border-color: var(--text-muted);
 }
 
 .calendar-btn {
@@ -1775,8 +1814,19 @@
 }
 
 .scheduled-date {
-    font-size: 0.9rem;
     color: var(--text-primary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.scheduled-date:hover {
+    background: rgba(54, 124, 43, 0.1);
+}
+
+.scheduled-date.has-date {
+    color: #3b82f6;
 }
 
 /* ============================================
@@ -1927,6 +1977,37 @@
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--border-light);
+}
+
+/* Edit Field Header Layout */
+.edit-field-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.remove-field-btn {
+    background: none;
+    border: none;
+    color: var(--error-color, #ef4444);
+    font-size: 1.25rem;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.remove-field-btn:hover {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.remove-field-btn:active {
+    background: rgba(239, 68, 68, 0.2);
 }
 
 .edit-form-grid {

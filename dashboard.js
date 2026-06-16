@@ -2122,7 +2122,7 @@ function updateJobsTable() {
         // Calculate fields from application data structure (handle both old and new formats)
         const clientName = job.fullName || job.client || 'N/A';
         const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0) || job.acres || 0;
-        const cropTypes = (job.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || job.crops || 'N/A';
+        const cropTypes = [...new Set((job.fields || []).map(f => f.cropType).filter(Boolean))].join(', ') || job.crops || 'N/A';
         const dateRequested = job.fields?.[0]?.optimalDate || job.optimalDate || 'Not set';
         const status = calculateJobStatus(job.jobStatus, job.fieldStatus, job.scheduledDate) || job.jobStatus || 'pending';
         const statusClass = status === 'scheduled' ? 'scheduled' : 
@@ -2158,9 +2158,14 @@ function updateJobsTable() {
 }
 
 // View job details (same modal as application)
-function viewJob(jobId) {
+async function viewJob(jobId) {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
+    
+    // Ensure chemicals are loaded for URL lookups
+    if (chemicalsDB.length === 0) {
+        await fetchChemicalsForCalculator();
+    }
     
     currentApplicationId = jobId; // Reuse the application modal
     const date = job.dateSubmitted ? new Date(job.dateSubmitted).toLocaleString() : 'N/A';
@@ -2188,59 +2193,67 @@ function viewJob(jobId) {
                     <h4>Field ${index + 1}${field.fieldName ? ': ' + field.fieldName : ''}</h4>
                     <button class="${statusBtnClass}" onclick="event.stopPropagation(); toggleFieldStatus('${job.id}', ${index})">${statusBtnText}</button>
                 </div>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <label>Size</label>
-                        <span>${field.fieldSize || 'N/A'} acres</span>
+                <div class="field-detail-layout">
+                    <div class="field-info-left">
+                        <div class="detail-item">
+                            <label>Size</label>
+                            <span>${field.fieldSize || 'N/A'} acres</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Crop Type</label>
+                            <span>${field.cropType || 'N/A'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Location</label>
+                            <span>
+                                ${field.fieldLocation ? 
+                                    `<span>${field.fieldLocation}</span>
+                                     <button class="map-view-btn" onclick="event.stopPropagation(); viewFieldMap('${field.fieldLocation}')" title="View on map">
+                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
+                                     </button>` 
+                                    : 'Not specified'}
+                            </span>
+                        </div>
+                        <div class="detail-item">
+                            <label>GPA</label>
+                            <span>${field.gpa || 'Not specified'}</span>
+                        </div>
+                        <div class="detail-item">
+                            <label>Optimal Date</label>
+                            <span>${field.optimalDate || 'Not specified'}</span>
+                        </div>
                     </div>
-                    <div class="detail-item">
-                        <label>Crop Type</label>
-                        <span>${field.cropType || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Location</label>
-                        <span>
-                            ${field.fieldLocation ? 
-                                `<span>${field.fieldLocation}</span>
-                                 <button class="map-view-btn" onclick="event.stopPropagation(); viewFieldMap('${field.fieldLocation}')" title="View on map">
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/><line x1="9" y1="3" x2="9" y2="18"/><line x1="15" y1="6" x2="15" y2="21"/></svg>
-                                 </button>` 
-                                : 'Not specified'}
-                        </span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Chemicals</label>
-                        <span>
-                            ${field.chemicals && field.chemicals.length > 0 ? 
-                                '<div class="chemical-rates-list">' + field.chemicals.map((chem, ci) => {
-                                    const rateVal = (field.chemicalRates && field.chemicalRates[ci]) || '';
-                                    const unitVal = (field.chemicalRateUnits && field.chemicalRateUnits[ci]) || '';
-                                    return '<div class="chemical-rate-row">' +
-                                        '<span class="chem-name">' + chem.replace(/'/g, "\\'") + '</span>' +
-                                        '<span class="chem-rate-sep">@</span>' +
-                                        '<input type="text" class="chem-rate-input" value="' + rateVal.replace(/"/g, '&quot;') + '" placeholder="rate" data-job-id="' + job.id + '" data-field-index="' + index + '" data-chem-index="' + ci + '" oninput="debouncedSaveChemicalRates()">' +
-                                        '<select class="chem-rate-unit" data-job-id="' + job.id + '" data-field-index="' + index + '" data-chem-index="' + ci + '" onchange="debouncedSaveChemicalRates()">' +
-                                            '<option value="fl oz"' + (unitVal === 'fl oz' ? ' selected' : '') + '>fl oz/acre</option>' +
-                                            '<option value="oz"' + (unitVal === 'oz' ? ' selected' : '') + '>oz/acre</option>' +
-                                            '<option value="pt"' + (unitVal === 'pt' ? ' selected' : '') + '>pt/acre</option>' +
-                                            '<option value="qt"' + (unitVal === 'qt' ? ' selected' : '') + '>qt/acre</option>' +
-                                            '<option value="gal"' + (unitVal === 'gal' ? ' selected' : '') + '>gal/acre</option>' +
-                                            '<option value="lb"' + (unitVal === 'lb' ? ' selected' : '') + '>lb/acre</option>' +
-                                            '<option value="vv"' + (unitVal === 'vv' ? ' selected' : '') + '>% v/v</option>' +
-                                        '</select>' +
-                                    '</div>';
-                                }).join('') + '</div>'
-                                : 'Not specified'}
-                            ${field.chemicals && field.chemicals.length > 0 && field.fieldSize ? 
-                                `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
-                                 </button>` 
-                                : ''}
-                        </span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Optimal Date</label>
-                        <span>${field.optimalDate || 'Not specified'}</span>
+                    <div class="field-chemicals-right">
+                        <div class="detail-item">
+                            <label>Chemicals</label>
+                            <span>
+                                ${field.chemicals && field.chemicals.length > 0 ? 
+                                    '<div class="chemical-rates-list">' + field.chemicals.map((chem, ci) => {
+                                        const rateVal = (field.chemicalRates && field.chemicalRates[ci]) || '';
+                                        const unitVal = (field.chemicalRateUnits && field.chemicalRateUnits[ci]) || '';
+                                        return '<div class="chemical-rate-row">' +
+                                            (function(){var e=chem.replace(/'/g,"\\'"),m=findChemicalMatch(chem),u=m&&m.label?m.label.trim():'';return u?'<a href="'+u.replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer" class="chem-name-link">'+e+'</a>':'<span class="chem-name">'+e+'</span>'})() +
+                                            '<span class="chem-rate-sep">@</span>' +
+                                            '<input type="text" class="chem-rate-input" value="' + rateVal.replace(/"/g, '&quot;') + '" placeholder="rate" data-job-id="' + job.id + '" data-field-index="' + index + '" data-chem-index="' + ci + '" oninput="debouncedSaveChemicalRates()">' +
+                                            '<select class="chem-rate-unit" data-job-id="' + job.id + '" data-field-index="' + index + '" data-chem-index="' + ci + '" onchange="debouncedSaveChemicalRates()">' +
+                                                '<option value="fl oz"' + (unitVal === 'fl oz' ? ' selected' : '') + '>fl oz/acre</option>' +
+                                                '<option value="oz"' + (unitVal === 'oz' ? ' selected' : '') + '>oz/acre</option>' +
+                                                '<option value="pt"' + (unitVal === 'pt' ? ' selected' : '') + '>pt/acre</option>' +
+                                                '<option value="qt"' + (unitVal === 'qt' ? ' selected' : '') + '>qt/acre</option>' +
+                                                '<option value="gal"' + (unitVal === 'gal' ? ' selected' : '') + '>gal/acre</option>' +
+                                                '<option value="lb"' + (unitVal === 'lb' ? ' selected' : '') + '>lb/acre</option>' +
+                                                '<option value="vv"' + (unitVal === 'vv' ? ' selected' : '') + '>% v/v</option>' +
+                                            '</select>' +
+                                        '</div>';
+                                    }).join('') + '</div>'
+                                    : 'Not specified'}
+                                ${field.chemicals && field.chemicals.length > 0 && field.fieldSize ? 
+                                    `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
+                                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
+                                     </button>` 
+                                    : ''}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2474,7 +2487,10 @@ async function openEditJobModal(jobId) {
             const chemicalsJson = JSON.stringify(field.chemicals || []).replace(/'/g, "\\'");
             return `
                 <div class="edit-field-group">
-                    <h4>Field ${index + 1}</h4>
+                    <div class="edit-field-header">
+                        <h4>Field ${index + 1}</h4>
+                        ${index > 0 ? `<button type="button" class="remove-field-btn" onclick="removeEditFieldGroup(${index})" title="Remove field">✕</button>` : ''}
+                    </div>
                     <div class="edit-form-grid">
                         <div class="form-group">
                             <label>Field Name</label>
@@ -2495,6 +2511,7 @@ async function openEditJobModal(jobId) {
                                 <option value="Cotton" ${field.cropType === 'Cotton' ? 'selected' : ''}>Cotton</option>
                                 <option value="Sorghum" ${field.cropType === 'Sorghum' ? 'selected' : ''}>Sorghum</option>
                                 <option value="Rice" ${field.cropType === 'Rice' ? 'selected' : ''}>Rice</option>
+                                <option value="Weeds">Weeds</option>
                                 <option value="Other" ${field.cropType === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
                         </div>
@@ -2523,6 +2540,19 @@ async function openEditJobModal(jobId) {
                                 <button type="button" class="btn btn-primary btn-sm" onclick="submitEditCustomChemical(${index})">Confirm</button>
                             </div>
                             <div class="selected-chemicals" id="edit_selectedChemicals_${index}"></div>
+                        </div>
+                        ${index > 0 ? `
+                        <div class="form-group">
+                            <label>Copy from Field</label>
+                            <select id="edit_copyFrom_${index}" onchange="copyFieldChemicals(${index}, this.value)" style="margin-top: 4px;">
+                                <option value="">Copy from field</option>
+                                ${job.fields.map((f, i) => i !== index ? `<option value="${i}">Field ${i + 1}</option>` : '').join('')}
+                            </select>
+                        </div>
+                        ` : ''}
+                        <div class="form-group">
+                            <label>GPA</label>
+                            <input type="text" id="edit_gpa_${index}" value="${field.gpa || ''}" placeholder="e.g., 15 gal/acre">
                         </div>
                         <div class="form-group">
                             <label>Optimal Date</label>
@@ -2639,7 +2669,10 @@ function addEditFieldGroup() {
 
     const html = `
         <div class="edit-field-group">
-            <h4>Field ${index + 1}</h4>
+            <div class="edit-field-header">
+                <h4>Field ${index + 1}</h4>
+                <button type="button" class="remove-field-btn" onclick="removeEditFieldGroup(${index})" title="Remove field">✕</button>
+            </div>
             <div class="edit-form-grid">
                 <div class="form-group">
                     <label>Field Name</label>
@@ -2660,6 +2693,7 @@ function addEditFieldGroup() {
                         <option value="Cotton">Cotton</option>
                         <option value="Sorghum">Sorghum</option>
                         <option value="Rice">Rice</option>
+                        <option value="Weeds">Weeds</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>
@@ -2690,6 +2724,17 @@ function addEditFieldGroup() {
                     <div class="selected-chemicals" id="edit_selectedChemicals_${index}"></div>
                 </div>
                 <div class="form-group">
+                    <label>Copy from Field</label>
+                    <select id="edit_copyFrom_${index}" onchange="copyFieldChemicals(${index}, this.value)" style="margin-top: 4px;">
+                        <option value="">Copy from field</option>
+                        ${Array.from({length: index}, (_, i) => `<option value="${i}">Field ${i + 1}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>GPA</label>
+                    <input type="text" id="edit_gpa_${index}" value="" placeholder="e.g., 15">
+                </div>
+                <div class="form-group">
                     <label>Optimal Date</label>
                     <input type="text" id="edit_optimalDate_${index}" value="" placeholder="Click to select date" readonly onclick="openEditFieldCalendar(${index})">
                 </div>
@@ -2708,6 +2753,57 @@ function addEditFieldGroup() {
     // Scroll to the new field
     const newField = document.getElementById(`edit_fieldName_${index}`);
     if (newField) newField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// Remove field group from edit job modal
+function removeEditFieldGroup(index) {
+    // Don't allow removing the first field (index 0)
+    if (index === 0) return;
+    
+    const fieldGroup = document.getElementById(`edit_fieldName_${index}`)?.closest('.edit-field-group');
+    if (!fieldGroup) return;
+    
+    fieldGroup.remove();
+    
+    // Reindex all remaining fields
+    const fieldGroups = document.querySelectorAll('#editFieldGroups .edit-field-group');
+    window.editFieldCount = fieldGroups.length;
+    
+    fieldGroups.forEach((group, newIndex) => {
+        // Update field number in header
+        const headerDiv = group.querySelector('.edit-field-header');
+        if (headerDiv) {
+            const h4 = headerDiv.querySelector('h4');
+            if (h4) h4.textContent = `Field ${newIndex + 1}`;
+            
+            // Update remove button
+            const removeBtn = headerDiv.querySelector('.remove-field-btn');
+            if (removeBtn) {
+                // Hide remove button for first field
+                if (newIndex === 0) {
+                    removeBtn.remove();
+                } else {
+                    removeBtn.setAttribute('onclick', `removeEditFieldGroup(${newIndex})`);
+                }
+            }
+        }
+        
+        // Update all element IDs to match new index
+        const elements = group.querySelectorAll('[id]');
+        elements.forEach(el => {
+            const oldId = el.id;
+            const newId = oldId.replace(/_\d+(?=[^_]*$)/, `_${newIndex}`);
+            if (newId !== oldId) {
+                el.id = newId;
+                
+                // Update associated labels
+                const label = document.querySelector(`label[for="${oldId}"]`);
+                if (label) {
+                    label.setAttribute('for', newId);
+                }
+            }
+        });
+    });
 }
 
 // Close edit job modal
@@ -2759,6 +2855,7 @@ async function saveEditedJob() {
             fieldSize: document.getElementById(`edit_fieldSize_${index}`).value,
             cropType: document.getElementById(`edit_cropType_${index}`).value,
             fieldLocation: document.getElementById(`edit_fieldLocation_${index}`).value,
+            gpa: document.getElementById(`edit_gpa_${index}`).value,
             chemicals: chemicals,
             chemicalRates: chemicalRates,
             chemicalRateUnits: chemicalRateUnits,
@@ -3015,6 +3112,31 @@ function initializeEditChemicals(job, fieldIndex) {
         window[`editSelectedChemicals_${fieldIndex}`] = [];
         renderEditSelectedChemicals(fieldIndex);
     }
+}
+
+// Copy chemicals from one field to another in edit modal
+function copyFieldChemicals(targetIndex, sourceIndex) {
+    sourceIndex = parseInt(sourceIndex);
+    if (isNaN(sourceIndex) || sourceIndex < 0) return;
+    
+    // Get source chemicals, rates, units
+    const sourceChemicals = window[`editSelectedChemicals_${sourceIndex}`] || [];
+    const sourceRates = window[`editChemicalRates_${sourceIndex}`] || [];
+    const sourceUnits = window[`editChemicalRateUnits_${sourceIndex}`] || [];
+    
+    if (sourceChemicals.length === 0) return;
+    
+    // Clear target arrays and copy from source
+    window[`editSelectedChemicals_${targetIndex}`] = [...sourceChemicals];
+    window[`editChemicalRates_${targetIndex}`] = [...sourceRates];
+    window[`editChemicalRateUnits_${targetIndex}`] = [...sourceUnits];
+    
+    // Re-render target chemical tags
+    renderEditSelectedChemicals(targetIndex);
+    
+    // Reset dropdown selection
+    const select = document.getElementById(`edit_copyFrom_${targetIndex}`);
+    if (select) select.value = '';
 }
 
 // Open calendar for scheduled date in edit modal
