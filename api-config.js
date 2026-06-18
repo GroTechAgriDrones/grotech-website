@@ -5,6 +5,7 @@ const API_CONFIG = {
     ENDPOINTS: {
         SUBMIT_APPLICATION: '/applications',
         GET_APPLICATIONS: '/applications',
-        UPDATE_APPLICATION: '/applications'
+        UPDATE_APPLICATION: '/applications',
+        SEND_FAA_REPORT: '/send-faa-report'
     }
 };
