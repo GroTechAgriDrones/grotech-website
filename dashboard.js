@@ -1327,6 +1327,334 @@ const pages = {
                 }
             </style>
         `
+    },
+    faareport: {
+        title: 'FAA Monthly Report (44807)',
+        content: `
+            <div class="faareport-container">
+                <div class="faareport-header">
+                    <div class="faareport-import-zone" id="faareportImportZone">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <span>Import Flight Log (.xlsx) — drag & drop or click to browse</span>
+                        <input type="file" id="faareportFileInput" accept=".xlsx,.xls" style="display:none">
+                        <button class="btn btn-primary btn-sm" onclick="document.getElementById('faareportFileInput').click()">Choose File</button>
+                    </div>
+                    <div class="faareport-import-status" id="faareportImportStatus" style="display:none;">
+                        <span id="faareportImportMessage"></span>
+                        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('faareportFileInput').click()">Re-import</button>
+                    </div>
+
+                </div>
+
+                <div class="faareport-form" id="faareportForm">
+                    <h3 class="faareport-section-title">Certificate Information</h3>
+                    <div class="faareport-section">
+                        <div class="faareport-grid-3">
+                            <div class="faareport-field">
+                                <label>Proponent Name</label>
+                                <input type="text" id="faaProponentName" class="faa-input faa-auto-filled" value="GroTech AgriDrones LLC" data-required="true" data-auto="true">
+                                <span class="faa-field-status" id="faaProponentNameStatus"></span>
+                            </div>
+                            <div class="faareport-field">
+                                <label>Report Month/Year</label>
+                                <input type="text" id="faaReportMonth" class="faa-input" placeholder="e.g. June 2026" data-required="true" data-auto="true">
+                                <span class="faa-field-status" id="faaReportMonthStatus"></span>
+                            </div>
+                        </div>
+                        <p class="faareport-detail-note">Aircraft detected from imported flight log. Registration numbers are auto-filled by model.</p>
+                        <table class="faa-detail-table">
+                            <thead>
+                <tr>
+                    <th>Aircraft Name</th>
+                    <th>UAS Type/Model</th>
+                    <th>Registration Number</th>
+                    <th style="width:60px;">Flights</th>
+                    <th style="width:30px;"></th>
+                </tr>
+            </thead>
+            <tbody id="faaAircraftTableBody">
+                <tr class="faa-detail-empty"><td colspan="5">Import a flight log or add aircraft manually.</td></tr>
+                            </tbody>
+                        </table>
+                        <button class="btn btn-secondary btn-sm" onclick="addFaaAircraftRow()">+ Add Aircraft</button>
+                    </div>
+
+                    <h3 class="faareport-section-title">Operating Locations</h3>
+                    <div class="faareport-section">
+                        <p class="faareport-detail-note">Locations detected from import. Fill in coordinates for each, or add more.</p>
+                        <table class="faa-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>City / Location Name</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Flights</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="faaLocationsTableBody">
+                                <tr class="faa-detail-empty"><td colspan="5">Import a flight log to detect operating locations.</td></tr>
+                            </tbody>
+                        </table>
+                        <button class="btn btn-secondary btn-sm" onclick="addFaaLocationRow()">+ Add Location</button>
+                    </div>
+
+                    <h3 class="faareport-section-title">Flight Summary</h3>
+                    <div class="faareport-section">
+                        <p class="faareport-detail-note">Flights grouped by aircraft and operating location.</p>
+                        <table class="faa-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Aircraft</th>
+                                    <th>Location</th>
+                                    <th>Number of Flights</th>
+                                    <th>Total Hours</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faaBreakdownTableBody">
+                                <tr class="faa-detail-empty"><td colspan="4">Import a flight log to populate breakdown.</td></tr>
+                            </tbody>
+                        </table>
+                        <div class="faareport-grid-3" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-light);">
+                            <div class="faareport-field">
+                                <label>Total Number of Flights</label>
+                                <input type="number" id="faaTotalFlights" class="faa-input" min="0" readonly data-required="true" data-auto="true">
+                                <span class="faa-field-status" id="faaTotalFlightsStatus"></span>
+                            </div>
+                            <div class="faareport-field">
+                                <label>Total Aircraft Operation Hours</label>
+                                <input type="number" id="faaTotalHours" class="faa-input" min="0" step="0.1" readonly data-required="true" data-auto="true">
+                                <span class="faa-field-status" id="faaTotalHoursStatus"></span>
+                            </div>
+                            <div class="faareport-field">
+                                <label>Negative Report (zero flights)</label>
+                                <div class="faa-radio-group">
+                                    <label class="faa-radio"><input type="radio" name="faaNegativeReport" value="No" checked> No</label>
+                                    <label class="faa-radio"><input type="radio" name="faaNegativeReport" value="Yes"> Yes</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="faareport-section-title">Takeoff or Landing Damage</h3>
+                    <div class="faareport-section">
+                        <div class="faareport-field">
+                            <label>Did any takeoff or landing damage occur this month?</label>
+                            <div class="faa-radio-group">
+                                <label class="faa-radio"><input type="radio" name="faaToldDamage" value="No" checked onclick="document.getElementById('faaToldDamageDescGroup').style.display='none'"> No</label>
+                                <label class="faa-radio"><input type="radio" name="faaToldDamage" value="Yes" onclick="document.getElementById('faaToldDamageDescGroup').style.display='block'"> Yes</label>
+                            </div>
+                        </div>
+                        <div class="faareport-field faareport-field-wide" id="faaToldDamageDescGroup" style="display:none;">
+                            <label>Describe damage:</label>
+                            <textarea id="faaToldDamageDesc" class="faa-input faa-textarea" placeholder="Describe the damage that occurred..."></textarea>
+                        </div>
+                    </div>
+
+                    <h3 class="faareport-section-title">Equipment Malfunctions</h3>
+                    <div class="faareport-section">
+                        <p class="faareport-detail-note">Report failures or malfunctions that occurred. Default all to 0 if none.</p>
+                        <table class="faa-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th style="width:80px;">Count</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody id="faaMalfunctionsBody">
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h3 class="faareport-section-title">Lost Link Events</h3>
+                    <div class="faareport-section faareport-grid-3">
+                        <div class="faareport-field">
+                            <label>Number of Lost Link Events</label>
+                            <input type="number" id="faaLostLinkCount" class="faa-input" min="0" value="0" step="1" data-auto="true">
+                            <span class="faa-field-status" id="faaLostLinkCountStatus"></span>
+                        </div>
+                        <div class="faareport-field">
+                            <label>Total Duration of Events (minutes)</label>
+                            <input type="number" id="faaLostLinkDuration" class="faa-input" min="0" value="0" step="0.1" data-auto="true">
+                            <span class="faa-field-status" id="faaLostLinkDurationStatus"></span>
+                        </div>
+                        <div class="faareport-field">
+                            <label>Lost Link Type</label>
+                            <input type="text" id="faaLostLinkType" class="faa-input" value="N/A" data-auto="true" placeholder="Control, C2, Performance monitoring, etc.">
+                            <span class="faa-field-status" id="faaLostLinkTypeStatus"></span>
+                        </div>
+                    </div>
+
+                    <h3 class="faareport-section-title">Incident/Accident/Mishap</h3>
+                    <div class="faareport-section">
+                        <div class="faareport-field">
+                            <label>Were there any Incidents/Accidents/Mishaps involving UAS operations?</label>
+                            <div class="faa-radio-group">
+                                <label class="faa-radio"><input type="radio" name="faaIncident" value="No" checked onclick="document.getElementById('faaIncidentDescGroup').style.display='none'"> No</label>
+                                <label class="faa-radio"><input type="radio" name="faaIncident" value="Yes" onclick="document.getElementById('faaIncidentDescGroup').style.display='block'"> Yes</label>
+                            </div>
+                        </div>
+                        <div class="faareport-field faareport-field-wide" id="faaIncidentDescGroup" style="display:none;">
+                            <label>Describe the incident/accident/mishap:</label>
+                            <textarea id="faaIncidentDesc" class="faa-input faa-textarea" placeholder="Describe the incident, including details per COA Sec. F.3..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="faareport-actions">
+                        <button class="btn btn-primary btn-lg" id="faaSendBtn" onclick="validateAndSendFaaReport()">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                            Send to FAA
+                        </button>
+                        <div class="faareport-validation-summary" id="faaValidationSummary" style="display:none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <style>
+                .faareport-container { max-width: 1000px; }
+                .faareport-header { margin-bottom: 24px; }
+                .faareport-import-zone {
+                    background: var(--bg-card);
+                    border: 2px dashed var(--border-light);
+                    border-radius: 8px;
+                    padding: 16px 24px;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                }
+                .faareport-import-zone:hover { border-color: var(--primary-light); background: rgba(54, 124, 43, 0.05); }
+                .faareport-import-zone svg { color: var(--text-muted); flex-shrink: 0; }
+                .faareport-import-zone span { color: var(--text-secondary); font-size: 0.9rem; flex: 1; }
+                .faareport-import-status {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: 8px;
+                    padding: 12px 20px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                }
+                .faareport-import-status span { font-size: 0.9rem; color: var(--text-secondary); }
+
+                .faareport-section-title {
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    color: var(--primary-light);
+                    margin: 24px 0 12px 0;
+                    padding-bottom: 8px;
+                    border-bottom: 1px solid var(--border-light);
+                }
+                .faareport-section {
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-light);
+                    border-radius: 12px;
+                    padding: 20px;
+                    display: grid;
+                    gap: 16px;
+                }
+                .faareport-grid-3 { grid-template-columns: repeat(3, 1fr); }
+                @media (max-width: 900px) {
+                    .faareport-grid-3 { grid-template-columns: repeat(2, 1fr); }
+                }
+                @media (max-width: 600px) {
+                    .faareport-grid-3 { grid-template-columns: 1fr; }
+                }
+                .faareport-field { display: flex; flex-direction: column; gap: 6px; }
+                .faareport-field-wide { grid-column: 1 / -1; }
+                .faareport-field label { font-size: 0.8rem; font-weight: 500; color: var(--text-secondary); }
+                .faa-input {
+                    padding: 10px 12px;
+                    background: var(--bg-dark);
+                    border: 2px solid var(--border-light);
+                    border-radius: 8px;
+                    color: var(--text-primary);
+                    font-size: 0.9rem;
+                    font-family: inherit;
+                    transition: all 0.2s ease;
+                }
+                .faa-input:focus { outline: none; border-color: var(--primary); }
+                .faa-input.faa-auto-filled { border-color: #22c55e; background: rgba(34,197,94,0.05); }
+                .faa-input.faa-empty-required { border-color: #ef4444; background: rgba(239,68,68,0.05); }
+                .faa-input.faa-user-edited { border-color: #fbbf24; background: rgba(251,191,36,0.05); }
+                .faa-textarea { resize: vertical; min-height: 60px; }
+                .faa-input[readonly] { opacity: 0.7; cursor: default; }
+                .faa-field-status { font-size: 0.75rem; font-weight: 500; }
+                .faa-field-status.faa-auto { color: #22c55e; }
+                .faa-field-status.faa-empty { color: #ef4444; }
+                .faa-field-status.faa-edited { color: #fbbf24; }
+
+                .faa-radio-group { display: flex; gap: 16px; padding: 8px 0; }
+                .faa-radio { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: var(--text-primary); cursor: pointer; }
+                .faa-radio input[type="radio"] { accent-color: var(--primary); }
+
+                .faareport-detail-note { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px; }
+                .faa-detail-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+                .faa-detail-table th, .faa-detail-table td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border-light); font-size: 0.85rem; }
+                .faa-detail-table th { font-size: 0.7rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; background: rgba(0,0,0,0.2); }
+                .faa-detail-table td { color: var(--text-secondary); }
+                .faa-detail-table input { width: 100%; padding: 6px 8px; background: var(--bg-dark); border: 1px solid var(--border-light); border-radius: 4px; color: var(--text-primary); font-size: 0.85rem; }
+                .faa-detail-table .faa-row-del { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); color: #ef4444; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+                .faa-detail-table .faa-row-del:hover { background: rgba(239,68,68,0.2); }
+                .faa-detail-table .faa-map-btn { background: rgba(54,124,43,0.1); border: 1px solid rgba(54,124,43,0.3); color: #4ade80; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+                .faa-detail-table .faa-map-btn:hover { background: rgba(54,124,43,0.2); }
+                .faa-detail-empty td { color: var(--text-muted); font-style: italic; text-align: center; padding: 20px; }
+
+                .faareport-actions { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; }
+                .btn-lg { padding: 14px 32px; font-size: 1rem; display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; }
+                .faareport-validation-summary {
+                    background: rgba(239,68,68,0.1);
+                    border: 1px solid rgba(239,68,68,0.3);
+                    border-radius: 8px;
+                    padding: 12px 16px;
+                    font-size: 0.9rem;
+                    color: #ef4444;
+                }
+                .faareport-validation-summary.success {
+                    background: rgba(34,197,94,0.1);
+                    border-color: rgba(34,197,94,0.3);
+                    color: #22c55e;
+                }
+            </style>
+        `
+    },
+    traininglogs: {
+        title: 'Training Logs',
+        content: `
+            <div class="page-header">
+                <p>Track and manage pilot training records and certifications</p>
+            </div>
+            <div class="settings-section">
+                <h3>Training Records</h3>
+                <p style="color: var(--text-muted);">Training logs will be available in a future update. This section will allow you to record and track pilot training sessions, certifications, and recurring training requirements.</p>
+            </div>
+            <div class="data-table empty-state" style="text-align:center; padding:60px 20px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <h3 style="color: var(--text-secondary); margin-bottom:8px;">No Training Logs Yet</h3>
+                <p style="color: var(--text-muted);">Training log functionality is coming soon.</p>
+            </div>
+        `
+    },
+    maintenancelogs: {
+        title: 'Maintenance Logs',
+        content: `
+            <div class="page-header">
+                <p>Log and track drone maintenance, repairs, and inspections</p>
+            </div>
+            <div class="settings-section">
+                <h3>Maintenance Records</h3>
+                <p style="color: var(--text-muted);">Maintenance logs will be available in a future update. This section will allow you to record maintenance activities, schedule inspections, and track repair history for each aircraft.</p>
+            </div>
+            <div class="data-table empty-state" style="text-align:center; padding:60px 20px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 8 13"/><polyline points="16 17 8 17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <h3 style="color: var(--text-secondary); margin-bottom:8px;">No Maintenance Logs Yet</h3>
+                <p style="color: var(--text-muted);">Maintenance log functionality is coming soon.</p>
+            </div>
+        `
     }
 };
 
@@ -1339,8 +1667,8 @@ const spraySettingsData = {
                 { gpa: 2, routeSpacing: 36, speed: 66, height: 12, droplet: 300 }
             ],
             herbicide: [
-                { gpa: 5, routeSpacing: 30, speed: 40, height: 12, droplet: 500 },
-                { gpa: 3, routeSpacing: 30, speed: 40, height: 12, droplet: 500 }
+                { gpa: 5, routeSpacing: 25, speed: 45, height: 12, droplet: 500 },
+                { gpa: 3, routeSpacing: 25, speed: 45, height: 12, droplet: 500 }
             ],
             insecticide: [
                 { gpa: 2, routeSpacing: 38, speed: 64, height: 10, droplet: 250 }
@@ -1492,6 +1820,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
                 initUploadHandlers();
             }, 100);
         }
+
+        // Init FAA report page
+        if (pageKey === 'faareport') {
+            setTimeout(() => {
+                initFaaReportPage();
+            }, 100);
+        }
         
         // Fetch chemicals list when chemical list page is loaded
         if (pageKey === 'chemicallist') {
@@ -1509,6 +1844,859 @@ document.querySelectorAll('.nav-item').forEach(item => {
         }
     });
 });
+
+// ============================================
+// FAA MONTHLY REPORT (44807) FUNCTIONS
+// ============================================
+
+let faaParsedData = null;
+let faaInputSetup = false;
+
+function escapeHtml(str) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(String(str)));
+    return d.innerHTML;
+}
+
+function initFaaReportPage() {
+    if (!faaInputSetup) {
+        var monthEl = document.getElementById('faaReportMonth');
+        if (monthEl && !monthEl.value) {
+            var now = new Date();
+            var prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            var names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+            monthEl.value = names[prev.getMonth()] + ' ' + prev.getFullYear();
+            monthEl.className = 'faa-input faa-auto-filled';
+            var statusEl = document.getElementById('faaReportMonthStatus');
+            if (statusEl) { statusEl.textContent = 'auto-filled'; statusEl.className = 'faa-field-status faa-auto'; }
+        }
+    }
+    faaParsedData = null;
+    document.getElementById('faareportImportStatus').style.display = 'none';
+    document.getElementById('faareportForm').style.display = 'block';
+    document.getElementById('faaSendBtn').disabled = false;
+    var zone = document.getElementById('faareportImportZone');
+    if (zone) zone.style.display = 'flex';
+    var locBody = document.getElementById('faaLocationsTableBody');
+    if (locBody) locBody.innerHTML = '<tr class="faa-detail-empty"><td colspan="5">Import a flight log to detect operating locations.</td></tr>';
+    var bkBody = document.getElementById('faaBreakdownTableBody');
+    if (bkBody) bkBody.innerHTML = '<tr class="faa-detail-empty"><td colspan="4">Import a flight log to populate breakdown.</td></tr>';
+    var acBody = document.getElementById('faaAircraftTableBody');
+    if (acBody) acBody.innerHTML = '<tr class="faa-detail-empty"><td colspan="5">Import a flight log or add aircraft manually.</td></tr>';
+    populateFaaMalfunctionsTable();
+    updateFieldStatuses();
+    setupFaaFileInput();
+}
+
+function setupFaaFileInput() {
+    if (faaInputSetup) return;
+    var input = document.getElementById('faareportFileInput');
+    if (!input) { setTimeout(setupFaaFileInput, 200); return; }
+
+    input.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            processFaaImport(e.target.files[0]);
+        }
+    });
+
+    var zone = document.getElementById('faareportImportZone');
+    if (zone) {
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+        zone.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                processFaaImport(e.dataTransfer.files[0]);
+            }
+        });
+        zone.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') {
+                document.getElementById('faareportFileInput').click();
+            }
+        });
+    }
+    faaInputSetup = true;
+}
+
+function processFaaImport(file) {
+    const statusEl = document.getElementById('faareportImportStatus');
+    const msgEl = document.getElementById('faareportImportMessage');
+    const zoneEl = document.getElementById('faareportImportZone');
+
+    if (!file.name.match(/\.xlsx?$/i)) {
+        msgEl.textContent = 'Please select an .xlsx file.';
+        statusEl.style.display = 'flex';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, {type: 'array'});
+            let sheetName = null;
+            const candidates = ['flight record', 'flight', 'flights', 'Sheet1', 'sheet1', 'data'];
+            for (const name of candidates) {
+                if (workbook.SheetNames.includes(name)) { sheetName = name; break; }
+            }
+            if (!sheetName) sheetName = workbook.SheetNames[0];
+
+            const sheet = workbook.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet, {defval: ''});
+
+            if (!json || json.length === 0) {
+                msgEl.textContent = 'No data found in the file.';
+                statusEl.style.display = 'flex';
+                return;
+            }
+
+            autoFillFaaReport(json);
+            zoneEl.style.display = 'none';
+            msgEl.textContent = 'Imported ' + json.length + ' flights from ' + file.name;
+            statusEl.style.display = 'flex';
+
+        } catch (err) {
+            msgEl.textContent = 'Error parsing file: ' + err.message;
+            statusEl.style.display = 'flex';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+}
+
+function autoFillFaaReport(rows) {
+    const keys = Object.keys(rows[0]);
+    const keyLower = {};
+    keys.forEach(k => {
+        keyLower[k.toLowerCase().trim().replace(/[^a-z0-9]/g, '')] = k;
+    });
+
+    function getCol(name) {
+        const n = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        for (const k of Object.keys(keyLower)) {
+            if (k.includes(n) || n.includes(k)) return keyLower[k];
+        }
+        return null;
+    }
+
+    const flightTimeCol = getCol('flighttime') || getCol('flight time');
+    const locationCol = getCol('location');
+    const aircraftCol = getCol('aircraftname') || getCol('aircraft name') || getCol('aircraft');
+    const durationCol = getCol('flightduration') || getCol('flight duration') || getCol('duration');
+
+    // Group by aircraft x location
+    var breakdown = {};
+    var locations = {};
+    var aircraftSet = {};
+    var totalMinutes = 0;
+    var hasDateInfo = false;
+    var latestDate = null;
+
+    rows.forEach(function(row) {
+        var ac = aircraftCol ? String(row[aircraftCol] || '').trim() : 'Unknown';
+        var loc = locationCol ? String(row[locationCol] || '').trim() : 'Unknown';
+        var bk = ac + '||' + loc;
+        if (!breakdown[bk]) breakdown[bk] = { aircraft: ac, location: loc, flights: 0, totalMinutes: 0 };
+        breakdown[bk].flights++;
+        if (ac) aircraftSet[ac] = true;
+
+        if (locationCol && row[locationCol]) {
+            var l = String(row[locationCol]).trim();
+            if (l) locations[l] = (locations[l] || 0) + 1;
+        }
+
+        if (durationCol) {
+            var dur = row[durationCol];
+            var mins = 0;
+            if (typeof dur === 'string') {
+                var parts = dur.split(':');
+                if (parts.length >= 2) {
+                    mins = parseInt(parts[0]) + Math.round(parseInt(parts[1]) / 60 * 100) / 100;
+                } else { mins = parseFloat(dur) || 0; }
+            } else if (typeof dur === 'number') { mins = dur; }
+            breakdown[bk].totalMinutes += mins;
+            totalMinutes += mins;
+        }
+
+        if (flightTimeCol && row[flightTimeCol]) {
+            var dt = new Date(row[flightTimeCol]);
+            if (!isNaN(dt.getTime())) {
+                hasDateInfo = true;
+                if (!latestDate || dt > latestDate) latestDate = dt;
+            }
+        }
+    });
+
+    var totalHours = (totalMinutes / 60).toFixed(1);
+
+    // Report month
+    var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    if (hasDateInfo && latestDate) {
+        setFaaField('faaReportMonth', monthNames[latestDate.getMonth()] + ' ' + latestDate.getFullYear(), true);
+    } else {
+        var now = new Date();
+        setFaaField('faaReportMonth', monthNames[now.getMonth()] + ' ' + now.getFullYear(), true);
+    }
+
+    // Certificate
+    setFaaField('faaProponentName', 'GroTech AgriDrones LLC', true);
+
+    // Determine model and registration per aircraft
+    function getModelInfo(acName) {
+        var n = acName.toUpperCase();
+        if (n.indexOf('T100') >= 0) return { model: 'DJI Agras T100', reg: '1581F8ZLC257C002HLEO' };
+        if (n.indexOf('T50') >= 0 && n.indexOf('T100') < 0) return { model: 'DJI Agras T50', reg: '1581F6BUB237B001PMB4' };
+        return { model: 'DJI Agras ' + acName, reg: '' };
+    }
+
+    // Compute per-aircraft flight totals across all locations
+    var acTotals = {};
+    Object.values(breakdown).forEach(function(entry) {
+        if (!acTotals[entry.aircraft]) acTotals[entry.aircraft] = 0;
+        acTotals[entry.aircraft] += entry.flights;
+    });
+
+    // Populate aircraft table
+    var acBody = document.getElementById('faaAircraftTableBody');
+    acBody.innerHTML = '';
+    var acNames = Object.keys(aircraftSet).sort();
+    acNames.forEach(function(ac) {
+        var info = getModelInfo(ac);
+        addFaaAircraftRow(ac, info.model, info.reg, acTotals[ac] || 0);
+    });
+    if (acNames.length === 0) {
+        acBody.innerHTML = '<tr class="faa-detail-empty"><td colspan="5">No aircraft detected.</td></tr>';
+    }
+
+    // Breakdown table
+    var bkBody = document.getElementById('faaBreakdownTableBody');
+    bkBody.innerHTML = '';
+    var bkEntries = Object.values(breakdown);
+    if (bkEntries.length === 0) {
+        bkBody.innerHTML = '<tr class="faa-detail-empty"><td colspan="4">No flight data.</td></tr>';
+    } else {
+        bkEntries.forEach(function(entry) {
+            var hrs = (entry.totalMinutes / 60).toFixed(1);
+            var tr = document.createElement('tr');
+            tr.innerHTML = '<td>' + escapeHtml(entry.aircraft) + '</td><td>' + escapeHtml(entry.location) + '</td><td>' + entry.flights + '</td><td>' + hrs + '</td>';
+            bkBody.appendChild(tr);
+        });
+    }
+
+    // Locations table
+    var locBody = document.getElementById('faaLocationsTableBody');
+    locBody.innerHTML = '';
+    var locKeys = Object.keys(locations);
+    if (locKeys.length === 0) {
+        locBody.innerHTML = '<tr class="faa-detail-empty"><td colspan="5">No locations detected.</td></tr>';
+    } else {
+        locKeys.forEach(function(loc) { addFaaLocationRow(loc, '', '', locations[loc]); });
+    }
+
+    // Totals
+    setFaaField('faaTotalFlights', rows.length, true);
+    setFaaField('faaTotalHours', parseFloat(totalHours), true);
+
+    // Reset event fields
+    setFaaField('faaLostLinkCount', 0, true);
+    setFaaField('faaLostLinkDuration', 0, true);
+    setFaaField('faaLostLinkType', 'N/A', true);
+    var dmgNo = document.querySelector('input[name="faaToldDamage"][value="No"]');
+    if (dmgNo) dmgNo.checked = true;
+    var dmgDesc = document.getElementById('faaToldDamageDesc');
+    if (dmgDesc) dmgDesc.value = '';
+    var dmgGrp = document.getElementById('faaToldDamageDescGroup');
+    if (dmgGrp) dmgGrp.style.display = 'none';
+
+    var incNo = document.querySelector('input[name="faaIncident"][value="No"]');
+    if (incNo) incNo.checked = true;
+    var incDesc = document.getElementById('faaIncidentDesc');
+    if (incDesc) incDesc.value = '';
+    var incGrp = document.getElementById('faaIncidentDescGroup');
+    if (incGrp) incGrp.style.display = 'none';
+
+    // Store parsed data
+    faaParsedData = {
+        totalFlights: rows.length,
+        totalHours: totalHours,
+        breakdown: bkEntries,
+        locations: locKeys,
+        aircraftCount: Object.keys(aircraftSet).length
+    };
+
+    updateFieldStatuses();
+    geocodeFaaLocations();
+}
+
+function setFaaField(id, value, autoFilled) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.value = value;
+    if (autoFilled) {
+        el.className = 'faa-input faa-auto-filled';
+        el.setAttribute('data-autofilled', 'true');
+        var statusEl = document.getElementById(id + 'Status');
+        if (statusEl) {
+            statusEl.textContent = 'auto-filled';
+            statusEl.className = 'faa-field-status faa-auto';
+        }
+    }
+}
+
+function updateFieldStatuses() {
+    var autoFields = document.querySelectorAll('.faa-input[data-auto="true"]');
+    autoFields.forEach(function(el) {
+        var statusEl = document.getElementById(el.id + 'Status');
+        if (!statusEl) return;
+        if (el.value !== '' && el.value !== '0') {
+            if (el.className.indexOf('faa-auto-filled') >= 0) {
+                statusEl.textContent = 'auto-filled';
+                statusEl.className = 'faa-field-status faa-auto';
+            } else {
+                statusEl.textContent = 'entered';
+                statusEl.className = 'faa-field-status faa-edited';
+            }
+        } else if (el.getAttribute('data-required') === 'true' && !el.readOnly) {
+            el.className = 'faa-input faa-empty-required';
+            statusEl.textContent = 'REQUIRED';
+            statusEl.className = 'faa-field-status faa-empty';
+        }
+    });
+    var requiredFields = document.querySelectorAll('.faa-input[data-required="true"]:not([data-auto="true"])');
+    requiredFields.forEach(function(el) {
+        var statusEl = document.getElementById(el.id + 'Status');
+        if (!statusEl) return;
+        if (!el.value || el.value.trim() === '') {
+            el.className = 'faa-input faa-empty-required';
+            statusEl.textContent = 'REQUIRED';
+            statusEl.className = 'faa-field-status faa-empty';
+        }
+    });
+}
+
+function populateFaaMalfunctionsTable() {
+    var tbody = document.getElementById('faaMalfunctionsBody');
+    if (!tbody) return;
+    var categories = [
+        'Control Station', 'Electrical System', 'Fuel System',
+        'Navigation System', 'On-board Flight Control System',
+        'Powerplant', 'In-Flight Fire'
+    ];
+    tbody.innerHTML = '';
+    categories.forEach(function(cat) {
+        var tr = document.createElement('tr');
+        tr.innerHTML = '<td><strong>' + cat + '</strong></td>' +
+            '<td><input type="number" class="faa-mal-count" min="0" value="0" step="1" style="width:60px;"></td>' +
+            '<td><input type="text" class="faa-mal-desc" placeholder="Describe malfunction (if any)"></td>';
+        tbody.appendChild(tr);
+    });
+}
+
+function removeFaaTableRow(btn) {
+    var tr = btn.closest('tr');
+    var tbody = tr.parentNode;
+    tr.remove();
+    if (tbody.querySelectorAll('tr').length === 0) {
+        var colspan = tbody.id === 'faaAircraftTableBody' ? '5' : '5';
+        var msg = tbody.id === 'faaAircraftTableBody' ? 'No aircraft added.' : 'No locations added.';
+        tbody.innerHTML = '<tr class="faa-detail-empty"><td colspan="' + colspan + '">' + msg + '</td></tr>';
+    }
+}
+
+function addFaaLocationRow(city, lat, lng, flights) {
+    var tbody = document.getElementById('faaLocationsTableBody');
+    var emptyRow = tbody.querySelector('.faa-detail-empty');
+    if (emptyRow) emptyRow.remove();
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="text" placeholder="City name" value="' + escapeHtml(city || '') + '"></td>' +
+        '<td><input type="text" placeholder="e.g. 41.7028" value="' + escapeHtml(lat || '') + '"></td>' +
+        '<td><input type="text" placeholder="e.g. -88.5112" value="' + escapeHtml(lng || '') + '"></td>' +
+        '<td><input type="number" value="' + (flights || 0) + '" readonly style="opacity:0.7;width:60px;"></td>';
+    var actionTd = document.createElement('td');
+    actionTd.style.cssText = 'padding:8px 10px;display:flex;gap:4px;align-items:center;';
+    var mapBtn = document.createElement('button');
+    mapBtn.className = 'faa-map-btn';
+    mapBtn.type = 'button';
+    mapBtn.title = 'Open map to pick coordinates';
+    mapBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>';
+    mapBtn.onclick = function() { openFaaFieldMap(tr); };
+    actionTd.appendChild(mapBtn);
+    var delBtn = document.createElement('button');
+    delBtn.className = 'faa-row-del';
+    delBtn.textContent = '\u00d7';
+    delBtn.onclick = function() { removeFaaTableRow(delBtn); };
+    actionTd.appendChild(delBtn);
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+}
+
+function addFaaAircraftRow(name, model, reg, flights) {
+    var tbody = document.getElementById('faaAircraftTableBody');
+    var emptyRow = tbody.querySelector('.faa-detail-empty');
+    if (emptyRow) emptyRow.remove();
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><input type="text" placeholder="e.g. T50 1" value="' + escapeHtml(name || '') + '"></td>' +
+        '<td><input type="text" placeholder="e.g. DJI Agras T50" value="' + escapeHtml(model || '') + '"></td>' +
+        '<td><input type="text" placeholder="Registration number" value="' + escapeHtml(reg || '') + '"></td>' +
+        '<td><input type="number" value="' + (flights || 0) + '" readonly style="opacity:0.7;"></td>';
+    var delTd = document.createElement('td');
+    var delBtn = document.createElement('button');
+    delBtn.className = 'faa-row-del';
+    delBtn.textContent = '\u00d7';
+    delBtn.onclick = function() { removeFaaTableRow(delBtn); };
+    delTd.appendChild(delBtn);
+    tr.appendChild(delTd);
+    tbody.appendChild(tr);
+}
+
+function geocodeFaaLocations() {
+    var rows = document.querySelectorAll('#faaLocationsTableBody tr:not(.faa-detail-empty)');
+    rows.forEach(function(tr, idx) {
+        var cityInput = tr.querySelector('td:first-child input');
+        var latInput = tr.querySelector('td:nth-child(2) input');
+        var lngInput = tr.querySelector('td:nth-child(3) input');
+        if (!cityInput || !latInput || !lngInput) return;
+        if (latInput.value && lngInput.value) return; // already has coords
+        var city = cityInput.value.trim();
+        if (!city) return;
+        var locLower = city.toLowerCase();
+        var query = encodeURIComponent(city + (locLower.indexOf('illinois') >= 0 || locLower.indexOf('united states') >= 0 || locLower.indexOf('usa') >= 0 ? '' : ', Illinois, USA'));
+        // Append state hint only if not already present
+        setTimeout(function() {
+            fetch('https://nominatim.openstreetmap.org/search?q=' + query + '&format=json&limit=1')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data && data.length > 0) {
+                    latInput.value = parseFloat(data[0].lat).toFixed(6);
+                    lngInput.value = parseFloat(data[0].lon).toFixed(6);
+                    latInput.className = 'faa-input faa-auto-filled';
+                    lngInput.className = 'faa-input faa-auto-filled';
+                }
+            })
+            .catch(function() {});
+        }, idx * 1200); // stagger to respect Nominatim rate limit
+    });
+}
+
+// --- FAA Location Map Picker ---
+var faaFieldMap = null;
+var faaFieldMarker = null;
+var faaFieldMapInit = false;
+var faaActiveLocRow = null;
+
+function openFaaFieldMap(tr) {
+    faaActiveLocRow = tr;
+
+    document.getElementById('faaFieldMapModal').classList.add('active');
+
+    setTimeout(function() {
+        if (!faaFieldMapInit) initFaaFieldMap();
+        faaFieldMap.invalidateSize();
+
+        var inputs = tr.querySelectorAll('td input');
+        var cityInput = inputs[0];
+        var latInput = inputs[1];
+        var lngInput = inputs[2];
+
+        // Use existing coords if already filled (from auto geocode during import)
+        if (latInput.value && lngInput.value) {
+            var lat = parseFloat(latInput.value);
+            var lng = parseFloat(lngInput.value);
+            if (!isNaN(lat) && !isNaN(lng)) {
+                faaFieldMap.setView([lat, lng], 15);
+                if (faaFieldMarker) faaFieldMap.removeLayer(faaFieldMarker);
+                faaFieldMarker = L.marker([lat, lng], { draggable: true }).addTo(faaFieldMap);
+                return;
+            }
+        }
+
+        // Forward geocode the location name
+        var locName = (cityInput.value || '').trim();
+        if (!locName) locName = 'Freeport, Illinois';
+        var locLower = locName.toLowerCase();
+        var query = encodeURIComponent(locName + (locLower.indexOf('illinois') >= 0 || locLower.indexOf('united states') >= 0 || locLower.indexOf('usa') >= 0 ? '' : ', Illinois, USA'));
+        fetch('https://nominatim.openstreetmap.org/search?q=' + query + '&format=json&limit=1')
+        .then(function(r) {
+            if (!r.ok) throw new Error('Nominatim HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function(data) {
+            var lat = 42.2975;
+            var lng = -89.6438;
+            if (data && data.length > 0) {
+                lat = parseFloat(data[0].lat);
+                lng = parseFloat(data[0].lon);
+            }
+            faaFieldMap.setView([lat, lng], 15);
+            if (faaFieldMarker) faaFieldMap.removeLayer(faaFieldMarker);
+            faaFieldMarker = L.marker([lat, lng], { draggable: true }).addTo(faaFieldMap);
+        })
+        .catch(function() {
+            faaFieldMap.setView([42.2975, -89.6438], 10);
+        });
+    }, 350);
+}
+
+function initFaaFieldMap() {
+    faaFieldMap = L.map('faaFieldMapView').setView([42.2975, -89.6438], 10);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri',
+        maxZoom: 18
+    }).addTo(faaFieldMap);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Labels &copy; Esri',
+        maxZoom: 18
+    }).addTo(faaFieldMap);
+
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Roads &copy; Esri',
+        maxZoom: 18
+    }).addTo(faaFieldMap);
+
+    faaFieldMap.on('click', function(e) {
+        if (faaFieldMarker) faaFieldMap.removeLayer(faaFieldMarker);
+        faaFieldMarker = L.marker(e.latlng, { draggable: true }).addTo(faaFieldMap);
+    });
+
+    faaFieldMapInit = true;
+}
+
+function getFaaFieldCoordinates() {
+    if (!faaFieldMarker) {
+        alert('Please click on the map to place a pin first.');
+        return;
+    }
+    if (!faaActiveLocRow) return;
+
+    var latlng = faaFieldMarker.getLatLng();
+    var lat = latlng.lat.toFixed(6);
+    var lng = latlng.lng.toFixed(6);
+
+    var inputs = faaActiveLocRow.querySelectorAll('td input');
+    var cityInput = inputs[0];
+    var latInput = inputs[1];
+    var lngInput = inputs[2];
+
+    // Reverse geocode to get a clean address
+    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lng + '&format=json')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data && data.display_name) {
+            cityInput.value = data.display_name;
+        }
+    })
+    .catch(function() {});
+
+    latInput.value = lat;
+    lngInput.value = lng;
+    latInput.className = 'faa-input faa-auto-filled';
+    lngInput.className = 'faa-input faa-auto-filled';
+
+    closeFaaFieldMapModal();
+}
+
+function clearFaaFieldPin() {
+    if (faaFieldMarker) {
+        faaFieldMap.removeLayer(faaFieldMarker);
+        faaFieldMarker = null;
+    }
+}
+
+function closeFaaFieldMapModal() {
+    document.getElementById('faaFieldMapModal').classList.remove('active');
+    faaActiveLocRow = null;
+}
+
+function escapeHtmlEmail(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function generateFaaReportHtml(data) {
+    var negReport = data.negativeReport === 'yes';
+    var month = data.reportMonth;
+    var subject = data.proponentName + ' Monthly Report, ' + month;
+
+    function section(title, content) {
+        return '<tr><td style="padding:20px 30px 4px 30px;font-size:16px;font-weight:700;color:#1a1a2e;font-family:Arial,sans-serif;" colspan="2">' + title + '</td></tr>' + content;
+    }
+    function row(label, value) {
+        return '<tr><td style="padding:6px 30px 6px 40px;font-size:13px;color:#555;font-family:Arial,sans-serif;white-space:nowrap;vertical-align:top;width:220px;border-bottom:1px solid #eee;">' + label + '</td><td style="padding:6px 30px 6px 10px;font-size:13px;color:#333;font-family:Arial,sans-serif;border-bottom:1px solid #eee;">' + value + '</td></tr>';
+    }
+
+    var body = '';
+
+    // Subject line
+    body += '<tr><td style="padding:20px 30px 0 30px;font-size:18px;font-weight:700;color:#1a1a2e;font-family:Arial,sans-serif;" colspan="2">Subject: ' + escapeHtmlEmail(subject) + '</td></tr>';
+    body += '<tr><td style="padding:4px 30px 16px 30px;font-size:12px;color:#888;font-family:Arial,sans-serif;" colspan="2">To: 9-AVS-FS-AFS-700-Correspondence@faa.gov</td></tr>';
+
+    // 1. Proponent & Aircraft
+    body += section('1. Proponent &amp; Aircraft Information',
+        row('Proponent', escapeHtmlEmail(data.proponentName)) +
+        (data.aircraft && data.aircraft.length > 0 ? data.aircraft.map(function(ac) {
+            return row('Aircraft', escapeHtmlEmail(ac.name) + ' &mdash; ' + escapeHtmlEmail(ac.model) + ' (Reg: ' + escapeHtmlEmail(ac.registration) + ', ' + ac.flights + ' flights)');
+        }).join('') : row('Aircraft', 'None specified'))
+    );
+
+    // 2. UAS Type/Model (already covered in aircraft table)
+    // 3. Report Month
+    body += section('2. Reporting Month',
+        row('Month', escapeHtmlEmail(month))
+    );
+
+    // 4. Operating Locations
+    body += section('3. Operating Locations',
+        (data.locations && data.locations.length > 0 ? data.locations.map(function(loc) {
+            return row(escapeHtmlEmail(loc.city), 'Lat: ' + escapeHtmlEmail(loc.latitude) + ', Lng: ' + escapeHtmlEmail(loc.longitude) + ' (' + (loc.flights || 0) + ' flights)');
+        }).join('') : row('Locations', 'None'))
+    );
+
+    // 5. Flight Breakdown per location per aircraft
+    body += section('4. Flight Breakdown (per Location, per Aircraft)',
+        (data.flightBreakdown && data.flightBreakdown.length > 0 ? data.flightBreakdown.map(function(bk) {
+            return row(escapeHtmlEmail(bk.aircraft) + ' @ ' + escapeHtmlEmail(bk.location), bk.flights + ' flights, ' + bk.hours + ' hrs');
+        }).join('') : row('Flights', 'None'))
+    );
+
+    // 6. Totals
+    body += section('5. Totals',
+        row('Total Flights', data.totalFlights) +
+        row('Total Hours', data.totalHours.toFixed(1))
+    );
+
+    // Negative report indicator
+    if (negReport) {
+        body += section('6. Negative Report',
+            row('Status', 'No operations were conducted this month.')
+        );
+    }
+
+    // 7. Takeoff/Landing Damage
+    body += section('6. Takeoff &amp; Landing Damage',
+        row('Damage Occurred', data.takeoffLandingDamage) +
+        (data.takeoffLandingDamageDesc ? row('Description', escapeHtmlEmail(data.takeoffLandingDamageDesc)) : '')
+    );
+
+    // 8. Equipment Malfunctions
+    var malfunctionsHtml = '';
+    if (data.equipmentMalfunctions && data.equipmentMalfunctions.length > 0) {
+        data.equipmentMalfunctions.forEach(function(m) {
+            if (m.count > 0 || m.description) {
+                malfunctionsHtml += row(escapeHtmlEmail(m.category), 'Count: ' + (m.count || 0) + (m.description ? ' &mdash; ' + escapeHtmlEmail(m.description) : ''));
+            }
+        });
+    }
+    if (!malfunctionsHtml) malfunctionsHtml = row('Malfunctions', 'None reported');
+    body += section('7. Equipment Malfunctions', malfunctionsHtml);
+
+    // 9. Lost Link Events
+    body += section('8. Lost Link Events',
+        row('Number of Events', data.lostLinkCount || 0) +
+        row('Total Duration', (data.lostLinkDuration || 0) + ' min') +
+        row('Type', escapeHtmlEmail(data.lostLinkType || 'N/A'))
+    );
+
+    // 10. Incident/Accident/Mishap
+    body += section('9. Incident/Accident/Mishap Reporting',
+        row('Incident Occurred', data.incidentOccurred) +
+        (data.incidentOccurred === 'Yes' && data.incidentDesc ? row('Description', escapeHtmlEmail(data.incidentDesc)) : '')
+    );
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escapeHtmlEmail(subject) + '</title></head><body style="margin:0;padding:0;background:#f4f4f7;">' +
+        '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;"><tr><td align="center" style="padding:30px 10px;">' +
+        '<table width="700" cellpadding="0" cellspacing="0" style="background:#fff;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">' +
+        '<tr><td style="padding:30px 30px 10px 30px;background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:12px 12px 0 0;">' +
+        '<h1 style="margin:0;font-size:20px;font-weight:700;color:#4ade80;font-family:Arial,sans-serif;">44807 Monthly Report</h1>' +
+        '<p style="margin:6px 0 0 0;font-size:12px;color:#888;font-family:Arial,sans-serif;">Blanket COA &bull; Grant of Exemption &bull; Class G Airspace at or below 400 ft AGL</p>' +
+        '</td></tr>' +
+        body +
+        '<tr><td style="padding:24px 30px;border-top:2px solid #1a1a2e;font-size:11px;color:#999;font-family:Arial,sans-serif;text-align:center;" colspan="2">' +
+        'This report is submitted in accordance with FAA COA AFS-25-00608-E, Section F.2.<br>' +
+        'Generated by GroTech AgriDrones LLC &mdash; ' + escapeHtmlEmail(month) +
+        '</td></tr></table></td></tr></table></body></html>';
+
+    return html;
+}
+
+function validateAndSendFaaReport() {
+    var summaryEl = document.getElementById('faaValidationSummary');
+    var errors = [];
+
+    var requiredFields = document.querySelectorAll('.faa-input[data-required="true"]');
+    requiredFields.forEach(function(el) {
+        if (!el.value || (typeof el.value === 'string' && el.value.trim() === '') || (typeof el.value === 'number' && isNaN(el.value))) {
+            var label = el.previousElementSibling ? el.previousElementSibling.textContent : el.id;
+            errors.push(label + ' is required');
+            el.className = 'faa-input faa-empty-required';
+        }
+    });
+
+    if (errors.length > 0) {
+        summaryEl.style.display = 'block';
+        summaryEl.className = 'faareport-validation-summary';
+        summaryEl.innerHTML = '<strong>Please fix the following:</strong><br>' + errors.join('<br>');
+        summaryEl.scrollIntoView({behavior: 'smooth'});
+        return;
+    }
+
+    // Collect equipment malfunctions
+    var malfunctions = [];
+    var malRows = document.querySelectorAll('#faaMalfunctionsBody tr');
+    malRows.forEach(function(tr) {
+        var inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 2) {
+            malfunctions.push({
+                category: inputs[0].value,
+                count: parseInt(inputs[1].value) || 0,
+                description: inputs.length >= 3 ? inputs[2].value : ''
+            });
+        }
+    });
+
+    // Collect operating locations
+    var locations = [];
+    var locRows = document.querySelectorAll('#faaLocationsTableBody tr:not(.faa-detail-empty)');
+    locRows.forEach(function(tr) {
+        var inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 4) {
+            locations.push({
+                city: inputs[0].value,
+                latitude: inputs[1].value,
+                longitude: inputs[2].value,
+                flights: parseInt(inputs[3].value) || 0
+            });
+        }
+    });
+
+    // Collect flight breakdown (read-only)
+    var breakdown = [];
+    var bkRows = document.querySelectorAll('#faaBreakdownTableBody tr:not(.faa-detail-empty)');
+    bkRows.forEach(function(tr) {
+        var tds = tr.querySelectorAll('td');
+        if (tds.length >= 4) {
+            breakdown.push({
+                aircraft: tds[0].textContent,
+                location: tds[1].textContent,
+                flights: parseInt(tds[2].textContent) || 0,
+                hours: parseFloat(tds[3].textContent) || 0
+            });
+        }
+    });
+
+    // Collect aircraft from table
+    var aircraft = [];
+    var acRows = document.querySelectorAll('#faaAircraftTableBody tr:not(.faa-detail-empty)');
+    acRows.forEach(function(tr) {
+        var inputs = tr.querySelectorAll('td input');
+        if (inputs.length >= 4) {
+            aircraft.push({
+                name: inputs[0].value,
+                model: inputs[1].value,
+                registration: inputs[2].value,
+                flights: parseInt(inputs[3].value) || 0
+            });
+        }
+    });
+
+    var formData = {
+        reportType: '44807',
+        proponentName: document.getElementById('faaProponentName').value,
+        aircraft: aircraft,
+        reportMonth: document.getElementById('faaReportMonth').value,
+        totalFlights: parseInt(document.getElementById('faaTotalFlights').value) || 0,
+        totalHours: parseFloat(document.getElementById('faaTotalHours').value) || 0,
+        negativeReport: document.querySelector('input[name="faaNegativeReport"]:checked').value,
+        takeoffLandingDamage: document.querySelector('input[name="faaToldDamage"]:checked').value,
+        takeoffLandingDamageDesc: document.getElementById('faaToldDamageDesc').value,
+        locations: locations,
+        flightBreakdown: breakdown,
+        equipmentMalfunctions: malfunctions,
+        lostLinkCount: parseInt(document.getElementById('faaLostLinkCount').value) || 0,
+        lostLinkDuration: parseFloat(document.getElementById('faaLostLinkDuration').value) || 0,
+        lostLinkType: document.getElementById('faaLostLinkType').value,
+        incidentOccurred: document.querySelector('input[name="faaIncident"]:checked').value,
+        incidentDesc: document.getElementById('faaIncidentDesc').value
+    };
+
+    if (faaParsedData) {
+        var warnings = [];
+        if (formData.totalFlights !== faaParsedData.totalFlights) {
+            warnings.push('Total flights (' + formData.totalFlights + ') differs from import (' + faaParsedData.totalFlights + ')');
+        }
+        if (Math.abs(formData.totalHours - parseFloat(faaParsedData.totalHours)) > 0.5) {
+            warnings.push('Total hours (' + formData.totalHours + ') differs from import (' + faaParsedData.totalHours + ')');
+        }
+        if (warnings.length > 0) {
+            if (!confirm('Warnings:\n' + warnings.join('\n') + '\n\nSend anyway?')) return;
+        }
+    }
+
+    function downloadReportHtml() {
+        var html = generateFaaReportHtml(formData);
+        var blob = new Blob([html], {type: 'text/html'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = (formData.proponentName || 'Report').replace(/\s+/g, '_') + '_Monthly_Report_' + (formData.reportMonth || '').replace(/\s+/g, '_') + '.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        summaryEl.style.display = 'block';
+        summaryEl.className = 'faareport-validation-summary success';
+        summaryEl.innerHTML = '<strong>Report preview downloaded!</strong> Open the .html file to view the formatted email. <br>To send the report to the FAA via email, deploy the Lambda endpoint and try again.';
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = 'Send to FAA';
+    }
+
+    var sendBtn = document.getElementById('faaSendBtn');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = 'Sending...';
+
+    var endpoint = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL + '/send-faa-report' : null;
+
+    if (!endpoint) {
+        downloadReportHtml();
+        return;
+    }
+
+    fetch(endpoint, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(formData)
+    })
+    .then(function(response) { return response.json(); })
+    .then(function(result) {
+        summaryEl.style.display = 'block';
+        if (result.success) {
+            summaryEl.className = 'faareport-validation-summary success';
+            summaryEl.innerHTML = '<strong>Report sent successfully!</strong> The 44807 Monthly Report has been emailed to 9-AVS-FS-AFS-700-Correspondence@faa.gov.';
+        } else {
+            summaryEl.className = 'faareport-validation-summary';
+            summaryEl.innerHTML = '<strong>Error sending report:</strong> ' + (result.error || 'Unknown error');
+        }
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = 'Send to FAA';
+    })
+    .catch(function(err) {
+        console.error('Send 44807 report error:', err);
+        summaryEl.style.display = 'block';
+        summaryEl.className = 'faareport-validation-summary';
+        summaryEl.innerHTML = '<strong>Could not reach the email service.</strong> Downloading a preview instead.';
+        downloadReportHtml();
+    });
+}
+
+// ============================================
+// END FAA MONTHLY REPORT FUNCTIONS
+// ============================================
 
 // Logout button handler
 const logoutBtn = document.getElementById('logoutBtn');
