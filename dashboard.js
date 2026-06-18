@@ -1504,7 +1504,7 @@ const pages = {
                     <div class="faareport-actions">
                         <button class="btn btn-primary btn-lg" id="faaSendBtn" onclick="validateAndSendFaaReport()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                            Send to FAA
+                            Generate Report
                         </button>
                         <div class="faareport-validation-summary" id="faaValidationSummary" style="display:none;"></div>
                     </div>
@@ -1645,18 +1645,213 @@ const pages = {
             <div class="page-header">
                 <p>Log and track drone maintenance, repairs, and inspections</p>
             </div>
-            <div class="settings-section">
+            <div class="settings-section" id="maintenanceFormSection">
+                <h3>Submit Maintenance Record</h3>
+                <form id="maintenanceForm" class="settings-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maintDate">Date of Maintenance</label>
+                            <input type="date" id="maintDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="maintType">Maintenance Type</label>
+                            <select id="maintType" required>
+                                <option value="">Select type...</option>
+                                <option value="Repair">Repair</option>
+                                <option value="Part Replacement">Part Replacement</option>
+                                <option value="Functional Test Flight">Functional Test Flight</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maintAircraftModel">Aircraft Model</label>
+                            <select id="maintAircraftModel" required>
+                                <option value="">Select model...</option>
+                                <option value="DJI Agras T50">DJI Agras T50</option>
+                                <option value="DJI Agras T100">DJI Agras T100</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="maintSerialNumber">Serial Number</label>
+                            <input type="text" id="maintSerialNumber" placeholder="e.g. T50-XXXX-XXXX" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="maintDescription">Description of Work Performed</label>
+                        <textarea id="maintDescription" rows="4" placeholder="Describe the maintenance activity in detail..." required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="maintParts">Parts Replaced (if any)</label>
+                        <input type="text" id="maintParts" placeholder="e.g. Propeller set (x4), nozzle assembly">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="maintTechnician">Technician Name</label>
+                            <input type="text" id="maintTechnician" placeholder="Full name" required>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top: 8px;">
+                        <button type="submit" class="btn btn-primary">Submit Maintenance Record</button>
+                    </div>
+                </form>
+            </div>
+            <div class="settings-section" id="maintenanceRecordsSection">
                 <h3>Maintenance Records</h3>
-                <p style="color: var(--text-muted);">Maintenance logs will be available in a future update. This section will allow you to record maintenance activities, schedule inspections, and track repair history for each aircraft.</p>
+                <div id="maintenanceRecordsContainer"></div>
             </div>
-            <div class="data-table empty-state" style="text-align:center; padding:60px 20px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 8 13"/><polyline points="16 17 8 17"/><polyline points="10 9 9 9 8 9"/></svg>
-                <h3 style="color: var(--text-secondary); margin-bottom:8px;">No Maintenance Logs Yet</h3>
-                <p style="color: var(--text-muted);">Maintenance log functionality is coming soon.</p>
-            </div>
-        `
+        `,
+        init: function() {
+            const form = document.getElementById('maintenanceForm');
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const record = {
+                        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                        date: document.getElementById('maintDate').value,
+                        type: document.getElementById('maintType').value,
+                        aircraftModel: document.getElementById('maintAircraftModel').value,
+                        serialNumber: document.getElementById('maintSerialNumber').value,
+                        description: document.getElementById('maintDescription').value,
+                        partsReplaced: document.getElementById('maintParts').value,
+                        technician: document.getElementById('maintTechnician').value,
+                        submittedAt: new Date().toISOString()
+                    };
+                    try {
+                        await fetch(`${API_BASE_URL}/maintenance`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(record)
+                        });
+                        form.reset();
+                        document.getElementById('maintDate').value = new Date().toISOString().split('T')[0];
+                        await fetchMaintenanceRecords();
+                    } catch (err) {
+                        console.error('Error saving maintenance record:', err);
+                    }
+                });
+                document.getElementById('maintDate').value = new Date().toISOString().split('T')[0];
+
+                // Auto-fill serial number when aircraft model changes
+                const modelSelect = document.getElementById('maintAircraftModel');
+                const serialInput = document.getElementById('maintSerialNumber');
+                function getSerialForModel(model) {
+                    const map = {
+                        'DJI Agras T50': '1581F6BUB237B001PMB4',
+                        'DJI Agras T100': '1581F8ZLC257C002HLEO'
+                    };
+                    return map[model] || '';
+                }
+                modelSelect.addEventListener('change', function() {
+                    serialInput.value = getSerialForModel(this.value);
+                });
+            }
+            fetchMaintenanceRecords();
+        }
     }
 };
+
+// Maintenance Records — API-backed
+let maintenanceRecords = [];
+
+async function fetchMaintenanceRecords() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/maintenance`);
+        const data = await response.json();
+        maintenanceRecords = data.records || [];
+    } catch (err) {
+        console.error('Error fetching maintenance records:', err);
+        maintenanceRecords = [];
+    }
+    renderMaintenanceTable();
+}
+
+function renderMaintenanceTable() {
+    const container = document.getElementById('maintenanceRecordsContainer');
+    if (!container) return;
+    if (maintenanceRecords.length === 0) {
+        container.innerHTML = `
+            <div class="data-table empty-state" style="text-align:center; padding:60px 20px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><polyline points="16 13 8 13"/><polyline points="16 17 8 17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <h3 style="color: var(--text-secondary); margin-bottom:8px;">No Maintenance Records Yet</h3>
+                <p style="color: var(--text-muted);">Submit a maintenance record above to see it here.</p>
+            </div>
+        `;
+        return;
+    }
+    container.innerHTML = `
+        <div class="data-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Aircraft</th>
+                        <th>Serial #</th>
+                        <th>Description</th>
+                        <th>Parts Replaced</th>
+                        <th>Technician</th>
+                        <th>Submitted</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${maintenanceRecords.map(r => `
+                        <tr>
+                            <td>${r.date}</td>
+                            <td><span class="status" style="background:rgba(54,124,43,0.15);color:#22c55e;">${r.type}</span></td>
+                            <td>${r.aircraftModel}</td>
+                            <td>${r.serialNumber}</td>
+                            <td style="max-width:250px;white-space:normal;word-break:break-word;">${r.description}</td>
+                            <td>${r.partsReplaced || '—'}</td>
+                            <td>${r.technician}</td>
+                            <td>${new Date(r.submittedAt).toLocaleString()}</td>
+                            <td class="maint-actions">
+                                <button class="maint-btn maint-edit" data-id="${r.id}" title="Edit">✎</button>
+                                <button class="maint-btn maint-delete" data-id="${r.id}" title="Delete">✕</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-top:12px;">${maintenanceRecords.length} record${maintenanceRecords.length !== 1 ? 's' : ''} logged</p>
+    `;
+    // Attach event listeners for edit/delete
+    container.querySelectorAll('.maint-edit').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.getAttribute('data-id');
+            const record = maintenanceRecords.find(r => r.id === id);
+            if (!record) return;
+            document.getElementById('maintDate').value = record.date;
+            document.getElementById('maintType').value = record.type;
+            document.getElementById('maintAircraftModel').value = record.aircraftModel;
+            document.getElementById('maintSerialNumber').value = record.serialNumber;
+            document.getElementById('maintDescription').value = record.description;
+            document.getElementById('maintParts').value = record.partsReplaced || '';
+            document.getElementById('maintTechnician').value = record.technician;
+            try {
+                await fetch(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+                await fetchMaintenanceRecords();
+            } catch (err) {
+                console.error('Error deleting record for edit:', err);
+            }
+            document.getElementById('maintenanceFormSection').scrollIntoView({ behavior: 'smooth' });
+        });
+    });
+    container.querySelectorAll('.maint-delete').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const id = this.getAttribute('data-id');
+            try {
+                await fetch(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+                await fetchMaintenanceRecords();
+            } catch (err) {
+                console.error('Error deleting maintenance record:', err);
+            }
+        });
+    });
+}
 
 // Spray Settings Data
 const spraySettingsData = {
@@ -1835,6 +2030,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
             }, 100);
         }
         
+        // Init maintenance logs page
+        if (pageKey === 'maintenancelogs') {
+            setTimeout(() => {
+                if (pages.maintenancelogs.init) pages.maintenancelogs.init();
+            }, 100);
+        }
+
         // Refresh overview data when overview page is loaded
         if (pageKey === 'overview') {
             setTimeout(() => {
@@ -2527,6 +2729,7 @@ function generateFaaReportHtml(data) {
 
 function validateAndSendFaaReport() {
     var summaryEl = document.getElementById('faaValidationSummary');
+    summaryEl.style.display = 'none';
     var errors = [];
 
     var requiredFields = document.querySelectorAll('.faa-input[data-required="true"]');
@@ -2546,7 +2749,6 @@ function validateAndSendFaaReport() {
         return;
     }
 
-    // Collect equipment malfunctions
     var malfunctions = [];
     var malRows = document.querySelectorAll('#faaMalfunctionsBody tr');
     malRows.forEach(function(tr) {
@@ -2560,7 +2762,6 @@ function validateAndSendFaaReport() {
         }
     });
 
-    // Collect operating locations
     var locations = [];
     var locRows = document.querySelectorAll('#faaLocationsTableBody tr:not(.faa-detail-empty)');
     locRows.forEach(function(tr) {
@@ -2575,7 +2776,6 @@ function validateAndSendFaaReport() {
         }
     });
 
-    // Collect flight breakdown (read-only)
     var breakdown = [];
     var bkRows = document.querySelectorAll('#faaBreakdownTableBody tr:not(.faa-detail-empty)');
     bkRows.forEach(function(tr) {
@@ -2590,7 +2790,6 @@ function validateAndSendFaaReport() {
         }
     });
 
-    // Collect aircraft from table
     var aircraft = [];
     var acRows = document.querySelectorAll('#faaAircraftTableBody tr:not(.faa-detail-empty)');
     acRows.forEach(function(tr) {
@@ -2634,64 +2833,77 @@ function validateAndSendFaaReport() {
             warnings.push('Total hours (' + formData.totalHours + ') differs from import (' + faaParsedData.totalHours + ')');
         }
         if (warnings.length > 0) {
-            if (!confirm('Warnings:\n' + warnings.join('\n') + '\n\nSend anyway?')) return;
+            if (!confirm('Warnings:\n' + warnings.join('\n') + '\n\nGenerate report anyway?')) return;
         }
     }
 
-    function downloadReportHtml() {
-        var html = generateFaaReportHtml(formData);
-        var blob = new Blob([html], {type: 'text/html'});
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = (formData.proponentName || 'Report').replace(/\s+/g, '_') + '_Monthly_Report_' + (formData.reportMonth || '').replace(/\s+/g, '_') + '.html';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        summaryEl.style.display = 'block';
-        summaryEl.className = 'faareport-validation-summary success';
-        summaryEl.innerHTML = '<strong>Report preview downloaded!</strong> Open the .html file to view the formatted email. <br>To send the report to the FAA via email, deploy the Lambda endpoint and try again.';
-        sendBtn.disabled = false;
-        sendBtn.innerHTML = 'Send to FAA';
-    }
+    var subject = formData.proponentName + ' Monthly Report, ' + formData.reportMonth;
+    var html = generateFaaReportHtml(formData);
+    showFaaReportModal(html, subject, formData);
+}
 
-    var sendBtn = document.getElementById('faaSendBtn');
-    sendBtn.disabled = true;
-    sendBtn.innerHTML = 'Sending...';
+function showFaaReportModal(html, subject, formData) {
+    var modal = document.getElementById('faaReportModal');
+    var subjectEl = document.getElementById('faaReportSubject');
+    var iframe = document.getElementById('faaReportIframe');
 
-    var endpoint = typeof API_BASE_URL !== 'undefined' ? API_BASE_URL + '/send-faa-report' : null;
+    subjectEl.textContent = subject;
 
-    if (!endpoint) {
-        downloadReportHtml();
-        return;
-    }
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(html);
+    iframe.contentDocument.close();
 
-    fetch(endpoint, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(formData)
-    })
-    .then(function(response) { return response.json(); })
-    .then(function(result) {
-        summaryEl.style.display = 'block';
-        if (result.success) {
-            summaryEl.className = 'faareport-validation-summary success';
-            summaryEl.innerHTML = '<strong>Report sent successfully!</strong> The 44807 Monthly Report has been emailed to 9-AVS-FS-AFS-700-Correspondence@faa.gov.';
-        } else {
-            summaryEl.className = 'faareport-validation-summary';
-            summaryEl.innerHTML = '<strong>Error sending report:</strong> ' + (result.error || 'Unknown error');
-        }
-        sendBtn.disabled = false;
-        sendBtn.innerHTML = 'Send to FAA';
-    })
-    .catch(function(err) {
-        console.error('Send 44807 report error:', err);
-        summaryEl.style.display = 'block';
-        summaryEl.className = 'faareport-validation-summary';
-        summaryEl.innerHTML = '<strong>Could not reach the email service.</strong> Downloading a preview instead.';
-        downloadReportHtml();
+    modal.style.display = 'flex';
+
+    window._faaReportHtml = html;
+    window._faaReportSubject = subject;
+}
+
+function closeFaaReportModal() {
+    document.getElementById('faaReportModal').style.display = 'none';
+}
+
+function copyFaaReportSubject() {
+    var subject = window._faaReportSubject || '';
+    navigator.clipboard.writeText(subject).then(function() {
+        var btn = document.querySelector('.faa-report-instructions .btn-primary');
+        var orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = orig; }, 2000);
+    }).catch(function() {
+        alert('Subject: ' + subject);
     });
+}
+
+function copyFaaReportBody() {
+    var html = window._faaReportHtml || '';
+    var text = extractTextFromHtml(html);
+    var bodyHtml = extractBodyFromHtml(html);
+
+    var item = new ClipboardItem({
+        'text/html': new Blob([bodyHtml], {type: 'text/html'}),
+        'text/plain': new Blob([text], {type: 'text/plain'})
+    });
+
+    navigator.clipboard.write([item]).then(function() {
+        var btn = document.querySelector('#faaReportModal .modal-footer .btn-primary');
+        var orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = orig; }, 2000);
+    }).catch(function() {
+        navigator.clipboard.writeText(text);
+    });
+}
+
+function extractTextFromHtml(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    return tmp.textContent || tmp.innerText || '';
+}
+
+function extractBodyFromHtml(fullHtml) {
+    var match = fullHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    return match ? match[1].trim() : fullHtml;
 }
 
 // ============================================

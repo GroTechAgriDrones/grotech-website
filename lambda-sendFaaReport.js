@@ -1,8 +1,8 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
 const ses = new SESClient({ region: 'us-east-2' });
-const FROM_EMAIL = process.env.FROM_EMAIL || 'admin@grotechagridrones.com';
-const TO_EMAIL = '9-AVS-FS-AFS-700-Correspondence@faa.gov';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'grotechagridrones@gmail.com';
+const TO_EMAIL = 'grotechagridrones@gmail.com';
 
 export const handler = async (event) => {
     const headers = {

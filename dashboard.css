@@ -847,6 +847,30 @@
     cursor: not-allowed;
 }
 
+.settings-form .form-group select,
+.settings-form .form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: inherit;
+    transition: all 0.3s ease;
+}
+
+.settings-form .form-group select:focus,
+.settings-form .form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.settings-form .form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
 .settings-form .btn {
     padding: 12px 24px;
 }
@@ -2644,4 +2668,34 @@
 
 .chemical-dropdown .dropdown-item.hidden {
     display: none;
+}
+
+.maint-actions {
+    white-space: nowrap;
+}
+
+.maint-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 1rem;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.maint-edit {
+    color: var(--primary);
+}
+
+.maint-edit:hover {
+    background: rgba(54, 124, 43, 0.15);
+}
+
+.maint-delete {
+    color: #ef4444;
+}
+
+.maint-delete:hover {
+    background: rgba(239, 68, 68, 0.15);
 }
