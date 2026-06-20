@@ -3912,8 +3912,8 @@ async function openEditJobModal(jobId) {
                                 <option value="Cotton" ${field.cropType === 'Cotton' ? 'selected' : ''}>Cotton</option>
                                 <option value="Sorghum" ${field.cropType === 'Sorghum' ? 'selected' : ''}>Sorghum</option>
                                 <option value="Rice" ${field.cropType === 'Rice' ? 'selected' : ''}>Rice</option>
-                                <option value="Weeds">Weeds</option>
-                                <option value="Other" ${field.cropType === 'Other' ? 'selected' : ''}>Other</option>
+<option value="Weeds" ${field.cropType === 'Weeds' ? 'selected' : ''}>Weeds</option>
+                                 <option value="Other" ${field.cropType === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -5665,24 +5665,13 @@ function onChemicalSearch(input) {
     const wrapper = input.closest('.chemical-search-wrapper');
     const dropdown = wrapper.querySelector('.chemical-dropdown');
     const searchTerm = input.value.toLowerCase();
-    const customInput = wrapper.querySelector('.custom-chem-name');
     
     // Filter dropdown items
     const items = dropdown.querySelectorAll('.dropdown-item');
-    let hasMatch = false;
     items.forEach(item => {
         const name = item.dataset.name.toLowerCase();
         item.style.display = name.includes(searchTerm) ? 'block' : 'none';
-        if (name.includes(searchTerm)) hasMatch = true;
     });
-    
-    // If no match, show custom input
-    if (!hasMatch && searchTerm.length > 0) {
-        customInput.style.display = 'block';
-        customInput.value = searchTerm;
-    } else {
-        customInput.style.display = 'none';
-    }
 }
 
 // Select chemical from dropdown
@@ -5784,8 +5773,6 @@ function calculateChemicalVolume(element) {
     const row = element.closest('.chemical-row');
     const labelRateInput = row.querySelector('.label-rate');
     const labelRateValue = labelRateInput.value;
-    const chemInput = row.querySelector('.chemical-search-input');
-    const customNameInput = row.querySelector('.custom-chem-name');
     
     // Calculate chemical volume
     const rateUnit = row.querySelector('.rate-unit').value;
@@ -6105,14 +6092,7 @@ function calculateTankMix() {
     let tableHtml = '';
     
     chemRows.forEach(row => {
-        const chemInput = row.querySelector('.chemical-search-input');
-        let chemName = chemInput.value || 'Unknown';
-        
-        // Check for custom name input
-        const customNameInput = row.querySelector('.custom-chem-name');
-        if (customNameInput && customNameInput.style.display !== 'none') {
-            chemName = customNameInput.value || 'Custom Chemical';
-        }
+        const chemName = row.querySelector('.chemical-search-input').value || 'Unknown';
         
         const labelRate = row.querySelector('.label-rate').value;
         const rateUnit = row.querySelector('.rate-unit').value;
@@ -6126,22 +6106,39 @@ function calculateTankMix() {
         
         let perTankDisplay = '-';
         
-        if (chemInput.value && tanksNeeded > 0) {
+        if (chemName && tanksNeeded > 0) {
+            var perTankValues = [];
             if (isRange) {
-                const minPerTank = minVol / tanksNeeded;
-                const maxPerTank = maxVol / tanksNeeded;
-                perTankDisplay = `${minPerTank.toFixed(2)} - ${maxPerTank.toFixed(2)} gal`;
+                perTankValues = [minVol / tanksNeeded, maxVol / tanksNeeded];
             } else {
-                // Try to parse from value or dataset
                 const fieldVolume = minVol || parseFloat(volumeValue) || 0;
                 const perTank = fieldVolume / tanksNeeded;
                 if (perTank > 0) {
-                    perTankDisplay = perTank.toFixed(2) + ' gal';
+                    perTankValues = [perTank];
+                }
+            }
+            
+            if (perTankValues.length > 0) {
+                if (rateUnit === 'lb') {
+                    var ozVals = perTankValues.map(function(v) { return v * 16; });
+                    perTankDisplay = ozVals.length === 2
+                        ? ozVals[0].toFixed(1) + ' - ' + ozVals[1].toFixed(1) + ' oz'
+                        : ozVals[0].toFixed(1) + ' oz';
+                } else if (rateUnit === 'oz') {
+                    var ozVals = perTankValues.map(function(v) { return v * 128; });
+                    perTankDisplay = ozVals.length === 2
+                        ? ozVals[0].toFixed(1) + ' - ' + ozVals[1].toFixed(1) + ' oz'
+                        : ozVals[0].toFixed(1) + ' oz';
+                } else {
+                    var ozVals = perTankValues.map(function(v) { return v * 128; });
+                    perTankDisplay = ozVals.length === 2
+                        ? ozVals[0].toFixed(1) + ' - ' + ozVals[1].toFixed(1) + ' fl oz'
+                        : ozVals[0].toFixed(1) + ' fl oz';
                 }
             }
         }
         
-        if (chemInput.value && labelRate) {
+        if (chemName && labelRate) {
             hasChemicals = true;
             const rateUnitDisplay = rateUnit === 'vv' ? '% v/v' : rateUnit + '/acre';
             tableHtml += `
