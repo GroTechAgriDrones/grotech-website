@@ -2235,7 +2235,8 @@ const spraySettingsData = {
         name: 'DJI T100',
         settings: {
             fungicide: [
-                { gpa: 2, routeSpacing: 36, speed: 66, height: 12, droplet: 300 }
+                { gpa: 2, routeSpacing: 30, speed: 66, height: 12, droplet: 350 },
+                { gpa: 3, routeSpacing: 30, speed: 66, height: 12, droplet: 350 }
             ],
             herbicide: [
                 { gpa: 5, routeSpacing: 25, speed: 45, height: 12, droplet: 500 },
