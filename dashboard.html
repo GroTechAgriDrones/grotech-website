@@ -235,6 +235,27 @@
         </div>
     </div>
 
+    <!-- Training Detail Modal -->
+    <div id="trainingDetailModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>Training Record Details</h3>
+                <button class="modal-close" onclick="closeTrainingDetailModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="trainingDetailContent">
+                <!-- Loaded dynamically -->
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn btn-secondary" id="trainingDetailEditBtn">Edit Record</button>
+                <button class="btn btn-danger" id="trainingDetailDeleteBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                </button>
+                <button class="btn btn-secondary" onclick="closeTrainingDetailModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="dashboard.js"></script>

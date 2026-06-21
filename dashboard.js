@@ -1626,18 +1626,233 @@ const pages = {
         title: 'Training Logs',
         content: `
             <div class="page-header">
-                <p>Track and manage pilot training records and certifications</p>
+                <p>Log and track pilot training sessions, certifications, and recurring training per FAA Exemption No. 23459</p>
             </div>
-            <div class="settings-section">
+            <div class="settings-section" id="trainingFormSection">
+                <h3>Submit Training Record</h3>
+                <form id="trainingForm" class="settings-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="trainDate">Date of Training</label>
+                            <input type="date" id="trainDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Training Modules (select all that apply)</label>
+                            <div class="training-modules-grid">
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="G" data-desc="Ground training covering the knowledge requirements of 14 CFR § 137.19(e)(1): effects of agricultural chemicals, safe handling procedures, FAA regulations, principles of safe flight, collision avoidance, obstruction recognition, weather impacts, UAS systems and components, and crew coordination.">
+                                    <span class="train-module-label">Ground (G)</span>
+                                    <span class="train-module-sub">Initial ground — § 137.19(e)(1)</span>
+                                </label>
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="F" data-desc="Flight training covering pre-flight inspection, takeoff and landing procedures, navigation and station-keeping, agricultural spraying runs and patterns, and emergency procedure practice.">
+                                    <span class="train-module-label">Flight (F)</span>
+                                    <span class="train-module-sub">Initial flight training</span>
+                                </label>
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="N" data-desc="Night operations training covering eyesight adjustment to low-light conditions, fatigue management, ground station and landing area illumination, obstacle identification under low light, and pre-flight inspection of anti-collision and identification lighting.">
+                                    <span class="train-module-label">Night (N)</span>
+                                    <span class="train-module-sub">Night operations</span>
+                                </label>
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="M" data-desc="Multi-UAS operations training covering pre-flight inspection for multiple aircraft, automated operational procedures with backup control, coordination of flight paths and altitudes, emergency procedures for multi-UAS including single-system failure isolation, and GCS display identification.">
+                                    <span class="train-module-label">Multi-UAS (M)</span>
+                                    <span class="train-module-sub">Multi-UAS operations</span>
+                                </label>
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="MN" data-desc="Multi-UAS operations at night covering all elements of Night and Multi-UAS training, unique identification light verification per aircraft, and enhanced situational awareness and coordination in low-light conditions.">
+                                    <span class="train-module-label">Multi-UAS Night (MN)</span>
+                                    <span class="train-module-sub">Multi-UAS at night</span>
+                                </label>
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="NV" data-desc="No-Visual-Observer training covering maintaining VLOS at all times, continuous airspace scanning, maintaining UA position awareness, remaining at the GCS while any UAS is in flight, and use of technology for enhanced situational awareness.">
+                                    <span class="train-module-label">No-VO (NV)</span>
+                                    <span class="train-module-sub">Without visual observer</span>
+                                </label>
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="VO" data-desc="Visual Observer training covering VO roles and responsibilities, maintaining effective communication with PIC, VLOS capability, airspace scanning for collision hazards, standard communication terminology, and VO medical and night vision requirements.">
+                                    <span class="train-module-label">VO Training (VO)</span>
+                                    <span class="train-module-sub">Visual observer</span>
+                                </label>
+                                <label class="train-module-check">
+                                    <input type="checkbox" class="train-module-cb" value="R" data-desc="Recurrent training within 12 calendar months covering review of FAA exemption conditions and limitations, regulatory updates, changes to operations manual or training program, equipment and software changes, incident and accident trends review, refresher on specialized modules, lost-link and emergency procedures, and HAZMAT handling.">
+                                    <span class="train-module-label">Recurrent (R)</span>
+                                    <span class="train-module-sub">12-month recurrent</span>
+                                </label>
+                            </div>
+                            <p id="trainModuleValidation" class="validation-message" style="display:none;color:#ef4444;font-size:0.85rem;margin-top:6px;">Select at least one training module.</p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="trainAircraft">Aircraft Model</label>
+                            <select id="trainAircraft">
+                                <option value="">Select model...</option>
+                                <option value="DJI Agras T50">DJI Agras T50</option>
+                                <option value="DJI Agras T100">DJI Agras T100</option>
+                                <option value="N/A">N/A (Ground training only)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="trainHours">Training Hours</label>
+                            <input type="number" id="trainHours" placeholder="e.g. 1.5" min="0" step="0.5">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="trainTopics">Module Topics / Description</label>
+                        <textarea id="trainTopics" rows="4" placeholder="Describe the training activities, topics covered, and maneuvers practiced..." required></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="trainPicName">Name</label>
+                            <input type="text" id="trainPicName" placeholder="Full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="trainFaaCert">FAA Certificate Number</label>
+                            <input type="text" id="trainFaaCert" placeholder="e.g. 1234567" required>
+                        </div>
+                    </div>
+                    <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+                        <label style="margin:0;font-size:0.9rem;font-weight:500;color:var(--text-primary);cursor:pointer;">
+                            <input type="checkbox" id="trainSelfCertified" checked style="width:auto;margin-right:8px;accent-color:var(--primary);">
+                            Self-certify — I confirm this training was completed per the GroTech AgriDrones Training Program
+                        </label>
+                    </div>
+                    <div class="form-group" style="margin-top: 8px;">
+                        <button type="submit" class="btn btn-primary">Submit Training Record</button>
+                    </div>
+                </form>
+            </div>
+            <div class="settings-section" id="trainingRecordsSection">
                 <h3>Training Records</h3>
-                <p style="color: var(--text-muted);">Training logs will be available in a future update. This section will allow you to record and track pilot training sessions, certifications, and recurring training requirements.</p>
+                <div id="trainingRecordsContainer"></div>
             </div>
-            <div class="data-table empty-state" style="text-align:center; padding:60px 20px;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-                <h3 style="color: var(--text-secondary); margin-bottom:8px;">No Training Logs Yet</h3>
-                <p style="color: var(--text-muted);">Training log functionality is coming soon.</p>
-            </div>
-        `
+
+            <style>
+                .training-modules-grid {
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 10px;
+                    margin-top: 8px;
+                }
+                .train-module-check {
+                    display: flex;
+                    flex-wrap: wrap;
+                    align-items: baseline;
+                    gap: 4px 8px;
+                    padding: 12px 14px;
+                    background: var(--bg-dark);
+                    border: 1px solid var(--border-light);
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .train-module-check:hover {
+                    border-color: var(--primary);
+                    background: rgba(54, 124, 43, 0.05);
+                }
+                .train-module-check:has(input:checked) {
+                    border-color: var(--primary);
+                    background: rgba(54, 124, 43, 0.12);
+                }
+                .train-module-check input[type="checkbox"] {
+                    width: auto;
+                    accent-color: var(--primary);
+                    margin: 0;
+                }
+                .train-module-label {
+                    font-weight: 600;
+                    color: var(--text-primary);
+                    font-size: 0.9rem;
+                }
+                .train-module-sub {
+                    width: 100%;
+                    padding-left: 28px;
+                    font-size: 0.8rem;
+                    color: var(--text-muted);
+                }
+                @media (max-width: 768px) {
+                    .training-modules-grid {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            </style>
+        `,
+        init: function() {
+            const form = document.getElementById('trainingForm');
+            if (form) {
+                const checkboxes = document.querySelectorAll('.train-module-cb');
+                const topicsEl = document.getElementById('trainTopics');
+                const moduleValidation = document.getElementById('trainModuleValidation');
+
+                function getSelectedModules() {
+                    return Array.from(checkboxes).filter(cb => cb.checked);
+                }
+
+                function getModuleCodes() {
+                    return getSelectedModules().map(cb => cb.value).join(', ');
+                }
+
+                function generateDescription() {
+                    const selected = getSelectedModules();
+                    if (selected.length === 0) {
+                        topicsEl.value = '';
+                        return;
+                    }
+                    const descs = selected.map(cb => cb.getAttribute('data-desc'));
+                    topicsEl.value = 'Training modules completed:\n' + selected.map(cb => '• ' + cb.closest('.train-module-check').querySelector('.train-module-label').textContent).join('\n') + '\n\nDescription:\n' + descs.join('\n\n');
+                }
+
+                checkboxes.forEach(cb => {
+                    cb.addEventListener('change', generateDescription);
+                });
+
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const selected = getSelectedModules();
+                    if (selected.length === 0) {
+                        moduleValidation.style.display = 'block';
+                        return;
+                    }
+                    moduleValidation.style.display = 'none';
+                    const dateEl = document.getElementById('trainDate');
+                    const aircraftEl = document.getElementById('trainAircraft');
+                    const hoursEl = document.getElementById('trainHours');
+                    const picNameEl = document.getElementById('trainPicName');
+                    const faaCertEl = document.getElementById('trainFaaCert');
+                    const selfCertEl = document.getElementById('trainSelfCertified');
+                    const displayLabels = selected.map(cb => cb.closest('.train-module-check').querySelector('.train-module-label').textContent).join(', ');
+                    const record = {
+                        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                        date: dateEl.value,
+                        module: getModuleCodes(),
+                        moduleLabel: displayLabels,
+                        aircraftModel: aircraftEl.value,
+                        trainingHours: hoursEl.value || '',
+                        topics: topicsEl.value,
+                        picName: picNameEl.value,
+                        faaCertNumber: faaCertEl.value,
+                        selfCertified: selfCertEl.checked,
+                        submittedAt: new Date().toISOString()
+                    };
+                    try {
+                        await fetch(`${API_BASE_URL}/training`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(record)
+                        });
+                        form.reset();
+                        dateEl.value = new Date().toISOString().split('T')[0];
+                        topicsEl.value = '';
+                        await fetchTrainingRecords();
+                    } catch (err) {
+                        console.error('Error saving training record:', err);
+                    }
+                });
+                document.getElementById('trainDate').value = new Date().toISOString().split('T')[0];
+            }
+            fetchTrainingRecords();
+        }
     },
     maintenancelogs: {
         title: 'Maintenance Logs',
@@ -1853,6 +2068,167 @@ function renderMaintenanceTable() {
     });
 }
 
+// Training Records — API-backed
+let trainingRecords = [];
+
+async function fetchTrainingRecords() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/training`);
+        const data = await response.json();
+        trainingRecords = data.records || [];
+    } catch (err) {
+        console.error('Error fetching training records:', err);
+        trainingRecords = [];
+    }
+    renderTrainingTable();
+}
+
+function renderTrainingTable() {
+    const container = document.getElementById('trainingRecordsContainer');
+    if (!container) return;
+    if (trainingRecords.length === 0) {
+        container.innerHTML = `
+            <div class="data-table empty-state" style="text-align:center; padding:60px 20px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.3; margin-bottom:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                <h3 style="color: var(--text-secondary); margin-bottom:8px;">No Training Records Yet</h3>
+                <p style="color: var(--text-muted);">Submit a training record above to see it here.</p>
+            </div>
+        `;
+        return;
+    }
+    container.innerHTML = `
+        <div class="data-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Name</th>
+                        <th>Aircraft</th>
+                        <th>Hours</th>
+                        <th>Modules</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${trainingRecords.map(r => `
+                        <tr class="clickable-row" data-id="${r.id}">
+                            <td>${r.date}</td>
+                            <td>${r.picName}</td>
+                            <td>${r.aircraftModel || '—'}</td>
+                            <td>${r.trainingHours || '—'}</td>
+                            <td>${r.module ? r.module.split(',').map(m => `<span class="status" style="background:rgba(54,124,43,0.15);color:#22c55e;margin:2px 4px 2px 0;">${m.trim()}</span>`).join('') : '—'}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        <p style="color:var(--text-muted);font-size:0.85rem;margin-top:12px;">${trainingRecords.length} record${trainingRecords.length !== 1 ? 's' : ''} logged</p>
+    `;
+    container.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const record = trainingRecords.find(r => r.id === id);
+            if (record) openTrainingDetailModal(record);
+        });
+    });
+}
+
+let trainingDetailCurrentId = null;
+
+function openTrainingDetailModal(record) {
+    trainingDetailCurrentId = record.id;
+    const modulesArray = record.module ? record.module.split(',').map(s => s.trim()) : [];
+    const modulesHtml = modulesArray.length
+        ? modulesArray.map(m => `<span class="status" style="background:rgba(54,124,43,0.15);color:#22c55e;margin:2px 4px 2px 0;">${m}</span>`).join('')
+        : '<span style="color:var(--text-muted);">—</span>';
+    const certifiedHtml = record.selfCertified
+        ? '<span style="color:#22c55e;font-weight:600;">Yes</span>'
+        : '<span style="color:var(--text-muted);">No</span>';
+
+    document.getElementById('trainingDetailContent').innerHTML = `
+        <div class="application-detail-header">
+            <span class="detail-id">${record.date}</span>
+            ${modulesHtml}
+        </div>
+        <div class="detail-grid">
+            <div class="detail-item">
+                <label>Name (PIC)</label>
+                <span>${record.picName}</span>
+            </div>
+            <div class="detail-item">
+                <label>FAA Certificate Number</label>
+                <span>${record.faaCertNumber || '—'}</span>
+            </div>
+            <div class="detail-item">
+                <label>Aircraft Model</label>
+                <span>${record.aircraftModel || '—'}</span>
+            </div>
+            <div class="detail-item">
+                <label>Training Hours</label>
+                <span>${record.trainingHours || '—'}</span>
+            </div>
+            <div class="detail-item full-width">
+                <label>Training Modules</label>
+                <div style="margin-top:4px;">${modulesHtml}</div>
+            </div>
+            <div class="detail-item full-width">
+                <label>Module Topics / Description</label>
+                <div class="detail-message" style="margin-top:4px;white-space:pre-wrap;">${record.topics || '—'}</div>
+            </div>
+            <div class="detail-item">
+                <label>Self-Certified</label>
+                <span>${certifiedHtml}</span>
+            </div>
+            <div class="detail-item">
+                <label>Submitted</label>
+                <span>${new Date(record.submittedAt).toLocaleString()}</span>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('trainingDetailEditBtn').onclick = async function() {
+        closeTrainingDetailModal();
+        document.getElementById('trainDate').value = record.date;
+        document.querySelectorAll('.train-module-cb').forEach(cb => cb.checked = false);
+        if (record.module) {
+            const codes = record.module.split(',').map(s => s.trim());
+            document.querySelectorAll('.train-module-cb').forEach(cb => {
+                if (codes.includes(cb.value)) cb.checked = true;
+            });
+        }
+        document.getElementById('trainAircraft').value = record.aircraftModel || '';
+        document.getElementById('trainHours').value = record.trainingHours || '';
+        document.getElementById('trainTopics').value = record.topics;
+        document.getElementById('trainPicName').value = record.picName;
+        document.getElementById('trainFaaCert').value = record.faaCertNumber;
+        document.getElementById('trainSelfCertified').checked = record.selfCertified !== false;
+        try {
+            await fetch(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
+            await fetchTrainingRecords();
+        } catch (err) {
+            console.error('Error deleting record for edit:', err);
+        }
+        document.getElementById('trainingFormSection').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    document.getElementById('trainingDetailDeleteBtn').onclick = async function() {
+        if (!confirm('Delete this training record? This cannot be undone.')) return;
+        try {
+            await fetch(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
+            await fetchTrainingRecords();
+            closeTrainingDetailModal();
+        } catch (err) {
+            console.error('Error deleting training record:', err);
+        }
+    };
+
+    document.getElementById('trainingDetailModal').classList.add('active');
+}
+
+function closeTrainingDetailModal() {
+    trainingDetailCurrentId = null;
+    document.getElementById('trainingDetailModal').classList.remove('active');
+}
+
 // Spray Settings Data
 const spraySettingsData = {
     t100: {
@@ -2034,6 +2410,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
         if (pageKey === 'maintenancelogs') {
             setTimeout(() => {
                 if (pages.maintenancelogs.init) pages.maintenancelogs.init();
+            }, 100);
+        }
+
+        // Init training logs page
+        if (pageKey === 'traininglogs') {
+            setTimeout(() => {
+                if (pages.traininglogs.init) pages.traininglogs.init();
             }, 100);
         }
 
