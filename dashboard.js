@@ -6492,11 +6492,12 @@ function calculateTankMix() {
         
         if (chemName && tanksNeeded > 0) {
             var perTankValues = [];
+            const tankRatio = Math.min(tankSize, totalVolume) / totalVolume;
             if (isRange) {
-                perTankValues = [minVol / tanksNeeded, maxVol / tanksNeeded];
+                perTankValues = [minVol * tankRatio, maxVol * tankRatio];
             } else {
                 const fieldVolume = minVol || parseFloat(volumeValue) || 0;
-                const perTank = fieldVolume / tanksNeeded;
+                const perTank = fieldVolume * tankRatio;
                 if (perTank > 0) {
                     perTankValues = [perTank];
                 }
