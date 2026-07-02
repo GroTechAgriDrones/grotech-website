@@ -2988,6 +2988,17 @@ function getFaaFieldCoordinates() {
     closeFaaFieldMapModal();
 }
 
+function openFaaAppleMaps() {
+    if (!faaFieldMarker) {
+        alert('Please click on the map to place a pin first.');
+        return;
+    }
+    var latlng = faaFieldMarker.getLatLng();
+    var lat = latlng.lat.toFixed(6);
+    var lng = latlng.lng.toFixed(6);
+    window.open('https://maps.apple.com/?ll=' + lat + ',' + lng + '&q=' + lat + ',' + lng, '_blank');
+}
+
 function clearFaaFieldPin() {
     if (faaFieldMarker) {
         faaFieldMap.removeLayer(faaFieldMarker);
@@ -5060,6 +5071,17 @@ function getEditFieldCoordinates() {
     const lng = latlng.lng.toFixed(6);
     document.getElementById(`edit_fieldLocation_${editFieldMapIndex}`).value = `${lat}, ${lng}`;
     closeFieldMapModal();
+}
+
+function openFieldAppleMaps() {
+    if (!editFieldMarker) {
+        alert('Please click on the map to place a pin first.');
+        return;
+    }
+    const latlng = editFieldMarker.getLatLng();
+    const lat = latlng.lat.toFixed(6);
+    const lng = latlng.lng.toFixed(6);
+    window.open(`https://maps.apple.com/?ll=${lat},${lng}&q=${lat},${lng}`, '_blank');
 }
 
 // Update jobs stats
