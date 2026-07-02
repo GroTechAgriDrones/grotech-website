@@ -3433,7 +3433,7 @@ function updateDashboardStats() {
             const recent = sortedApps.slice(0, 3);
             recentBody.innerHTML = recent.map(app => {
                 const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
-                const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
+                const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseFloat(f.fieldSize) || 0), 0);
                 const statusClass = app.status === 'approved' ? 'approved' : app.status === 'denied' ? 'denied' : 'pending';
                 return `
                     <tr>
@@ -3498,7 +3498,7 @@ function renderApplicationsTable() {
         const date = new Date(app.dateSubmitted).toLocaleDateString();
         const statusClass = app.status === 'approved' ? 'approved' : app.status === 'denied' ? 'denied' : 'pending';
         const cropTypes = (app.fields || []).map(f => f.cropType).filter(Boolean).join(', ') || 'N/A';
-        const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0);
+        const totalAcres = (app.fields || []).reduce((sum, f) => sum + (parseFloat(f.fieldSize) || 0), 0);
         
         return `
             <tr class="clickable-row" onclick="viewApplication('${app.id}')">
@@ -3917,7 +3917,7 @@ function updateJobsTable() {
     tbody.innerHTML = jobs.map(job => {
         // Calculate fields from application data structure (handle both old and new formats)
         const clientName = job.fullName || job.client || 'N/A';
-        const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseInt(f.fieldSize) || 0), 0) || job.acres || 0;
+        const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseFloat(f.fieldSize) || 0), 0) || job.acres || 0;
         const cropTypes = [...new Set((job.fields || []).map(f => f.cropType).filter(Boolean))].join(', ') || job.crops || 'N/A';
         const dateRequested = job.fields?.[0]?.optimalDate || job.optimalDate || 'Not set';
         const status = calculateJobStatus(job.jobStatus, job.fieldStatus, job.scheduledDate) || job.jobStatus || 'pending';
