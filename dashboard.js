@@ -5074,14 +5074,15 @@ function getEditFieldCoordinates() {
 }
 
 function openFieldAppleMaps() {
-    if (!editFieldMarker) {
+    var marker = editFieldMarker || fieldMarker;
+    if (!marker) {
         alert('Please click on the map to place a pin first.');
         return;
     }
-    const latlng = editFieldMarker.getLatLng();
-    const lat = latlng.lat.toFixed(6);
-    const lng = latlng.lng.toFixed(6);
-    window.open(`https://maps.apple.com/?ll=${lat},${lng}&q=${lat},${lng}`, '_blank');
+    var latlng = marker.getLatLng();
+    var lat = latlng.lat.toFixed(6);
+    var lng = latlng.lng.toFixed(6);
+    window.open('https://maps.apple.com/?ll=' + lat + ',' + lng + '&q=' + lat + ',' + lng, '_blank');
 }
 
 // Update jobs stats
