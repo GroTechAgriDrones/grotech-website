@@ -5095,7 +5095,7 @@ function updateAcresStats() {
         if (!job.fields || !job.fieldStatus || !job.fieldCompletionDates) return;
         job.fields.forEach((field, index) => {
             if (job.fieldStatus[index] === 'complete') {
-                const acres = parseInt(field.fieldSize) || 0;
+                const acres = parseFloat(field.fieldSize) || 0;
                 allCompletedAcres += acres;
                 const completionDate = job.fieldCompletionDates[index];
                 if (completionDate) {
