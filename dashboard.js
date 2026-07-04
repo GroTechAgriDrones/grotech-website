@@ -5640,7 +5640,10 @@ async function initChemicalListPage() {
         }
         
         // Load chemicals
-        chemicalDB = data.chemicals || [];
+        chemicalDB = (data.chemicals || []).map(c => {
+            if (!c.id) c.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+            return c;
+        });
         
         // Also update global chemicalsDB for calculator
         chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
@@ -5699,14 +5702,14 @@ function renderChemicalManagerTable() {
                 rowHtml += `
                     <td>
                         <input type="text" value="${chem[col.key] || ''}" 
-                            onchange="updateChemField(${rowIndex}, '${col.key}', this.value)">
+                            onchange="updateChemField('${chem.id}', '${col.key}', this.value)">
                     </td>
                 `;
             } else if (col.type === 'select') {
                 const value = chem[col.key] || '';
                 rowHtml += `
                     <td>
-                        <select onchange="updateChemField(${rowIndex}, '${col.key}', this.value)">
+                        <select onchange="updateChemField('${chem.id}', '${col.key}', this.value)">
                             ${col.options.map(opt => 
                                 `<option value="${opt}" ${opt === value ? 'selected' : ''}>${opt}</option>`
                             ).join('')}
@@ -5718,7 +5721,7 @@ function renderChemicalManagerTable() {
                 rowHtml += `
                     <td>
                         <button class="verified-btn ${isVerified ? 'verified' : 'unverified'}" 
-                            onclick="toggleVerified(${rowIndex})">
+                            onclick="toggleVerified('${chem.id}')">
                             ${isVerified ? 'Verified' : 'Unverified'}
                         </button>
                     </td>
@@ -5727,7 +5730,7 @@ function renderChemicalManagerTable() {
         });
         rowHtml += `
             <td>
-                <button class="delete-row-btn" onclick="deleteChemRow(${rowIndex})" title="Delete">&times;</button>
+                <button class="delete-row-btn" onclick="deleteChemRow('${chem.id}')" title="Delete">&times;</button>
             </td>
         </tr>`;
         return rowHtml;
@@ -5750,20 +5753,26 @@ function addChemicalManagerRow() {
     renderChemicalManagerTable();
 }
 
-function deleteChemRow(index) {
+function deleteChemRow(id) {
+    const index = chemicalDB.findIndex(c => c.id === id);
+    if (index === -1) return;
     if (confirm('Delete this chemical?')) {
         chemicalDB.splice(index, 1);
         renderChemicalManagerTable();
     }
 }
 
-function updateChemField(index, key, value) {
-    chemicalDB[index][key] = value;
+function updateChemField(id, key, value) {
+    const index = chemicalDB.findIndex(c => c.id === id);
+    if (index !== -1) chemicalDB[index][key] = value;
 }
 
-function toggleVerified(index) {
-    chemicalDB[index].verified = !chemicalDB[index].verified;
-    renderChemicalManagerTable();
+function toggleVerified(id) {
+    const index = chemicalDB.findIndex(c => c.id === id);
+    if (index !== -1) {
+        chemicalDB[index].verified = !chemicalDB[index].verified;
+        renderChemicalManagerTable();
+    }
 }
 
 function showAddColumnInput() {
