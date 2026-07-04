@@ -5617,8 +5617,10 @@ let chemicalColumns = [
     { key: 'brandName', label: 'Brand Name', type: 'text' },
     { key: 'chemName', label: 'Chemical Name', type: 'text' },
     { key: 'category', label: 'Category', type: 'select', options: ['Herbicide', 'Insecticide', 'Fungicide', 'Adjuvant'] },
+    { key: 'crop', label: 'Crop', type: 'text' },
     { key: 'rateRange', label: 'Rate Range', type: 'text' },
     { key: 'rateUnit', label: 'Rate Unit', type: 'select', options: ['fl oz/acre', 'oz/acre', 'pt/acre', 'qt/acre', 'gal/acre', 'lb/acre', '% v/v'] },
+    { key: 'label', label: 'Label', type: 'text' },
     { key: 'verified', label: 'Verified', type: 'verified' }
 ];
 
@@ -5737,20 +5739,115 @@ function renderChemicalManagerTable() {
     }).join('');
 }
 
+// Add Chemical Modal
+const addChemicalModalHTML = `
+    <div class="modal-overlay" id="addChemicalModal">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3>Add Chemical</h3>
+                <button class="modal-close" onclick="closeAddChemicalModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: grid; gap: 16px;">
+                    <div class="form-group">
+                        <label>Brand Name</label>
+                        <input type="text" id="addChemBrandName" placeholder="e.g. BASF, Syngenta">
+                    </div>
+                    <div class="form-group">
+                        <label>Chemical Name</label>
+                        <input type="text" id="addChemName" placeholder="e.g. Veltyma, Miravis Neo">
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="addChemCategory">
+                            <option value="">Select category...</option>
+                            <option value="Herbicide">Herbicide</option>
+                            <option value="Insecticide">Insecticide</option>
+                            <option value="Fungicide">Fungicide</option>
+                            <option value="Adjuvant">Adjuvant</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Crop</label>
+                        <input type="text" id="addChemCrop" placeholder="e.g. Corn, Soybeans, Wheat">
+                    </div>
+                    <div class="form-group">
+                        <label>Rate Range</label>
+                        <input type="text" id="addChemRateRange" placeholder="e.g. 32 or 16 - 64">
+                    </div>
+                    <div class="form-group">
+                        <label>Rate Unit</label>
+                        <select id="addChemRateUnit">
+                            <option value="fl oz/acre">fl oz/acre</option>
+                            <option value="oz/acre">oz/acre</option>
+                            <option value="pt/acre">pt/acre</option>
+                            <option value="qt/acre">qt/acre</option>
+                            <option value="gal/acre">gal/acre</option>
+                            <option value="lb/acre">lb/acre</option>
+                            <option value="% v/v">% v/v</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Label</label>
+                        <input type="text" id="addChemLabel" placeholder="Product label URL (optional)">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeAddChemicalModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmAddChemical()">Add Chemical</button>
+            </div>
+        </div>
+    </div>
+`;
+
+document.body.insertAdjacentHTML('beforeend', addChemicalModalHTML);
+
 function addChemicalManagerRow() {
+    document.getElementById('addChemBrandName').value = '';
+    document.getElementById('addChemName').value = '';
+    document.getElementById('addChemCategory').value = '';
+    document.getElementById('addChemCrop').value = '';
+    document.getElementById('addChemRateRange').value = '';
+    document.getElementById('addChemRateUnit').value = 'fl oz/acre';
+    document.getElementById('addChemLabel').value = '';
+    document.getElementById('addChemicalModal').classList.add('active');
+}
+
+function closeAddChemicalModal() {
+    document.getElementById('addChemicalModal').classList.remove('active');
+}
+
+function confirmAddChemical() {
+    const brandName = document.getElementById('addChemBrandName').value.trim();
+    const chemName = document.getElementById('addChemName').value.trim();
+    const category = document.getElementById('addChemCategory').value;
+    const crop = document.getElementById('addChemCrop').value.trim();
+    const rateRange = document.getElementById('addChemRateRange').value.trim();
+    const rateUnit = document.getElementById('addChemRateUnit').value;
+    const label = document.getElementById('addChemLabel').value.trim();
+
+    if (!brandName && !chemName) {
+        alert('Please enter at least a Brand Name or Chemical Name.');
+        return;
+    }
+
     const newChem = { verified: false };
     chemicalColumns.forEach(col => {
-        if (col.key !== 'verified') {
-            if (col.key === 'rateUnit') {
-                newChem[col.key] = 'fl oz/acre';
-            } else {
-                newChem[col.key] = '';
-            }
-        }
+        if (col.key === 'verified') return;
+        if (col.key === 'brandName') newChem[col.key] = brandName;
+        else if (col.key === 'chemName') newChem[col.key] = chemName;
+        else if (col.key === 'category') newChem[col.key] = category;
+        else if (col.key === 'crop') newChem[col.key] = crop;
+        else if (col.key === 'rateRange') newChem[col.key] = rateRange;
+        else if (col.key === 'rateUnit') newChem[col.key] = rateUnit;
+        else if (col.key === 'label') newChem[col.key] = label;
+        else newChem[col.key] = '';
     });
     newChem.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
     chemicalDB.push(newChem);
     renderChemicalManagerTable();
+    closeAddChemicalModal();
 }
 
 function deleteChemRow(id) {
