@@ -5949,6 +5949,7 @@ function deleteChemRow(id) {
     if (confirm('Delete this chemical?')) {
         chemicalDB.splice(index, 1);
         renderChemicalManagerTable();
+        saveChemicals();
     }
 }
 
