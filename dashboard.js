@@ -5749,9 +5749,10 @@ const addChemicalModalHTML = `
             </div>
             <div class="modal-body">
                 <div style="display: grid; gap: 16px;">
-                    <div class="form-group">
+                    <div class="form-group" style="position: relative;">
                         <label>Brand Name</label>
-                        <input type="text" id="addChemBrandName" placeholder="e.g. BASF, Syngenta">
+                        <input type="text" id="addChemBrandName" placeholder="e.g. BASF, Syngenta" autocomplete="off" onfocus="showBrandSuggestions(this)" oninput="filterBrandSuggestions(this)">
+                        <div class="chemical-dropdown" id="addChemBrandDropdown" onclick="selectBrandSuggestion(event)"></div>
                     </div>
                     <div class="form-group">
                         <label>Chemical Name</label>
@@ -5767,9 +5768,10 @@ const addChemicalModalHTML = `
                             <option value="Adjuvant">Adjuvant</option>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="position: relative;">
                         <label>Crop</label>
-                        <input type="text" id="addChemCrop" placeholder="e.g. Corn, Soybeans, Wheat">
+                        <input type="text" id="addChemCrop" placeholder="e.g. Corn, Soybeans, Wheat" autocomplete="off" onfocus="showCropSuggestions(this)" oninput="filterCropSuggestions(this)">
+                        <div class="chemical-dropdown" id="addChemCropDropdown" onclick="selectCropSuggestion(event)"></div>
                     </div>
                     <div class="form-group">
                         <label>Rate Range</label>
@@ -5816,6 +5818,10 @@ function addChemicalManagerRow() {
 
 function closeAddChemicalModal() {
     document.getElementById('addChemicalModal').classList.remove('active');
+    var brandDropdown = document.getElementById('addChemBrandDropdown');
+    var cropDropdown = document.getElementById('addChemCropDropdown');
+    if (brandDropdown) brandDropdown.classList.remove('active');
+    if (cropDropdown) cropDropdown.classList.remove('active');
 }
 
 function confirmAddChemical() {
@@ -5849,6 +5855,88 @@ function confirmAddChemical() {
     renderChemicalManagerTable();
     closeAddChemicalModal();
 }
+
+// Autocomplete helpers for Add Chemical modal
+function getUniqueChemicalValues(key) {
+    var values = {};
+    chemicalDB.forEach(function(c) {
+        var v = (c[key] || '').trim();
+        if (v) values[v] = true;
+    });
+    return Object.keys(values).sort();
+}
+
+function renderDropdown(id, items, searchTerm) {
+    var dropdown = document.getElementById(id);
+    if (!dropdown) return;
+    var html = '';
+    items.forEach(function(item) {
+        var lower = item.toLowerCase();
+        var term = (searchTerm || '').toLowerCase();
+        if (!term || lower.indexOf(term) !== -1) {
+            html += '<div class="chemical-option">' + item + '</div>';
+        }
+    });
+    if (!html) {
+        html = '<div class="chemical-no-results">No matches found</div>';
+    }
+    dropdown.innerHTML = html;
+    dropdown.classList.add('active');
+}
+
+function showBrandSuggestions(input) {
+    var items = getUniqueChemicalValues('brandName');
+    renderDropdown('addChemBrandDropdown', items, input.value);
+}
+
+function filterBrandSuggestions(input) {
+    var items = getUniqueChemicalValues('brandName');
+    renderDropdown('addChemBrandDropdown', items, input.value);
+}
+
+function selectBrandSuggestion(event) {
+    var item = event.target.closest('.chemical-option');
+    if (!item) return;
+    document.getElementById('addChemBrandName').value = item.textContent;
+    document.getElementById('addChemBrandDropdown').classList.remove('active');
+}
+
+function showCropSuggestions(input) {
+    var items = getUniqueChemicalValues('crop');
+    renderDropdown('addChemCropDropdown', items, input.value);
+}
+
+function filterCropSuggestions(input) {
+    var items = getUniqueChemicalValues('crop');
+    renderDropdown('addChemCropDropdown', items, input.value);
+}
+
+function selectCropSuggestion(event) {
+    var item = event.target.closest('.chemical-option');
+    if (!item) return;
+    document.getElementById('addChemCrop').value = item.textContent;
+    document.getElementById('addChemCropDropdown').classList.remove('active');
+}
+
+// Close autocomplete dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    var brandInput = document.getElementById('addChemBrandName');
+    var cropInput = document.getElementById('addChemCrop');
+    var brandDropdown = document.getElementById('addChemBrandDropdown');
+    var cropDropdown = document.getElementById('addChemCropDropdown');
+    if (brandInput) {
+        var brandGroup = brandInput.closest('.form-group');
+        if (brandGroup && !brandGroup.contains(e.target)) {
+            brandDropdown.classList.remove('active');
+        }
+    }
+    if (cropInput) {
+        var cropGroup = cropInput.closest('.form-group');
+        if (cropGroup && !cropGroup.contains(e.target)) {
+            cropDropdown.classList.remove('active');
+        }
+    }
+});
 
 function deleteChemRow(id) {
     const index = chemicalDB.findIndex(c => c.id === id);
