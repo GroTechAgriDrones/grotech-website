@@ -3725,6 +3725,11 @@ function closeFieldMapModal() {
         fieldMap.remove();
         fieldMap = null;
     }
+    if (editFieldMap) {
+        editFieldMap.remove();
+        editFieldMap = null;
+        editFieldMapInitialized = false;
+    }
 }
 
 // Update application status via API
