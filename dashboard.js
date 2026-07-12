@@ -5854,6 +5854,7 @@ function confirmAddChemical() {
     chemicalDB.push(newChem);
     renderChemicalManagerTable();
     closeAddChemicalModal();
+    saveChemicals();
 }
 
 // Autocomplete helpers for Add Chemical modal
