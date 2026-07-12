@@ -3439,7 +3439,7 @@ function updateDashboardStats() {
                     <tr>
                         <td>${app.id}</td>
                         <td>${app.fullName}</td>
-                        <td>${totalAcres} acres</td>
+                        <td>${Math.round(totalAcres * 100) / 100} acres</td>
                         <td>${cropTypes}</td>
                         <td><span class="status ${statusClass}">${app.status.charAt(0).toUpperCase() + app.status.slice(1)}</span></td>
                     </tr>
@@ -3505,7 +3505,7 @@ function renderApplicationsTable() {
                 <td>${app.id}</td>
                 <td>${app.fullName}</td>
                 <td>${app.phone}</td>
-                <td>${totalAcres} acres</td>
+                <td>${Math.round(totalAcres * 100) / 100} acres</td>
                 <td>${cropTypes}</td>
                 <td>${date}</td>
                 <td><span class="status ${statusClass}">${app.status.charAt(0).toUpperCase() + app.status.slice(1)}</span></td>
@@ -3938,7 +3938,7 @@ function updateJobsTable() {
                 <td>${job.id}</td>
                 <td>${clientName}</td>
                 <td>${job.phone || 'N/A'}</td>
-                <td>${totalAcres} acres</td>
+                <td>${Math.round(totalAcres * 100) / 100} acres</td>
                 <td>${cropTypes}</td>
                 <td>${dateRequested}</td>
                 <td class="schedule-cell clickable-schedule" onclick="event.stopPropagation(); openCalendarModal('${job.id}')">
