@@ -3558,7 +3558,7 @@ function viewApplication(id) {
                         <span>
                             ${field.chemicals && field.chemicals.length > 0 ? field.chemicals.join(', ') : 'Not specified'}
                             ${field.chemicals && field.chemicals.length > 0 && field.fieldSize ? 
-                                `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
+                                `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')}, ${JSON.stringify(field.chemicalRates || []).replace(/"/g, '&quot;')}, ${JSON.stringify(field.chemicalRateUnits || []).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
                                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
                                  </button>` 
                                 : ''}
@@ -4049,7 +4049,7 @@ async function viewJob(jobId) {
                                     }).join('') + '</div>'
                                     : 'Not specified'}
                                 ${field.chemicals && field.chemicals.length > 0 && field.fieldSize ? 
-                                    `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
+                                    `<button class="calc-view-btn" onclick="event.stopPropagation(); openCalculatorWithField('${field.fieldSize}', ${JSON.stringify(field.chemicals).replace(/"/g, '&quot;')}, ${JSON.stringify(field.chemicalRates || []).replace(/"/g, '&quot;')}, ${JSON.stringify(field.chemicalRateUnits || []).replace(/"/g, '&quot;')})" title="Calculate in Chemical Calculator">
                                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="10" y2="18"/><line x1="14" y1="18" x2="16" y2="18"/></svg>
                                      </button>` 
                                     : ''}
@@ -6526,7 +6526,7 @@ function addChemicalRow() {
 }
 
 // Open calculator with field data from job
-function openCalculatorWithField(fieldSize, chemicals) {
+function openCalculatorWithField(fieldSize, chemicals, chemicalRates, chemicalRateUnits) {
     // Close the application detail modal if open
     closeApplicationModal();
     
@@ -6559,11 +6559,11 @@ function openCalculatorWithField(fieldSize, chemicals) {
         // Add rows and select chemicals
         if (chemicalsDB.length > 0) {
             // Chemicals already loaded
-            fillChemicalsInCalculator(chemicals);
+            fillChemicalsInCalculator(chemicals, chemicalRates, chemicalRateUnits);
         } else {
             // Wait for chemicals to load
             fetchChemicalsForCalculator().then(() => {
-                fillChemicalsInCalculator(chemicals);
+                fillChemicalsInCalculator(chemicals, chemicalRates, chemicalRateUnits);
             });
         }
     }, 300);
@@ -6598,11 +6598,33 @@ function findChemicalMatch(appChemName) {
 }
 
 // Fill chemicals in calculator after data is loaded
-function fillChemicalsInCalculator(chemicals) {
+function fillChemicalsInCalculator(chemicals, chemicalRates, chemicalRateUnits) {
     const tbody = document.getElementById('fieldChemicalsBody');
     
     chemicals.forEach((chemName, index) => {
         const chem = findChemicalMatch(chemName);
+        const jobRate = (chemicalRates && chemicalRates[index]) || '';
+        const jobUnit = (chemicalRateUnits && chemicalRateUnits[index]) || '';
+        
+        function applyRateAndUnit(row) {
+            const labelRateInput = row.querySelector('.label-rate');
+            if (jobRate) {
+                labelRateInput.value = jobRate;
+            } else if (chem && chem.rateRange) {
+                labelRateInput.value = chem.rateRange;
+            }
+            if (jobUnit) {
+                let unitValue = jobUnit;
+                row.querySelector('.rate-unit').value = unitValue;
+            } else if (chem && chem.rateUnit) {
+                let unitValue = chem.rateUnit.replace('/acre', '');
+                if (unitValue === '% v/v') unitValue = 'vv';
+                row.querySelector('.rate-unit').value = unitValue;
+            }
+            if (labelRateInput.value) {
+                calculateChemicalVolume(labelRateInput);
+            }
+        }
         
         if (index === 0) {
             // Use first row
@@ -6617,26 +6639,13 @@ function fillChemicalsInCalculator(chemicals) {
                 input.dataset.selectedId = chem.id;
                 customInput.style.display = 'none';
                 onChemicalSearch(input);
-                
-                // Auto-fill rate
-                const labelRateInput = firstRow.querySelector('.label-rate');
-                if (chem.rateRange) {
-                    labelRateInput.value = chem.rateRange;
-                }
-                if (chem.rateUnit) {
-                    let unitValue = chem.rateUnit.replace('/acre', '');
-                    if (unitValue === '% v/v') {
-                        unitValue = 'vv';
-                    }
-                    firstRow.querySelector('.rate-unit').value = unitValue;
-                }
-                calculateChemicalVolume(labelRateInput);
             } else {
                 // No match - add as custom
                 input.value = chemName;
                 input.dataset.selectedId = '';
                 customInput.style.display = 'none';
             }
+            applyRateAndUnit(firstRow);
         } else {
             // Add new row for additional chemicals
             addChemicalRow();
@@ -6652,26 +6661,13 @@ function fillChemicalsInCalculator(chemicals) {
                     input.value = displayName;
                     input.dataset.selectedId = chem.id;
                     customInput.style.display = 'none';
-                    
-                    // Auto-fill rate
-                    const labelRateInput = newRow.querySelector('.label-rate');
-                    if (chem.rateRange) {
-                        labelRateInput.value = chem.rateRange;
-                    }
-                    if (chem.rateUnit) {
-                        let unitValue = chem.rateUnit.replace('/acre', '');
-                        if (unitValue === '% v/v') {
-                            unitValue = 'vv';
-                        }
-                        newRow.querySelector('.rate-unit').value = unitValue;
-                    }
-                    calculateChemicalVolume(labelRateInput);
                 } else {
                     // No match - add as custom
                     input.value = chemName;
                     input.dataset.selectedId = '';
                     customInput.style.display = 'none';
                 }
+                applyRateAndUnit(newRow);
             }, 50);
         }
     });
