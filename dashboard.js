@@ -1836,7 +1836,7 @@ const pages = {
                         submittedAt: new Date().toISOString()
                     };
                     try {
-                        await fetch(`${API_BASE_URL}/training`, {
+                        await fetchWithTimeout(`${API_BASE_URL}/training`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(record)
@@ -1934,7 +1934,7 @@ const pages = {
                         submittedAt: new Date().toISOString()
                     };
                     try {
-                        await fetch(`${API_BASE_URL}/maintenance`, {
+                        await fetchWithTimeout(`${API_BASE_URL}/maintenance`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(record)
@@ -1972,9 +1972,14 @@ let maintenanceRecords = [];
 
 async function fetchMaintenanceRecords() {
     try {
-        const response = await fetch(`${API_BASE_URL}/maintenance`);
-        const data = await response.json();
-        maintenanceRecords = data.records || [];
+        const response = await fetchWithTimeout(`${API_BASE_URL}/maintenance`);
+        if (response.ok) {
+            const data = await response.json();
+            maintenanceRecords = data.records || [];
+        } else {
+            console.error('Error fetching maintenance records:', response.status);
+            maintenanceRecords = [];
+        }
     } catch (err) {
         console.error('Error fetching maintenance records:', err);
         maintenanceRecords = [];
@@ -2047,7 +2052,7 @@ function renderMaintenanceTable() {
             document.getElementById('maintParts').value = record.partsReplaced || '';
             document.getElementById('maintTechnician').value = record.technician;
             try {
-                await fetch(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+                await fetchWithTimeout(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
                 await fetchMaintenanceRecords();
             } catch (err) {
                 console.error('Error deleting record for edit:', err);
@@ -2059,7 +2064,7 @@ function renderMaintenanceTable() {
         btn.addEventListener('click', async function() {
             const id = this.getAttribute('data-id');
             try {
-                await fetch(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+                await fetchWithTimeout(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
                 await fetchMaintenanceRecords();
             } catch (err) {
                 console.error('Error deleting maintenance record:', err);
@@ -2073,9 +2078,14 @@ let trainingRecords = [];
 
 async function fetchTrainingRecords() {
     try {
-        const response = await fetch(`${API_BASE_URL}/training`);
-        const data = await response.json();
-        trainingRecords = data.records || [];
+        const response = await fetchWithTimeout(`${API_BASE_URL}/training`);
+        if (response.ok) {
+            const data = await response.json();
+            trainingRecords = data.records || [];
+        } else {
+            console.error('Error fetching training records:', response.status);
+            trainingRecords = [];
+        }
     } catch (err) {
         console.error('Error fetching training records:', err);
         trainingRecords = [];
@@ -2202,7 +2212,7 @@ function openTrainingDetailModal(record) {
         document.getElementById('trainFaaCert').value = record.faaCertNumber;
         document.getElementById('trainSelfCertified').checked = record.selfCertified !== false;
         try {
-            await fetch(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
+            await fetchWithTimeout(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
             await fetchTrainingRecords();
         } catch (err) {
             console.error('Error deleting record for edit:', err);
@@ -2213,7 +2223,7 @@ function openTrainingDetailModal(record) {
     document.getElementById('trainingDetailDeleteBtn').onclick = async function() {
         if (!confirm('Delete this training record? This cannot be undone.')) return;
         try {
-            await fetch(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
+            await fetchWithTimeout(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
             await fetchTrainingRecords();
             closeTrainingDetailModal();
         } catch (err) {
@@ -3319,7 +3329,11 @@ if (logoutBtn) {
 // Fetch account info and populate fields
 async function fetchAccountInfo() {
     try {
-        const response = await fetch(`${API_BASE_URL}/credentials`);
+        const response = await fetchWithTimeout(`${API_BASE_URL}/credentials`);
+        if (!response.ok) {
+            console.error('Error fetching account info:', response.status);
+            return;
+        }
         const creds = await response.json();
         
         const nameEl = document.getElementById('accountName');
@@ -3369,7 +3383,7 @@ async function updatePassword() {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/credentials`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/credentials`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -3453,21 +3467,50 @@ function updateDashboardStats() {
 // APPLICATIONS API - Fetches from AWS Lambda
 // ============================================
 const API_BASE_URL = 'https://g82vp7wi5i.execute-api.us-east-2.amazonaws.com/prod';
+
+async function fetchWithTimeout(url, options = {}, timeout = 15000, retries = 1) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        try {
+            const res = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(id);
+            return res;
+        } catch (err) {
+            clearTimeout(id);
+            if (attempt < retries) {
+                await new Promise(r => setTimeout(r, 1000));
+                continue;
+            }
+            throw err;
+        }
+    }
+}
+
 let applications = [];
 let currentApplicationId = null;
 
 // Fetch all applications from API
 async function fetchApplications() {
     try {
-        const response = await fetch(`${API_BASE_URL}/applications`);
-        applications = await response.json();
-        renderApplicationsTable();
-        updateDashboardStats();
+        const response = await fetchWithTimeout(`${API_BASE_URL}/applications`);
+        if (response.ok) {
+            applications = await response.json();
+            renderApplicationsTable();
+            updateDashboardStats();
+        } else {
+            const errorText = await response.text();
+            console.error('Error fetching applications:', response.status, errorText);
+            const tbody = document.getElementById('applicationsTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Server returned ' + response.status + '. Please try again.</td></tr>';
+            }
+        }
     } catch (error) {
         console.error('Error fetching applications:', error);
         const tbody = document.getElementById('applicationsTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Check console for details.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Check your connection and try again.</td></tr>';
         }
     }
 }
@@ -3737,19 +3780,21 @@ async function updateApplicationStatus(status) {
     if (!currentApplicationId) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/applications/${currentApplicationId}`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/applications/${currentApplicationId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: status })
         });
         
-        const result = await response.json();
-        console.log('Status updated:', result);
-        
-        // Refresh the list
-        await fetchApplications();
-        closeApplicationModal();
-        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Status updated:', result);
+            await fetchApplications();
+            closeApplicationModal();
+        } else {
+            const result = await response.json();
+            alert('Error: ' + (result.error || 'Failed to update status'));
+        }
     } catch (error) {
         console.error('Error updating status:', error);
         alert('Error updating status. Please try again.');
@@ -3785,16 +3830,19 @@ function executeDelete() {
 async function deleteApplication(id) {
     openDeleteModal('Are you sure you want to delete this application?', async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/applications/${id}`, {
+            const response = await fetchWithTimeout(`${API_BASE_URL}/applications/${id}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             });
             
-            const result = await response.json();
-            console.log('Application deleted:', result);
-            
-            // Refresh the list
-            await fetchApplications();
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Application deleted:', result);
+                await fetchApplications();
+            } else {
+                const result = await response.json();
+                alert('Error deleting application: ' + (result.error || 'Server error'));
+            }
             
         } catch (error) {
             console.error('Error deleting application:', error);
@@ -3807,16 +3855,19 @@ async function deleteApplication(id) {
 async function deleteJob(id) {
     openDeleteModal('Are you sure you want to delete this job?', async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/jobs/${id}`, {
+            const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${id}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
             });
             
-            const result = await response.json();
-            console.log('Job deleted:', result);
-            
-            // Refresh the list
-            await fetchJobs();
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Job deleted:', result);
+                await fetchJobs();
+            } else {
+                const result = await response.json();
+                alert('Error deleting job: ' + (result.error || 'Server error'));
+            }
             
         } catch (error) {
             console.error('Error deleting job:', error);
@@ -3839,7 +3890,7 @@ const ACRES_BASELINE = 3694;
 // Fetch jobs from S3 jobs/ folder
 async function fetchJobs() {
     try {
-        const response = await fetch(`${API_BASE_URL}/jobs`);
+        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs`);
         if (response.ok) {
             const data = await response.json();
             jobs = data.jobs || [];
@@ -3850,11 +3901,20 @@ async function fetchJobs() {
             }));
             updateJobsTable();
             updateJobsStats();
+        } else {
+            console.error('Error fetching jobs:', response.status);
+            const tbody = document.getElementById('jobsTableBody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading jobs. Server returned ' + response.status + '. Please try again.</td></tr>';
+            }
         }
     } catch (error) {
         console.error('Error fetching jobs:', error);
         jobs = [];
-        updateJobsTable();
+        const tbody = document.getElementById('jobsTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading jobs. Check your connection and try again.</td></tr>';
+        }
     }
 }
 
@@ -3866,7 +3926,7 @@ async function updateJobSchedule(jobId, scheduledDate) {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -3895,7 +3955,7 @@ async function updateJobStatus(jobId, status) {
     }
     
     try {
-        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ jobStatus: status })
@@ -4168,7 +4228,7 @@ async function saveChemicalRates() {
     });
 
     try {
-        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fields: job.fields })
@@ -4239,7 +4299,7 @@ async function toggleFieldStatus(jobId, fieldIndex) {
     
     try {
         // Update job via API
-        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
@@ -4665,7 +4725,7 @@ async function saveEditedJob() {
     });
     
     try {
-        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updatedJob)
@@ -5300,7 +5360,7 @@ async function updateApplicationStatusWithJob(status) {
     
     try {
         // Update the application status - Lambda handles job creation when approved
-        const response = await fetch(`${API_BASE_URL}/applications/${currentApplicationId}`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/applications/${currentApplicationId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: status })
@@ -5341,12 +5401,16 @@ let categories = [];
 
 async function fetchDocuments() {
     try {
-        const response = await fetch(`${API_BASE_URL}/documents`);
-        const data = await response.json();
-        documents = data.documents || [];
-        categories = data.categories || [];
-        updateCategoryFilter();
-        renderDocuments();
+        const response = await fetchWithTimeout(`${API_BASE_URL}/documents`);
+        if (response.ok) {
+            const data = await response.json();
+            documents = data.documents || [];
+            categories = data.categories || [];
+            updateCategoryFilter();
+            renderDocuments();
+        } else {
+            console.error('Error fetching documents:', response.status);
+        }
     } catch (error) {
         console.error('Error fetching documents:', error);
     }
@@ -5394,7 +5458,7 @@ async function addCategory() {
         if (newCat && !categories.includes(newCat)) {
             const newCategories = [...categories, newCat];
             try {
-                await fetch(`${API_BASE_URL}/documents/categories`, {
+                await fetchWithTimeout(`${API_BASE_URL}/documents/categories`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ categories: newCategories })
@@ -5418,7 +5482,7 @@ async function removeCategory(cat) {
     if (confirm(`Remove "${cat}" category?`)) {
         const newCategories = categories.filter(c => c !== cat);
         try {
-            await fetch(`${API_BASE_URL}/documents/categories`, {
+            await fetchWithTimeout(`${API_BASE_URL}/documents/categories`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ categories: newCategories })
@@ -5512,10 +5576,14 @@ function filterDocuments() {
 
 async function viewDocument(id) {
     try {
-        const response = await fetch(`${API_BASE_URL}/documents/${id}`);
-        const data = await response.json();
-        if (data.downloadUrl) {
-            window.open(data.downloadUrl, '_blank');
+        const response = await fetchWithTimeout(`${API_BASE_URL}/documents/${id}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.downloadUrl) {
+                window.open(data.downloadUrl, '_blank');
+            }
+        } else {
+            console.error('Error viewing document:', response.status);
         }
     } catch (error) {
         console.error('Error viewing document:', error);
@@ -5524,13 +5592,17 @@ async function viewDocument(id) {
 
 async function downloadDocument(id) {
     try {
-        const response = await fetch(`${API_BASE_URL}/documents/${id}`);
-        const data = await response.json();
-        if (data.downloadUrl) {
-            const a = document.createElement('a');
-            a.href = data.downloadUrl;
-            a.download = data.name;
-            a.click();
+        const response = await fetchWithTimeout(`${API_BASE_URL}/documents/${id}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data.downloadUrl) {
+                const a = document.createElement('a');
+                a.href = data.downloadUrl;
+                a.download = data.name;
+                a.click();
+            }
+        } else {
+            console.error('Error downloading document:', response.status);
         }
     } catch (error) {
         console.error('Error downloading document:', error);
@@ -5540,7 +5612,7 @@ async function downloadDocument(id) {
 async function deleteDocument(id) {
     if (confirm('Are you sure you want to delete this document?')) {
         try {
-            await fetch(`${API_BASE_URL}/documents/${id}`, {
+            await fetchWithTimeout(`${API_BASE_URL}/documents/${id}`, {
                 method: 'DELETE'
             });
             await fetchDocuments();
@@ -5552,7 +5624,7 @@ async function deleteDocument(id) {
 
 async function changeDocumentCategory(docId, newCategory) {
     try {
-        await fetch(`${API_BASE_URL}/documents/${docId}`, {
+        await fetchWithTimeout(`${API_BASE_URL}/documents/${docId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ category: newCategory })
@@ -5567,7 +5639,7 @@ async function handleFileUpload(files) {
     console.log('handleFileUpload called', files);
     for (const file of Array.from(files)) {
         try {
-            const response = await fetch(`${API_BASE_URL}/documents`, {
+            const response = await fetchWithTimeout(`${API_BASE_URL}/documents`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -5589,7 +5661,7 @@ async function handleFileUpload(files) {
                 headers: { 'Content-Type': file.type }
             });
             
-            await fetch(`${API_BASE_URL}/documents/confirm`, {
+            await fetchWithTimeout(`${API_BASE_URL}/documents/confirm`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -5631,30 +5703,33 @@ let chemicalColumns = [
 
 async function initChemicalListPage() {
     try {
-        const response = await fetch(`${API_BASE_URL}/chemicals`);
-        const data = await response.json();
-        
-        // Load columns from API
-        if (data.columns && data.columns.length > 0) {
-            chemicalColumns = data.columns;
-            // Ensure rateUnit has all required options including % v/v
-            const rateUnitCol = chemicalColumns.find(c => c.key === 'rateUnit');
-            if (rateUnitCol && rateUnitCol.options) {
-                if (!rateUnitCol.options.includes('% v/v')) {
-                    rateUnitCol.options = ['fl oz/acre', 'oz/acre', 'pt/acre', 'qt/acre', 'gal/acre', 'lb/acre', '% v/v'];
+        const response = await fetchWithTimeout(`${API_BASE_URL}/chemicals`);
+        if (response.ok) {
+            const data = await response.json();
+            
+            // Load columns from API
+            if (data.columns && data.columns.length > 0) {
+                chemicalColumns = data.columns;
+                // Ensure rateUnit has all required options including % v/v
+                const rateUnitCol = chemicalColumns.find(c => c.key === 'rateUnit');
+                if (rateUnitCol && rateUnitCol.options) {
+                    if (!rateUnitCol.options.includes('% v/v')) {
+                        rateUnitCol.options = ['fl oz/acre', 'oz/acre', 'pt/acre', 'qt/acre', 'gal/acre', 'lb/acre', '% v/v'];
+                    }
                 }
             }
+            
+            // Load chemicals
+            chemicalDB = (data.chemicals || []).map(c => {
+                if (!c.id) c.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+                return c;
+            });
+            
+            // Also update global chemicalsDB for calculator
+            chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
+        } else {
+            console.error('Error loading chemicals:', response.status);
         }
-        
-        // Load chemicals
-        chemicalDB = (data.chemicals || []).map(c => {
-            if (!c.id) c.id = Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
-            return c;
-        });
-        
-        // Also update global chemicalsDB for calculator
-        chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
-        
         renderChemicalManagerTable();
     } catch (error) {
         console.error('Error loading chemicals:', error);
@@ -5824,7 +5899,7 @@ function closeAddChemicalModal() {
     hideAutocomplete();
 }
 
-function confirmAddChemical() {
+async function confirmAddChemical() {
     const brandName = document.getElementById('addChemBrandName').value.trim();
     const chemName = document.getElementById('addChemName').value.trim();
     const category = document.getElementById('addChemCategory').value;
@@ -5854,7 +5929,7 @@ function confirmAddChemical() {
     chemicalDB.push(newChem);
     renderChemicalManagerTable();
     closeAddChemicalModal();
-    saveChemicals();
+    await saveChemicals();
 }
 
 // Autocomplete helpers for Add Chemical modal
@@ -5949,13 +6024,13 @@ document.addEventListener('click', function(e) {
     autocompleteDropdown.style.display = 'none';
 });
 
-function deleteChemRow(id) {
+async function deleteChemRow(id) {
     const index = chemicalDB.findIndex(c => c.id === id);
     if (index === -1) return;
     if (confirm('Delete this chemical?')) {
         chemicalDB.splice(index, 1);
         renderChemicalManagerTable();
-        saveChemicals();
+        await saveChemicals();
     }
 }
 
@@ -6016,7 +6091,7 @@ function removeColumn(index) {
 
 async function saveChemicals() {
     try {
-        const response = await fetch(`${API_BASE_URL}/chemicals`, {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/chemicals`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -6219,9 +6294,14 @@ let chemicalsDB = []; // Chemical database from API
 // Fetch chemicals from API on page load
 async function fetchChemicalsForCalculator() {
     try {
-        const response = await fetch(`${API_BASE_URL}/chemicals`);
-        const data = await response.json();
-        chemicalsDB = data.chemicals || [];
+        const response = await fetchWithTimeout(`${API_BASE_URL}/chemicals`);
+        if (response.ok) {
+            const data = await response.json();
+            chemicalsDB = data.chemicals || [];
+        } else {
+            console.error('Error fetching chemicals:', response.status);
+            chemicalsDB = getDefaultChemicals();
+        }
         buildChemicalDropdownOptions();
     } catch (error) {
         console.error('Error fetching chemicals:', error);
