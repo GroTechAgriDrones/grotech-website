@@ -118,8 +118,12 @@ const pages = {
                     </div>
                 </div>
             </div>
-            <div class="page-header">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <p>View and manage all application requests</p>
+                <button class="btn btn-primary" onclick="openNewApplicationModal()" style="white-space: nowrap;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    New Application Request
+                </button>
             </div>
             <div class="data-table">
                 <table>
@@ -4372,7 +4376,12 @@ async function toggleFieldStatus(jobId, fieldIndex) {
     job.fieldCompletionDates[fieldIndex] = newStatusValue === 'complete' ? new Date().toISOString() : null;
     
     // Calculate new job status
+    const previousJobStatus = job.jobStatus;
     const newJobStatus = calculateJobStatus(job.jobStatus, job.fieldStatus, job.scheduledDate);
+    job.jobStatus = newJobStatus;
+    
+    // Optimistically update the DOM immediately
+    await viewJob(jobId);
     
     try {
         // Update job via API
@@ -4387,24 +4396,23 @@ async function toggleFieldStatus(jobId, fieldIndex) {
         });
         
         if (response.ok) {
-            // Update local job data
-            job.jobStatus = newJobStatus;
             clearCache('jobs');
-            
-            // Refresh the view
-            await viewJob(jobId);
             fetchJobs();
         } else {
             console.error('Failed to update field status');
             // Revert the change
             job.fieldStatus[fieldIndex] = currentStatus;
             job.fieldCompletionDates[fieldIndex] = null;
+            job.jobStatus = previousJobStatus;
+            await viewJob(jobId);
         }
     } catch (error) {
         console.error('Error updating field status:', error);
         // Revert the change
         job.fieldStatus[fieldIndex] = currentStatus;
         job.fieldCompletionDates[fieldIndex] = null;
+        job.jobStatus = previousJobStatus;
+        await viewJob(jobId);
     }
 }
 
@@ -5093,24 +5101,21 @@ function openScheduledCalendar() {
 
 // Open calendar for field optimal date in edit modal
 function openEditFieldCalendar(fieldIndex) {
-    const input = document.getElementById(`edit_optimalDate_${fieldIndex}`);
-    const currentDate = input.value;
-    
-    // Simple date picker prompt
-    const dateStr = prompt('Enter optimal date (YYYY-MM-DD):', currentDate || new Date().toISOString().split('T')[0]);
-    if (dateStr) {
-        input.value = dateStr;
-    }
+    openFieldCalendar(function(dateStr) {
+        document.getElementById(`edit_optimalDate_${fieldIndex}`).value = dateStr;
+    });
 }
 
-// Open map for field location in edit modal
+// Open map for field location in edit modal / new app modal
 let editFieldMapIndex = null;
 let editFieldMap = null;
 let editFieldMarker = null;
 let editFieldMapInitialized = false;
+let mapModalTargetInput = null;
 
 function openEditFieldMap(fieldIndex) {
     editFieldMapIndex = fieldIndex;
+    mapModalTargetInput = document.getElementById(`edit_fieldLocation_${fieldIndex}`);
     document.getElementById('fieldMapModal').classList.add('active');
     
     // Set map title based on context
@@ -5213,7 +5218,9 @@ function getEditFieldCoordinates() {
     const latlng = editFieldMarker.getLatLng();
     const lat = latlng.lat.toFixed(6);
     const lng = latlng.lng.toFixed(6);
-    document.getElementById(`edit_fieldLocation_${editFieldMapIndex}`).value = `${lat}, ${lng}`;
+    if (mapModalTargetInput) {
+        mapModalTargetInput.value = `${lat}, ${lng}`;
+    }
     closeFieldMapModal();
 }
 
@@ -5430,6 +5437,96 @@ function selectDate(dateStr) {
     }
 }
 
+// ============================================
+// FIELD CALENDAR (for optimal dates in new app & edit job)
+// ============================================
+
+let fieldCalendarCallback = null;
+let fieldCalendarDate = new Date();
+
+function openFieldCalendar(callback) {
+    fieldCalendarCallback = callback;
+    fieldCalendarDate = new Date();
+    let modal = document.getElementById('fieldCalendarModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'fieldCalendarModal';
+        modal.className = 'calendar-modal';
+        modal.innerHTML = `
+            <div class="calendar-modal-content">
+                <div class="calendar-header">
+                    <button class="calendar-nav" onclick="changeFieldMonth(-1)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    <h3 id="fieldCalendarTitle"></h3>
+                    <button class="calendar-nav" onclick="changeFieldMonth(1)">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                    <button class="calendar-close" onclick="closeFieldCalendar()">&times;</button>
+                </div>
+                <div class="calendar-weekdays">
+                    <div class="weekday">Sun</div>
+                    <div class="weekday">Mon</div>
+                    <div class="weekday">Tue</div>
+                    <div class="weekday">Wed</div>
+                    <div class="weekday">Thu</div>
+                    <div class="weekday">Fri</div>
+                    <div class="weekday">Sat</div>
+                </div>
+                <div id="fieldCalendarDays" class="calendar-days"></div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    renderFieldCalendar();
+    modal.classList.add('active');
+}
+
+function closeFieldCalendar() {
+    const modal = document.getElementById('fieldCalendarModal');
+    if (modal) modal.classList.remove('active');
+    fieldCalendarCallback = null;
+}
+
+function renderFieldCalendar() {
+    const year = fieldCalendarDate.getFullYear();
+    const month = fieldCalendarDate.getMonth();
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+    document.getElementById('fieldCalendarTitle').textContent = `${monthNames[month]} ${year}`;
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const today = new Date();
+    let html = '';
+    for (let i = 0; i < firstDay; i++) {
+        html += '<div class="calendar-day empty"></div>';
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
+        const isPast = new Date(year, month, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        html += `
+            <div class="calendar-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}"
+                 onclick="${!isPast ? `selectFieldDate('${dateStr}')` : ''}">
+                ${day}
+            </div>
+        `;
+    }
+    document.getElementById('fieldCalendarDays').innerHTML = html;
+}
+
+function changeFieldMonth(delta) {
+    fieldCalendarDate.setMonth(fieldCalendarDate.getMonth() + delta);
+    renderFieldCalendar();
+}
+
+function selectFieldDate(dateStr) {
+    if (fieldCalendarCallback) {
+        fieldCalendarCallback(dateStr);
+    }
+    closeFieldCalendar();
+}
+
 // Override updateApplicationStatus to create job when approved
 const originalUpdateApplicationStatus = updateApplicationStatus;
 async function updateApplicationStatusWithJob(status) {
@@ -5443,7 +5540,7 @@ async function updateApplicationStatusWithJob(status) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: status })
-        });
+        }, 30000);
         
         console.log('Response status:', response.status);
         const result = await response.json();
@@ -5929,6 +6026,379 @@ function renderChemicalManagerTable() {
         return rowHtml;
     }).join('');
 }
+
+// ============================================
+// NEW APPLICATION REQUEST MODAL
+// ============================================
+
+let newAppFieldCount = 1;
+const selectedNewAppChemicals = {};
+
+function openNewApplicationModal() {
+    newAppFieldCount = 1;
+    Object.keys(selectedNewAppChemicals).forEach(k => delete selectedNewAppChemicals[k]);
+    document.getElementById('newApplicationModal').classList.add('active');
+    document.getElementById('newAppForm').reset();
+    const fieldGroups = document.getElementById('newAppFieldGroups');
+    fieldGroups.innerHTML = '';
+    newAppAddFieldGroup();
+}
+
+function closeNewApplicationModal() {
+    document.getElementById('newApplicationModal').classList.remove('active');
+}
+
+async function submitNewApplication(e) {
+    e.preventDefault();
+    const fieldGroups = document.querySelectorAll('#newAppFieldGroups .new-app-field-group');
+    const fields = [];
+    fieldGroups.forEach((group, index) => {
+        const rawCropType = group.querySelector('[name="newApp_cropType[]"]')?.value || '';
+        const cropType = rawCropType.charAt(0).toUpperCase() + rawCropType.slice(1);
+        fields.push({
+            fieldName: group.querySelector('[name="newApp_fieldName[]"]')?.value || '',
+            fieldSize: group.querySelector('[name="newApp_fieldSize[]"]')?.value || '',
+            fieldLocation: group.querySelector('[name="newApp_fieldLocation[]"]')?.value || '',
+            cropType: cropType,
+            optimalDate: group.querySelector('[name="newApp_optimalDate[]"]')?.value || '',
+            chemicals: selectedNewAppChemicals[index] || []
+        });
+    });
+    const formData = new FormData(e.target);
+    const appData = {
+        fullName: formData.get('newApp_fullName'),
+        phone: formData.get('newApp_phone'),
+        email: formData.get('newApp_email'),
+        address: formData.get('newApp_address'),
+        city: formData.get('newApp_city'),
+        state: formData.get('newApp_state'),
+        zip: formData.get('newApp_zip'),
+        contactMethod: [formData.get('newApp_contactMethod_phone'), formData.get('newApp_contactMethod_email'), formData.get('newApp_contactMethod_text')].filter(Boolean).join(', '),
+        fields: fields,
+        message: formData.get('newApp_message')
+    };
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span>Submitting...</span>';
+    submitBtn.disabled = true;
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/applications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(appData)
+        });
+        if (response.ok) {
+            clearCache('applications');
+            await fetchApplications();
+            closeNewApplicationModal();
+        } else {
+            const result = await response.json();
+            alert('Error submitting application: ' + (result.error || 'Server error. Please try again.'));
+        }
+    } catch (error) {
+        console.error('Error submitting application:', error);
+        alert('There was an error submitting your application. Please try again.');
+    }
+    submitBtn.innerHTML = originalText;
+    submitBtn.disabled = false;
+}
+
+function newAppAddFieldGroup() {
+    const container = document.getElementById('newAppFieldGroups');
+    const idx = newAppFieldCount;
+    const div = document.createElement('div');
+    div.className = 'new-app-field-group';
+    div.dataset.fieldIndex = idx;
+    div.innerHTML = `
+        <div class="field-group-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <span style="font-weight:600;color:var(--text-primary);font-size:1rem;">Field ${idx + 1}</span>
+            ${idx > 0 ? '<button type="button" class="remove-field-btn" onclick="removeNewAppField(this)" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:1.2rem;">&times;</button>' : ''}
+        </div>
+        <div class="form-group">
+            <label for="newApp_fieldName_${idx}">Field Name</label>
+            <input type="text" id="newApp_fieldName_${idx}" name="newApp_fieldName[]" placeholder="e.g., North 40, South Field" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+                <label for="newApp_fieldSize_${idx}">Field Size (Estimate Acres) *</label>
+                <input type="number" id="newApp_fieldSize_${idx}" name="newApp_fieldSize[]" required placeholder="500" min="1" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+            </div>
+            <div class="form-group">
+                <label for="newApp_fieldLocation_${idx}">Field Location (GPS Coordinates)</label>
+                <div style="display:flex;gap:8px;">
+                    <input type="text" id="newApp_fieldLocation_${idx}" name="newApp_fieldLocation[]" placeholder="e.g., 42.2975, -89.6438" readonly style="flex:1;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="openNewAppMapModal(${idx})" style="white-space:nowrap;">Locate on Map</button>
+                </div>
+            </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">
+            <div class="form-group">
+                <label for="newApp_cropType_${idx}">Crop Type *</label>
+                <select id="newApp_cropType_${idx}" name="newApp_cropType[]" required style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;">
+                    <option value="">Select crop type</option>
+                    <option value="corn">Corn</option>
+                    <option value="soybeans">Soybeans</option>
+                    <option value="wheat">Wheat</option>
+                    <option value="alfalfa">Alfalfa</option>
+                    <option value="weeds">Weeds</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="newApp_optimalDate_${idx}">Optimal Application Date</label>
+                <div style="position:relative;display:flex;align-items:center;">
+                    <input type="text" id="newApp_optimalDate_${idx}" name="newApp_optimalDate[]" placeholder="Click to select date" readonly onclick="openNewAppCalendar(${idx})" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;cursor:pointer;box-sizing:border-box;">
+                </div>
+            </div>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+            <label>Chemicals / Pesticides</label>
+            <div class="chemical-selector">
+                <div class="chemical-input-wrapper">
+                    <input type="text" id="newApp_chemSearch_${idx}" class="chemical-search" placeholder="Search chemicals..." oninput="newAppFilterChemicals(${idx})" onfocus="newAppShowDropdown(${idx})" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                    <div class="chemical-dropdown" id="newApp_chemDropdown_${idx}" style="position:absolute;top:100%;left:0;right:0;z-index:100;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;max-height:200px;overflow-y:auto;display:none;box-shadow:var(--shadow-lg);">
+                        <div class="chemical-options" id="newApp_chemOptions_${idx}"></div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="newAppAddChemical(${idx})" style="white-space:nowrap;">Add</button>
+            </div>
+            <div id="newApp_customChemical_${idx}" style="display:none;margin-top:8px;display:none;">
+                <div style="display:flex;gap:8px;">
+                    <input type="text" class="custom-chem-field" placeholder="Enter chemical name..." onkeypress="if(event.key==='Enter'){newAppSubmitCustomChemical(${idx});return false;}" style="flex:1;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;">
+                    <button type="button" class="btn btn-primary btn-sm" onclick="newAppSubmitCustomChemical(${idx})">Confirm</button>
+                </div>
+            </div>
+            <div class="selected-chemicals" id="newApp_selectedChemicals_${idx}" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+        </div>
+    `;
+    container.appendChild(div);
+    newAppFieldCount++;
+    newAppUpdateFieldNumbers();
+}
+
+function removeNewAppField(btn) {
+    btn.closest('.new-app-field-group').remove();
+    newAppUpdateFieldNumbers();
+}
+
+function newAppUpdateFieldNumbers() {
+    const groups = document.querySelectorAll('#newAppFieldGroups .new-app-field-group');
+    groups.forEach((g, i) => {
+        g.querySelector('.field-group-header span:first-child').textContent = `Field ${i + 1}`;
+        g.dataset.fieldIndex = i;
+    });
+}
+
+function newAppFilterChemicals(fieldIndex) {
+    const searchInput = document.getElementById(`newApp_chemSearch_${fieldIndex}`);
+    const optionsContainer = document.getElementById(`newApp_chemOptions_${fieldIndex}`);
+    const searchTerm = searchInput.value.toLowerCase();
+    let html = `<div class="chemical-option" onclick="newAppSelectChemical(${fieldIndex}, 'Other')">Other</div>`;
+    const filtered = chemicalsDB.filter(chem => {
+        const name = `${chem.brandName || ''} ${chem.chemName || ''}`.trim().toLowerCase();
+        const type = (chem.category || '').toLowerCase();
+        return name.includes(searchTerm) || type.includes(searchTerm);
+    });
+    const grouped = {};
+    filtered.forEach(chem => {
+        const type = chem.category || 'Other';
+        if (!grouped[type]) grouped[type] = [];
+        grouped[type].push(chem);
+    });
+    Object.keys(grouped).sort().forEach(type => {
+        html += `<div class="chemical-type-header" style="padding:4px 10px;font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;background:var(--bg-dark);">${type}</div>`;
+        grouped[type].forEach(chem => {
+            const name = `${chem.brandName || ''} ${chem.chemName || ''}`.trim();
+            html += `<div class="chemical-option" onclick="newAppSelectChemical(${fieldIndex}, '${name.replace(/'/g, "\\'")}')" style="padding:8px 10px;cursor:pointer;transition:background 0.2s;font-size:0.9rem;">${name}</div>`;
+        });
+    });
+    if (filtered.length === 0 && searchTerm.length > 0) {
+        html += '<div class="chemical-no-results" style="padding:8px 10px;color:var(--text-muted);font-style:italic;">No chemicals found</div>';
+    }
+    optionsContainer.innerHTML = html;
+}
+
+function newAppShowDropdown(fieldIndex) {
+    document.getElementById(`newApp_chemDropdown_${fieldIndex}`).style.display = 'block';
+    newAppFilterChemicals(fieldIndex);
+}
+
+function newAppSelectChemical(fieldIndex, chemName) {
+    const searchInput = document.getElementById(`newApp_chemSearch_${fieldIndex}`);
+    const customChem = document.getElementById(`newApp_customChemical_${fieldIndex}`);
+    if (chemName === 'Other') {
+        searchInput.value = '';
+        customChem.style.display = 'flex';
+        customChem.querySelector('input').focus();
+    } else {
+        searchInput.value = chemName;
+        customChem.style.display = 'none';
+        customChem.querySelector('input').value = '';
+    }
+    document.getElementById(`newApp_chemDropdown_${fieldIndex}`).style.display = 'none';
+}
+
+function newAppAddChemical(fieldIndex) {
+    const searchInput = document.getElementById(`newApp_chemSearch_${fieldIndex}`);
+    const chemName = searchInput.value.trim();
+    if (!chemName) return;
+    if (chemName.toLowerCase() === 'other') {
+        document.getElementById(`newApp_customChemical_${fieldIndex}`).style.display = 'flex';
+        searchInput.value = '';
+        return;
+    }
+    if (!selectedNewAppChemicals[fieldIndex]) selectedNewAppChemicals[fieldIndex] = [];
+    if (selectedNewAppChemicals[fieldIndex].includes(chemName)) { searchInput.value = ''; return; }
+    selectedNewAppChemicals[fieldIndex].push(chemName);
+    newAppRenderSelectedChemicals(fieldIndex);
+    searchInput.value = '';
+}
+
+function newAppSubmitCustomChemical(fieldIndex) {
+    const customInput = document.querySelector(`#newApp_customChemical_${fieldIndex} .custom-chem-field`);
+    const chemName = customInput.value.trim();
+    if (!chemName) return;
+    if (!selectedNewAppChemicals[fieldIndex]) selectedNewAppChemicals[fieldIndex] = [];
+    if (selectedNewAppChemicals[fieldIndex].includes(chemName)) { customInput.value = ''; return; }
+    selectedNewAppChemicals[fieldIndex].push(chemName);
+    newAppRenderSelectedChemicals(fieldIndex);
+    customInput.value = '';
+    document.getElementById(`newApp_customChemical_${fieldIndex}`).style.display = 'none';
+}
+
+function newAppRemoveChemical(fieldIndex, chemName) {
+    if (selectedNewAppChemicals[fieldIndex]) {
+        selectedNewAppChemicals[fieldIndex] = selectedNewAppChemicals[fieldIndex].filter(c => c !== chemName);
+        newAppRenderSelectedChemicals(fieldIndex);
+    }
+}
+
+function newAppRenderSelectedChemicals(fieldIndex) {
+    const container = document.getElementById(`newApp_selectedChemicals_${fieldIndex}`);
+    const chemicals = selectedNewAppChemicals[fieldIndex] || [];
+    container.innerHTML = chemicals.map(chem => {
+        const chemData = chemicalsDB.find(c => `${c.brandName || ''} ${c.chemName || ''}`.trim() === chem);
+        const type = chemData ? chemData.category : '';
+        return '<span class="chemical-tag" data-type="' + type + '">' + chem + '<button type="button" onclick="newAppRemoveChemical(' + fieldIndex + ', \'' + chem.replace(/'/g, "\\'") + '\')">&times;</button></span>';
+    }).join('');
+}
+
+function openNewAppCalendar(fieldIndex) {
+    openFieldCalendar(function(dateStr) {
+        document.getElementById(`newApp_optimalDate_${fieldIndex}`).value = dateStr;
+    });
+}
+
+function openNewAppMapModal(fieldIndex) {
+    const input = document.getElementById(`newApp_fieldLocation_${fieldIndex}`);
+    mapModalTargetInput = input;
+    document.getElementById('fieldMapModal').classList.add('active');
+    const modalTitle = document.querySelector('#fieldMapModal .map-modal-header h3');
+    if (modalTitle) modalTitle.textContent = 'Locate Your Field';
+    if (!editFieldMapInitialized) {
+        initEditFieldMap();
+    }
+    editFieldMap.setView([42.2975, -89.6438], 10);
+    if (editFieldMarker) {
+        editFieldMap.removeLayer(editFieldMarker);
+        editFieldMarker = null;
+    }
+    setTimeout(() => editFieldMap.invalidateSize(), 100);
+}
+
+const newApplicationModalHTML = `
+    <div class="modal-overlay" id="newApplicationModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+                <h3>New Application Request</h3>
+                <button class="modal-close" onclick="closeNewApplicationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="newAppForm" onsubmit="submitNewApplication(event)">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        <div class="form-group">
+                            <label for="newApp_fullName">Full Name *</label>
+                            <input type="text" id="newApp_fullName" name="newApp_fullName" required placeholder="John Smith" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                        </div>
+                        <div class="form-group">
+                            <label for="newApp_phone">Phone Number *</label>
+                            <input type="tel" id="newApp_phone" name="newApp_phone" required placeholder="(555) 123-4567" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:16px;">
+                        <label for="newApp_email">Email Address *</label>
+                        <input type="email" id="newApp_email" name="newApp_email" required placeholder="john@farm.com" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                    </div>
+                    <div class="form-group" style="margin-top:16px;">
+                        <label for="newApp_address">Billing Address *</label>
+                        <input type="text" id="newApp_address" name="newApp_address" required placeholder="123 Main Street" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+                        <div class="form-group">
+                            <label for="newApp_city">City *</label>
+                            <input type="text" id="newApp_city" name="newApp_city" required placeholder="Freeport" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                        </div>
+                        <div class="form-group">
+                            <label for="newApp_state">State *</label>
+                            <select id="newApp_state" name="newApp_state" required style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;">
+                                <option value="">Select state</option>
+                                <option value="IL">Illinois</option>
+                                <option value="WI">Wisconsin</option>
+                                <option value="IA">Iowa</option>
+                                <option value="IN">Indiana</option>
+                                <option value="MO">Missouri</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:16px;">
+                        <label for="newApp_zip">ZIP Code *</label>
+                        <input type="text" id="newApp_zip" name="newApp_zip" required placeholder="61032" pattern="[0-9]{5}" maxlength="5" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                    </div>
+                    <div class="form-group" style="margin-top:16px;">
+                        <label>Preferred Contact Method *</label>
+                        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;">
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;color:var(--text-primary);">
+                                <input type="checkbox" name="newApp_contactMethod_phone" value="phone" style="width:auto;">
+                                <span>Phone Call</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;color:var(--text-primary);">
+                                <input type="checkbox" name="newApp_contactMethod_email" value="email" style="width:auto;">
+                                <span>Email</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:0.9rem;color:var(--text-primary);">
+                                <input type="checkbox" name="newApp_contactMethod_text" value="text" style="width:auto;">
+                                <span>Text Message</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border-light);">
+                        <h3 style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin:0 0 4px 0;">Field Information</h3>
+                        <p style="font-size:0.85rem;color:var(--text-secondary);margin:0 0 16px 0;">Nobody knows your fields better than you do. Select the chemicals you want applied — we'll handle the precision application.</p>
+                        <div id="newAppFieldGroups"></div>
+                        <button type="button" class="btn btn-secondary" onclick="newAppAddFieldGroup()" style="margin-top:12px;display:inline-flex;align-items:center;gap:6px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Another Field
+                        </button>
+                    </div>
+                    <div class="form-group" style="margin-top:20px;">
+                        <label for="newApp_message">Additional Information</label>
+                        <textarea id="newApp_message" name="newApp_message" rows="4" placeholder="Provide any additional information or questions you may have..." style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;resize:vertical;box-sizing:border-box;font-family:inherit;"></textarea>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px;padding-top:16px;border-top:1px solid var(--border-light);">
+                        <button type="button" class="btn btn-secondary" onclick="closeNewApplicationModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;">
+                            <span>Submit Application</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+`;
+
+document.body.insertAdjacentHTML('beforeend', newApplicationModalHTML);
 
 // Add Chemical Modal
 const addChemicalModalHTML = `
@@ -7040,11 +7510,39 @@ window.addEventListener('resize', function() {
 
 // Close chemical dropdown when clicking outside
 document.addEventListener('click', function(e) {
-    if (!e.target.closest('.chemical-search-wrapper') && !e.target.closest('#editJobModal')) {
+    if (!e.target.closest('.chemical-search-wrapper') && !e.target.closest('#editJobModal') && !e.target.closest('#newApplicationModal')) {
         document.querySelectorAll('.chemical-dropdown').forEach(dropdown => {
-            if (!dropdown.closest('#editJobModal')) {
+            if (!dropdown.closest('#editJobModal') && !dropdown.closest('#newApplicationModal')) {
                 dropdown.style.display = 'none';
             }
         });
+    }
+});
+
+// Close new app modal on overlay click
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('modal-overlay') && e.target.id === 'newApplicationModal') {
+        closeNewApplicationModal();
+    }
+});
+
+// Close field calendar on overlay click
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('calendar-modal') && e.target.id === 'fieldCalendarModal') {
+        closeFieldCalendar();
+    }
+});
+
+// Close modals on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const newAppModal = document.getElementById('newApplicationModal');
+        if (newAppModal && newAppModal.classList.contains('active')) {
+            closeNewApplicationModal();
+        }
+        const fieldCal = document.getElementById('fieldCalendarModal');
+        if (fieldCal && fieldCal.classList.contains('active')) {
+            closeFieldCalendar();
+        }
     }
 });

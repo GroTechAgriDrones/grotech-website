@@ -1,8 +1,7 @@
-import { S3Client, GetObjectCommand, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const s3 = new S3Client({ region: 'us-east-2' });
 const BUCKET_NAME = 'grotech-website-files';
-const JOBS_PREFIX = 'jobs/';
 
 export const handler = async (event) => {
     const headers = {
@@ -28,43 +27,25 @@ export const handler = async (event) => {
 
         const updateData = JSON.parse(event.body);
 
-        // Find the job file in S3
-        const listCommand = new ListObjectsV2Command({
-            Bucket: BUCKET_NAME,
-            Prefix: JOBS_PREFIX
-        });
-
-        const listResponse = await s3.send(listCommand);
-        const files = listResponse.Contents || [];
-
-        // Find the file containing this job ID
-        let jobFileKey = null;
-        let jobData = null;
-
-        for (const file of files) {
-            if (file.Key.endsWith('.json')) {
-                const getCommand = new GetObjectCommand({
-                    Bucket: BUCKET_NAME,
-                    Key: file.Key
-                });
-                const getResponse = await s3.send(getCommand);
-                const body = await getResponse.Body.transformToString();
-                const data = JSON.parse(body);
-
-                if (data.id === jobId) {
-                    jobFileKey = file.Key;
-                    jobData = data;
-                    break;
-                }
+        const jobKey = `jobs/${jobId}.json`;
+        let jobData;
+        try {
+            const getCommand = new GetObjectCommand({
+                Bucket: BUCKET_NAME,
+                Key: jobKey
+            });
+            const getResponse = await s3.send(getCommand);
+            const body = await getResponse.Body.transformToString();
+            jobData = JSON.parse(body);
+        } catch (err) {
+            if (err.name === 'NoSuchKey') {
+                return {
+                    statusCode: 404,
+                    headers,
+                    body: JSON.stringify({ error: 'Job not found' })
+                };
             }
-        }
-
-        if (!jobFileKey || !jobData) {
-            return {
-                statusCode: 404,
-                headers,
-                body: JSON.stringify({ error: 'Job not found' })
-            };
+            throw err;
         }
 
         // Update the job data
@@ -77,7 +58,7 @@ export const handler = async (event) => {
         // Save updated job
         const putCommand = new PutObjectCommand({
             Bucket: BUCKET_NAME,
-            Key: jobFileKey,
+            Key: jobKey,
             Body: JSON.stringify(updatedJob, null, 2),
             ContentType: 'application/json'
         });
