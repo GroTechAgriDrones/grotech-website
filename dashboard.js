@@ -4393,7 +4393,7 @@ async function toggleFieldStatus(jobId, fieldIndex) {
             clearCache('jobs');
             
             // Refresh the view
-            viewJob(jobId);
+            await viewJob(jobId);
             fetchJobs();
         } else {
             console.error('Failed to update field status');
@@ -6400,6 +6400,7 @@ document.getElementById('contentArea').innerHTML = pages.overview.content;
 // Fetch data after content is rendered
 fetchApplications();
 fetchJobs();
+fetchChemicalsForCalculator();
 
 // Chemical Calculator Functions
 let chemicalRowCount = 1;
