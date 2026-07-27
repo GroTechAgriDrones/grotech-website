@@ -3516,25 +3516,24 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000, retries = 1)
     }
 }
 
-const CACHE_TTL = 60000;
 const CACHE_PREFIX = 'gc_';
 
 function getCache(key) {
     try {
-        const item = JSON.parse(sessionStorage.getItem(CACHE_PREFIX + key));
-        if (item && Date.now() - item.timestamp < CACHE_TTL) return item.data;
+        const item = JSON.parse(localStorage.getItem(CACHE_PREFIX + key));
+        if (item) return item.data;
     } catch (e) {}
     return null;
 }
 
 function setCache(key, data) {
     try {
-        sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() }));
+        localStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() }));
     } catch (e) {}
 }
 
 function clearCache(key) {
-    try { sessionStorage.removeItem(CACHE_PREFIX + key); } catch (e) {}
+    try { localStorage.removeItem(CACHE_PREFIX + key); } catch (e) {}
 }
 
 function loadingRow(colspan, msg) {
