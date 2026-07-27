@@ -3497,6 +3497,13 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000, retries = 1)
         try {
             const res = await fetch(url, { ...options, signal: controller.signal });
             clearTimeout(id);
+            if (res.ok || attempt >= retries) {
+                return res;
+            }
+            if (res.status === 502 || res.status === 503 || res.status === 504) {
+                await new Promise(r => setTimeout(r, 1000));
+                continue;
+            }
             return res;
         } catch (err) {
             clearTimeout(id);
