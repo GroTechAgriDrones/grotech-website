@@ -6033,9 +6033,60 @@ function renderChemicalManagerTable() {
 
 let newAppFieldCount = 1;
 const selectedNewAppChemicals = {};
+let newAppNameLookup = [];
+
+function buildNameLookup() {
+    const seen = {};
+    newAppNameLookup = [];
+    for (let i = jobs.length - 1; i >= 0; i--) {
+        const j = jobs[i];
+        const name = (j.fullName || '').trim();
+        if (name && !seen[name]) {
+            seen[name] = true;
+            newAppNameLookup.push({
+                name: name,
+                phone: j.phone || '',
+                email: j.email || '',
+                address: j.address || '',
+                city: j.city || '',
+                state: j.state || '',
+                zip: j.zip || ''
+            });
+        }
+    }
+}
+
+function newAppFilterNames(input) {
+    const dropdown = document.getElementById('newApp_nameDropdown');
+    if (!input || input.length < 1) { dropdown.style.display = 'none'; return; }
+    const q = input.toLowerCase();
+    const matches = newAppNameLookup.filter(e => e.name.toLowerCase().includes(q));
+    if (matches.length === 0) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = matches.map((e, i) =>
+        '<div class="chemical-option" onmousedown="newAppSelectName(' + i + ')" style="padding:10px 14px;cursor:pointer;font-size:0.9rem;border-bottom:1px solid var(--border-light);">' +
+        '<strong>' + e.name + '</strong>' +
+        (e.phone ? '<span style="display:block;font-size:0.8rem;color:var(--text-muted);">' + e.phone + (e.email ? ' &middot; ' + e.email : '') + '</span>' : '') +
+        '</div>'
+    ).join('');
+    dropdown.style.display = 'block';
+}
+
+function newAppSelectName(index) {
+    const e = newAppNameLookup[index];
+    if (!e) return;
+    document.getElementById('newApp_fullName').value = e.name;
+    document.getElementById('newApp_phone').value = e.phone;
+    document.getElementById('newApp_email').value = e.email;
+    document.getElementById('newApp_address').value = e.address;
+    document.getElementById('newApp_city').value = e.city;
+    document.getElementById('newApp_state').value = e.state;
+    document.getElementById('newApp_zip').value = e.zip;
+    document.getElementById('newApp_nameDropdown').style.display = 'none';
+}
 
 function openNewApplicationModal() {
     newAppFieldCount = 1;
+    buildNameLookup();
     Object.keys(selectedNewAppChemicals).forEach(k => delete selectedNewAppChemicals[k]);
     document.getElementById('newApplicationModal').classList.add('active');
     document.getElementById('newAppForm').reset();
@@ -6316,9 +6367,10 @@ const newApplicationModalHTML = `
             <div class="modal-body">
                 <form id="newAppForm" onsubmit="submitNewApplication(event)">
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                        <div class="form-group">
+                        <div class="form-group" style="position:relative;">
                             <label for="newApp_fullName">Full Name *</label>
-                            <input type="text" id="newApp_fullName" name="newApp_fullName" required placeholder="John Smith" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                            <input type="text" id="newApp_fullName" name="newApp_fullName" required placeholder="John Smith" autocomplete="off" oninput="newAppFilterNames(this.value)" onblur="setTimeout(function(){var d=document.getElementById('newApp_nameDropdown');if(d)d.style.display='none';},200)" style="width:100%;padding:10px 14px;border:1px solid var(--border-light);border-radius:8px;background:var(--bg-card);color:var(--text-primary);font-size:0.95rem;box-sizing:border-box;">
+                            <div id="newApp_nameDropdown" style="position:absolute;top:100%;left:0;right:0;z-index:200;background:var(--bg-card);border:1px solid var(--border);border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;display:none;box-shadow:var(--shadow-lg);"></div>
                         </div>
                         <div class="form-group">
                             <label for="newApp_phone">Phone Number *</label>
