@@ -1844,6 +1844,7 @@ const pages = {
                         form.reset();
                         dateEl.value = new Date().toISOString().split('T')[0];
                         topicsEl.value = '';
+                        clearCache('training');
                         await fetchTrainingRecords();
                     } catch (err) {
                         console.error('Error saving training record:', err);
@@ -1941,6 +1942,7 @@ const pages = {
                         });
                         form.reset();
                         document.getElementById('maintDate').value = new Date().toISOString().split('T')[0];
+                        clearCache('maintenance');
                         await fetchMaintenanceRecords();
                     } catch (err) {
                         console.error('Error saving maintenance record:', err);
@@ -1971,18 +1973,26 @@ const pages = {
 let maintenanceRecords = [];
 
 async function fetchMaintenanceRecords() {
+    const cached = getCache('maintenance');
+    if (cached) {
+        maintenanceRecords = cached;
+    } else {
+        const container = document.getElementById('maintenanceRecordsContainer');
+        if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;font-style:italic;">Loading...</div>';
+    }
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/maintenance`);
         if (response.ok) {
             const data = await response.json();
             maintenanceRecords = data.records || [];
+            setCache('maintenance', maintenanceRecords);
         } else {
             console.error('Error fetching maintenance records:', response.status);
-            maintenanceRecords = [];
+            if (!cached) maintenanceRecords = [];
         }
     } catch (err) {
         console.error('Error fetching maintenance records:', err);
-        maintenanceRecords = [];
+        if (!cached) maintenanceRecords = [];
     }
     renderMaintenanceTable();
 }
@@ -2053,6 +2063,7 @@ function renderMaintenanceTable() {
             document.getElementById('maintTechnician').value = record.technician;
             try {
                 await fetchWithTimeout(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+                clearCache('maintenance');
                 await fetchMaintenanceRecords();
             } catch (err) {
                 console.error('Error deleting record for edit:', err);
@@ -2065,6 +2076,7 @@ function renderMaintenanceTable() {
             const id = this.getAttribute('data-id');
             try {
                 await fetchWithTimeout(`${API_BASE_URL}/maintenance/${id}`, { method: 'DELETE' });
+                clearCache('maintenance');
                 await fetchMaintenanceRecords();
             } catch (err) {
                 console.error('Error deleting maintenance record:', err);
@@ -2077,18 +2089,26 @@ function renderMaintenanceTable() {
 let trainingRecords = [];
 
 async function fetchTrainingRecords() {
+    const cached = getCache('training');
+    if (cached) {
+        trainingRecords = cached;
+    } else {
+        const container = document.getElementById('trainingRecordsContainer');
+        if (container) container.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7280;font-style:italic;">Loading...</div>';
+    }
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/training`);
         if (response.ok) {
             const data = await response.json();
             trainingRecords = data.records || [];
+            setCache('training', trainingRecords);
         } else {
             console.error('Error fetching training records:', response.status);
-            trainingRecords = [];
+            if (!cached) trainingRecords = [];
         }
     } catch (err) {
         console.error('Error fetching training records:', err);
-        trainingRecords = [];
+        if (!cached) trainingRecords = [];
     }
     renderTrainingTable();
 }
@@ -2213,6 +2233,7 @@ function openTrainingDetailModal(record) {
         document.getElementById('trainSelfCertified').checked = record.selfCertified !== false;
         try {
             await fetchWithTimeout(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
+            clearCache('training');
             await fetchTrainingRecords();
         } catch (err) {
             console.error('Error deleting record for edit:', err);
@@ -2224,6 +2245,7 @@ function openTrainingDetailModal(record) {
         if (!confirm('Delete this training record? This cannot be undone.')) return;
         try {
             await fetchWithTimeout(`${API_BASE_URL}/training/${record.id}`, { method: 'DELETE' });
+            clearCache('training');
             await fetchTrainingRecords();
             closeTrainingDetailModal();
         } catch (err) {
@@ -3487,30 +3509,65 @@ async function fetchWithTimeout(url, options = {}, timeout = 15000, retries = 1)
     }
 }
 
+const CACHE_TTL = 60000;
+const CACHE_PREFIX = 'gc_';
+
+function getCache(key) {
+    try {
+        const item = JSON.parse(sessionStorage.getItem(CACHE_PREFIX + key));
+        if (item && Date.now() - item.timestamp < CACHE_TTL) return item.data;
+    } catch (e) {}
+    return null;
+}
+
+function setCache(key, data) {
+    try {
+        sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify({ data, timestamp: Date.now() }));
+    } catch (e) {}
+}
+
+function clearCache(key) {
+    try { sessionStorage.removeItem(CACHE_PREFIX + key); } catch (e) {}
+}
+
+function loadingRow(colspan, msg) {
+    return '<tr><td colspan="' + colspan + '" style="text-align:center;padding:30px;color:#6b7280;font-style:italic;">' + (msg || 'Loading...') + '</td></tr>';
+}
+
 let applications = [];
 let currentApplicationId = null;
 
 // Fetch all applications from API
 async function fetchApplications() {
+    const cached = getCache('applications');
+    if (cached) {
+        applications = cached;
+        renderApplicationsTable();
+        updateDashboardStats();
+    } else {
+        const tbody = document.getElementById('applicationsTableBody');
+        if (tbody) tbody.innerHTML = loadingRow(8);
+    }
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/applications`);
         if (response.ok) {
             applications = await response.json();
+            setCache('applications', applications);
             renderApplicationsTable();
             updateDashboardStats();
         } else {
             const errorText = await response.text();
             console.error('Error fetching applications:', response.status, errorText);
-            const tbody = document.getElementById('applicationsTableBody');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Server returned ' + response.status + '. Please try again.</td></tr>';
+            if (!cached) {
+                const tbody = document.getElementById('applicationsTableBody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Server returned ' + response.status + '. Please try again.</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error fetching applications:', error);
-        const tbody = document.getElementById('applicationsTableBody');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Check your connection and try again.</td></tr>';
+        if (!cached) {
+            const tbody = document.getElementById('applicationsTableBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading applications. Check your connection and try again.</td></tr>';
         }
     }
 }
@@ -3789,6 +3846,7 @@ async function updateApplicationStatus(status) {
         if (response.ok) {
             const result = await response.json();
             console.log('Status updated:', result);
+            clearCache('applications');
             await fetchApplications();
             closeApplicationModal();
         } else {
@@ -3838,6 +3896,7 @@ async function deleteApplication(id) {
             if (response.ok) {
                 const result = await response.json();
                 console.log('Application deleted:', result);
+                clearCache('applications');
                 await fetchApplications();
             } else {
                 const result = await response.json();
@@ -3863,6 +3922,7 @@ async function deleteJob(id) {
             if (response.ok) {
                 const result = await response.json();
                 console.log('Job deleted:', result);
+                clearCache('jobs');
                 await fetchJobs();
             } else {
                 const result = await response.json();
@@ -3889,31 +3949,40 @@ const ACRES_BASELINE = 3694;
 
 // Fetch jobs from S3 jobs/ folder
 async function fetchJobs() {
+    const cached = getCache('jobs');
+    if (cached) {
+        jobs = cached;
+        updateJobsTable();
+        updateJobsStats();
+    } else {
+        const tbody = document.getElementById('jobsTableBody');
+        if (tbody) tbody.innerHTML = loadingRow(8);
+    }
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/jobs`);
         if (response.ok) {
             const data = await response.json();
             jobs = data.jobs || [];
-            // Ensure each job has an id (fallback to index-based if missing)
             jobs = jobs.map((job, index) => ({
                 ...job,
                 id: job.id || job.applicationId || job.appId || `JOB-${index + 1}`
             }));
+            setCache('jobs', jobs);
             updateJobsTable();
             updateJobsStats();
         } else {
             console.error('Error fetching jobs:', response.status);
-            const tbody = document.getElementById('jobsTableBody');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading jobs. Server returned ' + response.status + '. Please try again.</td></tr>';
+            if (!cached) {
+                const tbody = document.getElementById('jobsTableBody');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading jobs. Server returned ' + response.status + '. Please try again.</td></tr>';
             }
         }
     } catch (error) {
         console.error('Error fetching jobs:', error);
-        jobs = [];
-        const tbody = document.getElementById('jobsTableBody');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading jobs. Check your connection and try again.</td></tr>';
+        jobs = jobs || [];
+        if (!cached) {
+            const tbody = document.getElementById('jobsTableBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading jobs. Check your connection and try again.</td></tr>';
         }
     }
 }
@@ -3938,6 +4007,7 @@ async function updateJobSchedule(jobId, scheduledDate) {
         const result = await response.json();
         
         if (response.ok) {
+            clearCache('jobs');
             await fetchJobs();
         } else {
             alert('Error: ' + (result.error || 'Failed to update schedule'));
@@ -3962,6 +4032,7 @@ async function updateJobStatus(jobId, status) {
         });
         
         if (response.ok) {
+            clearCache('jobs');
             await fetchJobs();
         }
     } catch (error) {
@@ -4312,6 +4383,7 @@ async function toggleFieldStatus(jobId, fieldIndex) {
         if (response.ok) {
             // Update local job data
             job.jobStatus = newJobStatus;
+            clearCache('jobs');
             
             // Refresh the view
             viewJob(jobId);
@@ -4735,6 +4807,7 @@ async function saveEditedJob() {
             // Update local data
             Object.assign(job, updatedJob);
             closeEditJobModal();
+            clearCache('jobs');
             fetchJobs();
         } else {
             alert('Error saving job. Please try again.');
@@ -5372,6 +5445,8 @@ async function updateApplicationStatusWithJob(status) {
         
         if (response.ok) {
             // Refresh applications and jobs lists
+            clearCache('applications');
+            clearCache('jobs');
             await fetchApplications();
             await fetchJobs();
             closeApplicationModal();
@@ -5388,9 +5463,6 @@ async function updateApplicationStatusWithJob(status) {
 // Replace the global updateApplicationStatus function
 window.updateApplicationStatus = updateApplicationStatusWithJob;
 
-// Initialize jobs when page loads
-fetchJobs();
-
 // ============================================
 // END JOBS MANAGEMENT
 // ============================================
@@ -5400,19 +5472,36 @@ let documents = [];
 let categories = [];
 
 async function fetchDocuments() {
+    const grid = document.getElementById('documentsGrid');
+    const cached = getCache('documents');
+    if (cached) {
+        documents = cached.documents || [];
+        categories = cached.categories || [];
+        updateCategoryFilter();
+        renderDocuments();
+    } else if (grid) {
+        grid.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#6b7280;font-style:italic;">Loading documents...</div>';
+    }
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/documents`);
         if (response.ok) {
             const data = await response.json();
             documents = data.documents || [];
             categories = data.categories || [];
+            setCache('documents', { documents, categories });
             updateCategoryFilter();
             renderDocuments();
         } else {
             console.error('Error fetching documents:', response.status);
+            if (!cached && grid) {
+                grid.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#ef4444;">Error loading documents.</div>';
+            }
         }
     } catch (error) {
         console.error('Error fetching documents:', error);
+        if (!cached && grid) {
+            grid.innerHTML = '<div style="text-align:center;padding:60px 20px;color:#ef4444;">Error loading documents. Check your connection.</div>';
+        }
     }
 }
 
@@ -5490,6 +5579,7 @@ async function removeCategory(cat) {
             categories = newCategories;
             updateCategoryList();
             updateCategoryFilter();
+            clearCache('documents');
             await fetchDocuments();
         } catch (error) {
             console.error('Error removing category:', error);
@@ -5615,6 +5705,7 @@ async function deleteDocument(id) {
             await fetchWithTimeout(`${API_BASE_URL}/documents/${id}`, {
                 method: 'DELETE'
             });
+            clearCache('documents');
             await fetchDocuments();
         } catch (error) {
             console.error('Error deleting document:', error);
@@ -5629,6 +5720,7 @@ async function changeDocumentCategory(docId, newCategory) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ category: newCategory })
         });
+        clearCache('documents');
         await fetchDocuments();
     } catch (error) {
         console.error('Error updating category:', error);
@@ -5675,6 +5767,7 @@ async function handleFileUpload(files) {
                 })
             });
             
+            clearCache('documents');
             await fetchDocuments();
             
         } catch (error) {
@@ -5702,6 +5795,16 @@ let chemicalColumns = [
 ];
 
 async function initChemicalListPage() {
+    const cached = getCache('chemicals_list');
+    if (cached) {
+        chemicalColumns = cached.columns;
+        chemicalDB = cached.chemicalDB;
+        chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
+        renderChemicalManagerTable();
+    } else {
+        const tbody = document.getElementById('chemicalManagerTableBody');
+        if (tbody) tbody.innerHTML = loadingRow(chemicalColumns.length);
+    }
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/chemicals`);
         if (response.ok) {
@@ -5710,7 +5813,6 @@ async function initChemicalListPage() {
             // Load columns from API
             if (data.columns && data.columns.length > 0) {
                 chemicalColumns = data.columns;
-                // Ensure rateUnit has all required options including % v/v
                 const rateUnitCol = chemicalColumns.find(c => c.key === 'rateUnit');
                 if (rateUnitCol && rateUnitCol.options) {
                     if (!rateUnitCol.options.includes('% v/v')) {
@@ -5727,15 +5829,18 @@ async function initChemicalListPage() {
             
             // Also update global chemicalsDB for calculator
             chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
+            
+            setCache('chemicals_list', { columns: chemicalColumns, chemicalDB: chemicalDB });
         } else {
             console.error('Error loading chemicals:', response.status);
         }
         renderChemicalManagerTable();
     } catch (error) {
         console.error('Error loading chemicals:', error);
-        // Keep default columns and empty chemicals
-        chemicalDB = [];
-        renderChemicalManagerTable();
+        if (!cached) {
+            chemicalDB = [];
+            renderChemicalManagerTable();
+        }
     }
 }
 
@@ -6103,6 +6208,8 @@ async function saveChemicals() {
         if (response.ok) {
             // Update global chemicalsDB for calculator
             chemicalsDB = JSON.parse(JSON.stringify(chemicalDB));
+            clearCache('chemicals_list');
+            clearCache('chemicals_calc');
             
             // Refresh calculator dropdowns if they exist
             buildChemicalDropdownOptions();
@@ -6293,19 +6400,25 @@ let chemicalsDB = []; // Chemical database from API
 
 // Fetch chemicals from API on page load
 async function fetchChemicalsForCalculator() {
+    const cached = getCache('chemicals_calc');
+    if (cached) {
+        chemicalsDB = cached;
+        buildChemicalDropdownOptions();
+    }
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/chemicals`);
         if (response.ok) {
             const data = await response.json();
             chemicalsDB = data.chemicals || [];
+            setCache('chemicals_calc', chemicalsDB);
         } else {
             console.error('Error fetching chemicals:', response.status);
-            chemicalsDB = getDefaultChemicals();
+            if (!cached) chemicalsDB = getDefaultChemicals();
         }
         buildChemicalDropdownOptions();
     } catch (error) {
         console.error('Error fetching chemicals:', error);
-        chemicalsDB = getDefaultChemicals();
+        if (!cached) chemicalsDB = getDefaultChemicals();
         buildChemicalDropdownOptions();
     }
 }
