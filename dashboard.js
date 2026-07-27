@@ -3842,6 +3842,56 @@ function closeFieldMapModal() {
     }
 }
 
+// Search for a location on the field map
+function searchFieldMapLocation() {
+    const input = document.getElementById('mapSearchInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    const map = editFieldMap;
+    if (!map) return;
+
+    // Check if input is GPS coordinates (two comma-separated numbers)
+    const coordMatch = query.match(/^\s*([+-]?\d+\.?\d*)\s*,\s*([+-]?\d+\.?\d*)\s*$/);
+    if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lng = parseFloat(coordMatch[2]);
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            map.setView([lat, lng], 15);
+            if (editFieldMarker) map.removeLayer(editFieldMarker);
+            editFieldMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            editFieldMarker.on('dragend', function() {});
+            return;
+        }
+    }
+
+    // Geocode via Nominatim
+    const locLower = query.toLowerCase();
+    const suffix = (locLower.includes('illinois') || locLower.includes('united states') || locLower.includes('usa')) ? '' : ', Illinois, USA';
+    const url = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query + suffix) + '&format=json&limit=1';
+
+    fetch(url)
+        .then(function(r) {
+            if (!r.ok) throw new Error('Geocode request failed');
+            return r.json();
+        })
+        .then(function(data) {
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                map.setView([lat, lng], 15);
+                if (editFieldMarker) map.removeLayer(editFieldMarker);
+                editFieldMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                editFieldMarker.on('dragend', function() {});
+            } else {
+                alert('Location not found. Try a different search term.');
+            }
+        })
+        .catch(function() {
+            alert('Failed to search for location. Please try again.');
+        });
+}
+
 // Update application status via API
 async function updateApplicationStatus(status) {
     if (!currentApplicationId) return;
@@ -6034,12 +6084,12 @@ function renderChemicalManagerTable() {
 let newAppFieldCount = 1;
 const selectedNewAppChemicals = {};
 let newAppNameLookup = [];
+let newAppNameMatches = [];
 
 function buildNameLookup() {
     const seen = {};
     newAppNameLookup = [];
-    for (let i = jobs.length - 1; i >= 0; i--) {
-        const j = jobs[i];
+    for (const j of jobs) {
         const name = (j.fullName || '').trim();
         if (name && !seen[name]) {
             seen[name] = true;
@@ -6060,9 +6110,9 @@ function newAppFilterNames(input) {
     const dropdown = document.getElementById('newApp_nameDropdown');
     if (!input || input.length < 1) { dropdown.style.display = 'none'; return; }
     const q = input.toLowerCase();
-    const matches = newAppNameLookup.filter(e => e.name.toLowerCase().includes(q));
-    if (matches.length === 0) { dropdown.style.display = 'none'; return; }
-    dropdown.innerHTML = matches.map((e, i) =>
+    newAppNameMatches = newAppNameLookup.filter(e => e.name.toLowerCase().includes(q));
+    if (newAppNameMatches.length === 0) { dropdown.style.display = 'none'; return; }
+    dropdown.innerHTML = newAppNameMatches.map((e, i) =>
         '<div class="chemical-option" onmousedown="newAppSelectName(' + i + ')" style="padding:10px 14px;cursor:pointer;font-size:0.9rem;border-bottom:1px solid var(--border-light);">' +
         '<strong>' + e.name + '</strong>' +
         (e.phone ? '<span style="display:block;font-size:0.8rem;color:var(--text-muted);">' + e.phone + (e.email ? ' &middot; ' + e.email : '') + '</span>' : '') +
@@ -6072,7 +6122,7 @@ function newAppFilterNames(input) {
 }
 
 function newAppSelectName(index) {
-    const e = newAppNameLookup[index];
+    const e = newAppNameMatches[index];
     if (!e) return;
     document.getElementById('newApp_fullName').value = e.name;
     document.getElementById('newApp_phone').value = e.phone;
