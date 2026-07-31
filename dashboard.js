@@ -4260,6 +4260,27 @@ async function viewJob(jobId) {
         }).join('');
     }
     
+    // Build Job Times display (all slots under one section)
+    let jobTimesHtml = '';
+    const displayTimeSlots = job.timeSlots && job.timeSlots.length ? job.timeSlots : (job.startTime || job.stopTime ? [{ start: job.startTime, stop: job.stopTime }] : []);
+    if (displayTimeSlots.length) {
+        jobTimesHtml = `
+            <div class="detail-section">
+                <h4>Job Times</h4>
+                <div class="detail-grid">
+                    ${displayTimeSlots.map((slot, i) => `
+                    <div class="detail-item">
+                        <label>Start${i > 0 ? ' ' + (i + 1) : ''}</label>
+                        <span>${formatJobDateTime(slot.start)}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Stop${i > 0 ? ' ' + (i + 1) : ''}</label>
+                        <span>${formatJobDateTime(slot.stop)}</span>
+                    </div>`).join('')}
+                </div>
+            </div>`;
+    }
+    
     const content = `
         <div class="application-detail">
             <div class="application-detail-header">
@@ -4311,21 +4332,7 @@ async function viewJob(jobId) {
                 ${fieldsHtml}
             </div>
             
-            ${job.startTime || job.stopTime ? `
-            <div class="detail-section">
-                <h4>Job Times</h4>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <label>Start</label>
-                        <span>${formatJobDateTime(job.startTime)}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Stop</label>
-                        <span>${formatJobDateTime(job.stopTime)}</span>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
+            ${jobTimesHtml}
             
             ${job.message ? `
             <div class="detail-section">
@@ -4608,6 +4615,16 @@ async function openEditJobModal(jobId) {
         }).join('');
     }
     
+    // Build job time slots (supports multiple start/stop pairs)
+    let jobTimeSlots = job.timeSlots && job.timeSlots.length ? job.timeSlots : [];
+    if (jobTimeSlots.length === 0 && (job.startTime || job.stopTime)) {
+        jobTimeSlots = [{ start: job.startTime, stop: job.stopTime }];
+    }
+    if (jobTimeSlots.length === 0) {
+        jobTimeSlots = [{ start: '', stop: '' }];
+    }
+    const timeSlotsHtml = jobTimeSlots.map(slot => jobTimeSlotHtml(slot)).join('');
+    
     const content = `
         <div class="edit-job-form">
             <div class="edit-section">
@@ -4683,22 +4700,12 @@ async function openEditJobModal(jobId) {
             
             <div class="edit-section">
                 <h4>Job Times</h4>
-                <div class="edit-form-grid">
-                    <div class="form-group">
-                        <label>Start Time</label>
-                        <div class="job-time-picker">
-                            <input type="text" id="edit_startDate" class="job-time-input" value="${splitJobDateTime(job.startTime).date}" placeholder="Select date" readonly onclick="openJobTimeDatePicker('start')">
-                            <input type="text" id="edit_startTime" class="job-time-input" value="${splitJobDateTime(job.startTime).display}" placeholder="Select time" readonly onclick="openJobTimePicker('start')">
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Stop Time</label>
-                        <div class="job-time-picker">
-                            <input type="text" id="edit_stopDate" class="job-time-input" value="${splitJobDateTime(job.stopTime).date}" placeholder="Select date" readonly onclick="openJobTimeDatePicker('stop')">
-                            <input type="text" id="edit_stopTime" class="job-time-input" value="${splitJobDateTime(job.stopTime).display}" placeholder="Select time" readonly onclick="openJobTimePicker('stop')">
-                        </div>
-                    </div>
+                <div id="editTimeSlots">
+                    ${timeSlotsHtml}
                 </div>
+                <button type="button" class="add-times-btn" onclick="addJobTimeSlot()">
+                    + Add Times
+                </button>
             </div>
             
             <div class="edit-section">
@@ -4733,6 +4740,8 @@ async function openEditJobModal(jobId) {
             renderEditFieldPhotoPreview(group, existingKey);
         }
     });
+    
+    updateJobTimeSlotRemoveButtons();
     
     // Set up event delegation for field photo controls (once per modal shell)
     const editContent = document.getElementById('editJobContent');
@@ -5297,6 +5306,16 @@ async function saveEditedJob() {
     if (!job) return;
     
     // Collect form data
+    const timeSlots = collectJobTimeSlots();
+    
+    // Validate each time slot
+    for (let i = 0; i < timeSlots.length; i++) {
+        if (timeSlots[i].start && timeSlots[i].stop && timeSlots[i].stop < timeSlots[i].start) {
+            alert(`Stop time must be after start time (row ${i + 1}).`);
+            return;
+        }
+    }
+    
     const updatedJob = {
         fullName: document.getElementById('edit_fullName').value,
         phone: document.getElementById('edit_phone').value,
@@ -5308,15 +5327,11 @@ async function saveEditedJob() {
         state: document.getElementById('edit_state').value,
         zip: document.getElementById('edit_zip').value,
         message: document.getElementById('edit_message').value,
-        startTime: combineJobDateTime(document.getElementById('edit_startDate').value, document.getElementById('edit_startTime').value),
-        stopTime: combineJobDateTime(document.getElementById('edit_stopDate').value, document.getElementById('edit_stopTime').value),
+        timeSlots: timeSlots,
+        startTime: timeSlots[0] ? timeSlots[0].start : '',
+        stopTime: timeSlots[0] ? timeSlots[0].stop : '',
         fields: []
     };
-    
-    if (updatedJob.startTime && updatedJob.stopTime && updatedJob.stopTime < updatedJob.startTime) {
-        alert('Stop time must be after start time.');
-        return;
-    }
     
     // Update fields — iterate DOM field groups (includes dynamically added fields)
     const fieldGroups = document.querySelectorAll('#editFieldGroups .edit-field-group');
@@ -5679,28 +5694,26 @@ function formatJobDateTime(iso) {
 }
 
 // Date picking for job start/stop times (reuses the existing calendar modal)
-let jobTimeDateTarget = null;
-function openJobTimeDatePicker(target) {
-    jobTimeDateTarget = target;
+// Date picking for job time slots (reuses the existing calendar modal, past dates allowed)
+function openJobTimeDatePicker(input) {
+    closeJobTimePicker();
     openFieldCalendar(function(dateStr) {
-        const input = document.getElementById(jobTimeDateTarget === 'stop' ? 'edit_stopDate' : 'edit_startDate');
-        if (input) input.value = dateStr;
+        input.value = dateStr;
     }, true);
 }
 
-// Custom click-only time picker popover for job start/stop times
-let jobTimePickerTarget = null;
+// Custom click-only time picker popover for job time slots
+let jobTimePickerInput = null;
 let jobTimePickerInitialized = false;
 
-function openJobTimePicker(target) {
-    const input = document.getElementById(`edit_${target}Time`);
+function openJobTimePicker(input) {
     if (!input) return;
     const popover = document.getElementById('jobTimePicker');
-    if (popover && popover.classList.contains('active') && jobTimePickerTarget === target) {
+    if (popover && popover.classList.contains('active') && jobTimePickerInput === input) {
         closeJobTimePicker();
         return;
     }
-    jobTimePickerTarget = target;
+    jobTimePickerInput = input;
     buildJobTimePicker();
     const popoverEl = document.getElementById('jobTimePicker');
     const rect = input.getBoundingClientRect();
@@ -5756,8 +5769,7 @@ function updateJobTimePreview() {
     const hours = document.getElementById('jobTimeHour').value;
     const minutes = document.getElementById('jobTimeMinute').value;
     const ampm = document.getElementById('jobTimeAmpm').value;
-    const input = jobTimePickerTarget ? document.getElementById(`edit_${jobTimePickerTarget}Time`) : null;
-    if (input) input.value = `${hours}:${minutes} ${ampm}`;
+    if (jobTimePickerInput) jobTimePickerInput.value = `${hours}:${minutes} ${ampm}`;
 }
 
 function commitJobTime() {
@@ -5766,24 +5778,90 @@ function commitJobTime() {
 }
 
 function clearJobTime() {
-    const input = jobTimePickerTarget ? document.getElementById(`edit_${jobTimePickerTarget}Time`) : null;
-    if (input) input.value = '';
+    if (jobTimePickerInput) jobTimePickerInput.value = '';
     closeJobTimePicker();
 }
 
 function closeJobTimePicker() {
     const popover = document.getElementById('jobTimePicker');
     if (popover) popover.classList.remove('active');
-    jobTimePickerTarget = null;
+    jobTimePickerInput = null;
 }
 
 // Close the time picker when clicking elsewhere
 document.addEventListener('click', function(e) {
     if (e.target.closest('.job-time-popover')) return;
-    const targetId = e.target.id || '';
-    if (targetId === 'edit_startTime' || targetId === 'edit_stopTime') return;
+    if (e.target.closest('.job-time-input')) return;
     closeJobTimePicker();
 });
+
+// Build HTML for one job time slot row
+function jobTimeSlotHtml(slot) {
+    const start = splitJobDateTime(slot && slot.start);
+    const stop = splitJobDateTime(slot && slot.stop);
+    return `
+        <div class="job-time-slot">
+            <div class="form-group">
+                <label>Start Time</label>
+                <div class="job-time-picker">
+                    <input type="text" class="job-time-input job-time-date-input" data-target="start" value="${start.date}" placeholder="Select date" readonly onclick="openJobTimeDatePicker(this)">
+                    <input type="text" class="job-time-input job-time-time-input" data-target="start" value="${start.display}" placeholder="Select time" readonly onclick="openJobTimePicker(this)">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Stop Time</label>
+                <div class="job-time-picker">
+                    <input type="text" class="job-time-input job-time-date-input" data-target="stop" value="${stop.date}" placeholder="Select date" readonly onclick="openJobTimeDatePicker(this)">
+                    <input type="text" class="job-time-input job-time-time-input" data-target="stop" value="${stop.display}" placeholder="Select time" readonly onclick="openJobTimePicker(this)">
+                </div>
+            </div>
+            <button type="button" class="job-time-slot-remove" onclick="removeJobTimeSlot(this)" title="Remove times">✕</button>
+        </div>`;
+}
+
+// Add another job time slot row
+function addJobTimeSlot() {
+    const container = document.getElementById('editTimeSlots');
+    if (!container) return;
+    container.insertAdjacentHTML('beforeend', jobTimeSlotHtml(null));
+    updateJobTimeSlotRemoveButtons();
+}
+
+// Remove a job time slot row
+function removeJobTimeSlot(btn) {
+    const slot = btn.closest('.job-time-slot');
+    if (!slot) return;
+    slot.remove();
+    updateJobTimeSlotRemoveButtons();
+}
+
+// Hide the remove button when only one slot remains
+function updateJobTimeSlotRemoveButtons() {
+    const container = document.getElementById('editTimeSlots');
+    if (!container) return;
+    const slots = container.querySelectorAll('.job-time-slot');
+    slots.forEach(slot => {
+        const btn = slot.querySelector('.job-time-slot-remove');
+        if (btn) btn.style.display = slots.length > 1 ? '' : 'none';
+    });
+}
+
+// Collect all time slots from the edit modal
+function collectJobTimeSlots() {
+    const slots = [];
+    document.querySelectorAll('#editTimeSlots .job-time-slot').forEach(slot => {
+        const start = combineJobDateTime(
+            slot.querySelector('.job-time-date-input[data-target="start"]').value,
+            slot.querySelector('.job-time-time-input[data-target="start"]').value
+        );
+        const stop = combineJobDateTime(
+            slot.querySelector('.job-time-date-input[data-target="stop"]').value,
+            slot.querySelector('.job-time-time-input[data-target="stop"]').value
+        );
+        if (start || stop) slots.push({ start, stop });
+    });
+    return slots;
+}
 
 // Open map for field location in edit modal / new app modal
 let editFieldMapIndex = null;

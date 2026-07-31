@@ -2097,6 +2097,90 @@
     gap: 8px;
 }
 
+.job-time-slot {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.job-time-slot .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.job-time-slot .form-group label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.job-time-slot .form-group .job-time-picker {
+    display: flex;
+    gap: 8px;
+}
+
+.job-time-slot .form-group .job-time-input {
+    flex: 1;
+    padding: 10px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+}
+
+.job-time-slot .form-group .job-time-input:first-child {
+    flex: 1.4;
+}
+
+.job-time-slot .form-group .job-time-input:focus {
+    border-color: var(--primary);
+}
+
+.job-time-slot-remove {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 22px;
+    height: 22px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 50%;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.job-time-slot-remove:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+}
+
+.add-times-btn {
+    background: none;
+    border: 1px dashed var(--border-light);
+    border-radius: 8px;
+    padding: 6px 14px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.add-times-btn:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
 .job-time-picker .job-time-input {
     flex: 1;
     cursor: pointer;
