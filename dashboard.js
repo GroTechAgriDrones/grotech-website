@@ -4591,12 +4591,14 @@ async function openEditJobModal(jobId) {
                             <label>Field Photo</label>
                             <div class="edit-field-photo-row">
                                 <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
-                                <div class="edit-field-photo-preview">
-                                    <span class="edit-field-photo-placeholder">No photo uploaded</span>
-                                </div>
-                                <div class="edit-field-photo-actions">
-                                    <button type="button" class="btn btn-secondary btn-sm edit-field-photo-browse">Upload Photo</button>
-                                    <button type="button" class="btn btn-danger btn-sm edit-field-photo-remove" style="display: none;">Remove</button>
+                                <div class="job-field-photo-menu">
+                                    <div class="edit-field-photo-preview" title="Click for options">
+                                        <span class="edit-field-photo-placeholder">Click to add photo</span>
+                                    </div>
+                                    <div class="job-field-photo-dropdown">
+                                        <button type="button" class="job-field-photo-menu-item edit-field-photo-browse">Upload Photo</button>
+                                        <button type="button" class="job-field-photo-menu-item edit-field-photo-remove" style="display: none;">Remove</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -4737,17 +4739,24 @@ async function openEditJobModal(jobId) {
     if (editContent && !editContent.dataset.photoDelegationBound) {
         editContent.dataset.photoDelegationBound = 'true';
         editContent.addEventListener('click', function(e) {
+            const previewEl = e.target.closest('.edit-field-photo-preview');
+            if (previewEl) {
+                toggleEditFieldPhotoMenu(previewEl);
+                return;
+            }
             const browseBtn = e.target.closest('.edit-field-photo-browse');
             if (browseBtn) {
                 const group = browseBtn.closest('.edit-field-group');
                 const input = group.querySelector('.edit-field-photo-input');
                 if (input) input.click();
+                closeAllJobFieldPhotoMenus();
                 return;
             }
             const removeBtn = e.target.closest('.edit-field-photo-remove');
             if (removeBtn) {
                 const group = removeBtn.closest('.edit-field-group');
                 if (group) removeEditFieldPhoto(group);
+                closeAllJobFieldPhotoMenus();
             }
         });
         editContent.addEventListener('change', function(e) {
@@ -4854,12 +4863,14 @@ function addEditFieldGroup() {
                     <label>Field Photo</label>
                     <div class="edit-field-photo-row">
                         <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
-                        <div class="edit-field-photo-preview">
-                            <span class="edit-field-photo-placeholder">No photo uploaded</span>
-                        </div>
-                        <div class="edit-field-photo-actions">
-                            <button type="button" class="btn btn-secondary btn-sm edit-field-photo-browse">Upload Photo</button>
-                            <button type="button" class="btn btn-danger btn-sm edit-field-photo-remove" style="display: none;">Remove</button>
+                        <div class="job-field-photo-menu">
+                            <div class="edit-field-photo-preview" title="Click for options">
+                                <span class="edit-field-photo-placeholder">Click to add photo</span>
+                            </div>
+                            <div class="job-field-photo-dropdown">
+                                <button type="button" class="job-field-photo-menu-item edit-field-photo-browse">Upload Photo</button>
+                                <button type="button" class="job-field-photo-menu-item edit-field-photo-remove" style="display: none;">Remove</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -5055,6 +5066,34 @@ async function renderEditFieldPhotoPreview(group, key) {
     if (browseBtn) browseBtn.textContent = 'Replace Photo';
 }
 
+// Upload a file to a presigned URL with progress reporting (XHR)
+function uploadFileWithProgress(uploadUrl, file, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', file.type || 'image/jpeg');
+        xhr.timeout = 60000;
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable && onProgress) {
+                onProgress(Math.round((e.loaded / e.total) * 100));
+            }
+        };
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error('Upload failed: ' + xhr.status));
+        };
+        xhr.onerror = () => reject(new Error('Upload network error'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out'));
+        xhr.send(file);
+    });
+}
+
+// Reset the photo preview in the edit modal to the empty state
+function resetEditFieldPhotoPreview(group) {
+    const preview = group.querySelector('.edit-field-photo-preview');
+    if (preview) preview.innerHTML = '<span class="edit-field-photo-placeholder">Click to add photo</span>';
+}
+
 // Upload a photo for a field in the edit job modal
 async function uploadEditFieldPhoto(file, group) {
     if (!file || !file.type.startsWith('image/')) {
@@ -5063,6 +5102,25 @@ async function uploadEditFieldPhoto(file, group) {
     }
     const fieldIndex = getEditFieldGroupIndex(group);
     const jobId = currentApplicationId;
+    const preview = group.querySelector('.edit-field-photo-preview');
+    if (!preview) return;
+    
+    const showUploadProgress = (pct, label) => {
+        const fill = preview.querySelector('.upload-progress-fill');
+        const text = preview.querySelector('.upload-progress-text');
+        if (fill) fill.style.width = pct + '%';
+        if (text) text.textContent = pct === null ? label : `${label} ${pct}%`;
+    };
+    
+    // Show progress UI while uploading
+    preview.innerHTML = `
+        <div class="upload-progress">
+            <div class="upload-progress-bar">
+                <div class="upload-progress-fill"></div>
+            </div>
+            <span class="upload-progress-text">Uploading... 0%</span>
+        </div>`;
+    
     try {
         const response = await fetchWithTimeout(`${API_BASE_URL}/job-photos`, {
             method: 'POST',
@@ -5076,32 +5134,27 @@ async function uploadEditFieldPhoto(file, group) {
         });
         if (!response.ok) {
             alert('Error starting photo upload. Please try again.');
+            resetEditFieldPhotoPreview(group);
             return;
         }
         const data = await response.json();
         
-        const putResponse = await fetchWithTimeout(data.uploadUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type || 'image/jpeg' },
-            body: file
-        }, 60000);
-        if (!putResponse.ok) {
-            alert('Error uploading photo. Please try again.');
-            return;
-        }
+        await uploadFileWithProgress(data.uploadUrl, file, (pct) => showUploadProgress(pct, 'Uploading'));
         
+        showUploadProgress(100, 'Finalizing');
         const thumbUrl = await uploadFieldPhotoThumb(file, data.key, fieldIndex, jobId);
         
         group.dataset.photoKey = data.key;
-        const preview = group.querySelector('.edit-field-photo-preview');
-        if (preview) preview.innerHTML = `<img src="${thumbUrl || URL.createObjectURL(file)}" alt="Field photo">`;
+        preview.innerHTML = `<img src="${thumbUrl || URL.createObjectURL(file)}" alt="Field photo">`;
         const removeBtn = group.querySelector('.edit-field-photo-remove');
         if (removeBtn) removeBtn.style.display = '';
         const browseBtn = group.querySelector('.edit-field-photo-browse');
         if (browseBtn) browseBtn.textContent = 'Replace Photo';
+        closeAllJobFieldPhotoMenus();
     } catch (error) {
         console.error('Error uploading field photo:', error);
         alert('Error uploading photo. Please try again.');
+        resetEditFieldPhotoPreview(group);
     }
 }
 
@@ -5126,8 +5179,7 @@ async function removeEditFieldPhoto(group) {
         }
     }
     group.dataset.photoKey = '';
-    const preview = group.querySelector('.edit-field-photo-preview');
-    if (preview) preview.innerHTML = '<span class="edit-field-photo-placeholder">No photo uploaded</span>';
+    resetEditFieldPhotoPreview(group);
     const removeBtn = group.querySelector('.edit-field-photo-remove');
     if (removeBtn) removeBtn.style.display = 'none';
     const browseBtn = group.querySelector('.edit-field-photo-browse');
@@ -5142,7 +5194,8 @@ async function loadJobFieldPhoto(index, key) {
     if (!container) return;
     const url = await getJobPhotoDisplayUrl(key);
     if (!url) {
-        container.innerHTML = '<span class="field-photo-unavailable">Photo unavailable</span>';
+        const section = container.closest('.detail-field-photo');
+        if (section) section.remove();
         return;
     }
     const safeKey = key.replace(/'/g, "\\'");
@@ -5165,7 +5218,16 @@ function toggleJobFieldPhotoMenu(img) {
     if (!wasOpen) menu.classList.add('open');
 }
 
-// Close all photo option dropdowns (job detail modal)
+// Toggle the photo options dropdown (edit job modal)
+function toggleEditFieldPhotoMenu(preview) {
+    const menu = preview.closest('.job-field-photo-menu');
+    if (!menu) return;
+    const wasOpen = menu.classList.contains('open');
+    closeAllJobFieldPhotoMenus();
+    if (!wasOpen) menu.classList.add('open');
+}
+
+// Close all photo option dropdowns (job detail + edit modals)
 function closeAllJobFieldPhotoMenus() {
     document.querySelectorAll('.job-field-photo-menu.open').forEach(menu => {
         menu.classList.remove('open');
