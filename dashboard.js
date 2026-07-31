@@ -57,6 +57,26 @@ const pages = {
                 </div>
             </div>
             <div class="recent-section">
+                <h2 class="section-title">Upcoming Jobs</h2>
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Acres</th>
+                                <th>Crop Type</th>
+                                <th>Scheduled Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="upcomingJobsBody">
+                            <tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Loading upcoming jobs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="recent-section">
                 <h2 class="section-title">Recent Applications</h2>
                 <div class="data-table">
                     <table>
@@ -224,119 +244,12 @@ const pages = {
             <div class="page-header">
                 <p>Manage client farm profiles and field data</p>
             </div>
-            <div class="profiles-grid">
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <h3>John Smith Farm</h3>
-                        <span class="status approved">Active</span>
-                    </div>
-                    <div class="profile-details">
-                        <div class="detail-row">
-                            <span class="label">Location:</span>
-                            <span>Freeport, IL</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Total Acres:</span>
-                            <span>500</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Primary Crop:</span>
-                            <span>Corn</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Terrain:</span>
-                            <span>Flat</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Last Service:</span>
-                            <span>2026-03-15</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <h3>Mike Johnson Farm</h3>
-                        <span class="status approved">Active</span>
-                    </div>
-                    <div class="profile-details">
-                        <div class="detail-row">
-                            <span class="label">Location:</span>
-                            <span>Rockford, IL</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Total Acres:</span>
-                            <span>320</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Primary Crop:</span>
-                            <span>Soybeans</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Terrain:</span>
-                            <span>Hilly</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Last Service:</span>
-                            <span>2026-03-20</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <h3>Sarah Davis Farm</h3>
-                        <span class="status pending">Inactive</span>
-                    </div>
-                    <div class="profile-details">
-                        <div class="detail-row">
-                            <span class="label">Location:</span>
-                            <span>DeKalb, IL</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Total Acres:</span>
-                            <span>750</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Primary Crop:</span>
-                            <span>Corn</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Terrain:</span>
-                            <span>Flat</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Last Service:</span>
-                            <span>2025-10-15</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="profile-card">
-                    <div class="profile-header">
-                        <h3>Tom Wilson Farm</h3>
-                        <span class="status approved">Active</span>
-                    </div>
-                    <div class="profile-details">
-                        <div class="detail-row">
-                            <span class="label">Location:</span>
-                            <span>Belvidere, IL</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Total Acres:</span>
-                            <span>200</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Primary Crop:</span>
-                            <span>Wheat</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Terrain:</span>
-                            <span>Hilly</span>
-                        </div>
-                        <div class="detail-row">
-                            <span class="label">Last Service:</span>
-                            <span>2026-03-01</span>
-                        </div>
-                    </div>
-                </div>
+            <div class="farm-toolbar">
+                <input type="text" id="farmSearch" class="farm-search" placeholder="Search by farm name or location...">
+                <span class="farm-count" id="farmCount"></span>
+            </div>
+            <div class="profiles-grid farm-grid" id="farmProfilesGrid">
+                <div class="no-data" style="grid-column: 1/-1; text-align: center; padding: 40px;">Loading farm profiles...</div>
             </div>
         `
     },
@@ -346,49 +259,38 @@ const pages = {
             <div class="page-header">
                 <p>View analytics and reports</p>
             </div>
-            <div class="reports-grid">
-                <div class="report-card">
-                    <div class="report-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                    </div>
-                    <h3>Monthly Revenue</h3>
-                    <p class="report-value">$45,250</p>
-                    <span class="report-change positive">+12% from last month</span>
+            <div class="reports-toolbar">
+                <div>
+                    <h3 class="reports-toolbar-title">Season Analytics</h3>
+                    <p class="reports-toolbar-sub">All figures computed from completed field records</p>
                 </div>
-                <div class="report-card">
-                    <div class="report-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m6.8 14-3.5 2"/><path d="m20.7 16-3.5-2"/><path d="M6.8 10 3.3 8"/><path d="m20.7 8-3.5 2"/></svg>
-                    </div>
-                    <h3>Acres Sprayed</h3>
-                    <p class="report-value">2,450</p>
-                    <span class="report-change positive">+8% from last month</span>
+                <select id="reportYear" class="reports-year-select" onchange="renderReportsPage()"></select>
+            </div>
+            <div class="reports-kpi-grid" id="reportsKpis"></div>
+            <div class="reports-row">
+                <div class="report-panel">
+                    <h3>Acres Sprayed by Month</h3>
+                    <div class="reports-bar-chart" id="reportsMonthChart"></div>
                 </div>
-                <div class="report-card">
-                    <div class="report-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                    </div>
-                    <h3>Client Satisfaction</h3>
-                    <p class="report-value">94%</p>
-                    <span class="report-change positive">+2% from last month</span>
-                </div>
-                <div class="report-card">
-                    <div class="report-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    </div>
-                    <h3>Avg Response Time</h3>
-                    <p class="report-value">4.2 hrs</p>
-                    <span class="report-change negative">-15% slower</span>
+                <div class="report-panel">
+                    <h3>Crop Breakdown</h3>
+                    <div class="reports-bars-list" id="reportsCropBars"></div>
                 </div>
             </div>
-            <div class="chart-placeholder">
-                <h3>Service History - Last 6 Months</h3>
-                <div class="chart-visual">
-                    <div class="chart-bar" style="height: 60%;"><span>Oct</span></div>
-                    <div class="chart-bar" style="height: 75%;"><span>Nov</span></div>
-                    <div class="chart-bar" style="height: 45%;"><span>Dec</span></div>
-                    <div class="chart-bar" style="height: 55%;"><span>Jan</span></div>
-                    <div class="chart-bar" style="height: 85%;"><span>Feb</span></div>
-                    <div class="chart-bar" style="height: 90%;"><span>Mar</span></div>
+            <div class="reports-row">
+                <div class="report-panel">
+                    <h3>Top Farms by Acres Sprayed</h3>
+                    <table class="reports-table">
+                        <thead><tr><th>#</th><th>Farm</th><th class="num">Jobs</th><th class="num">Acres</th></tr></thead>
+                        <tbody id="reportsTopFarms"></tbody>
+                    </table>
+                </div>
+                <div class="report-panel">
+                    <h3>Recent Field Completions</h3>
+                    <table class="reports-table">
+                        <thead><tr><th>Job</th><th>Farm</th><th>Field</th><th class="num">Acres</th><th>Completed</th></tr></thead>
+                        <tbody id="reportsRecent"></tbody>
+                    </table>
                 </div>
             </div>
         `
@@ -2271,15 +2173,16 @@ const spraySettingsData = {
         name: 'DJI T100',
         settings: {
             fungicide: [
-                { gpa: 2, routeSpacing: 30, speed: 66, height: 12, droplet: 350 },
-                { gpa: 3, routeSpacing: 30, speed: 66, height: 12, droplet: 350 }
+                { gpa: 2, routeSpacing: 28, speed: 66, height: 11, droplet: 350 },
+                { gpa: 3, routeSpacing: 28, speed: 66, height: 11, droplet: 350 }
             ],
             herbicide: [
-                { gpa: 5, routeSpacing: 25, speed: 45, height: 12, droplet: 500 },
-                { gpa: 3, routeSpacing: 25, speed: 45, height: 12, droplet: 500 }
+                { gpa: 5, routeSpacing: 25, speed: 45, height: 11, droplet: 500 },
+                { gpa: 3, routeSpacing: 25, speed: 45, height: 11, droplet: 500 }
             ],
             insecticide: [
-                { gpa: 2, routeSpacing: 38, speed: 64, height: 10, droplet: 250 }
+                { gpa: 2, routeSpacing: 28, speed: 66, height: 11, droplet: 350 },
+                { gpa: 3, routeSpacing: 28, speed: 66, height: 11, droplet: 350 }
             ],
             fertilizer: [
                 { gpa: 5, routeSpacing: 42, speed: 48, height: 8, droplet: 400 }
@@ -2461,6 +2364,24 @@ document.querySelectorAll('.nav-item').forEach(item => {
         if (pageKey === 'overview') {
             setTimeout(() => {
                 fetchApplications();
+                fetchJobs();
+            }, 100);
+        }
+
+        // Render farm profiles when page is loaded
+        if (pageKey === 'profiles') {
+            setTimeout(() => {
+                renderFarmProfiles();
+                const farmSearch = document.getElementById('farmSearch');
+                if (farmSearch) farmSearch.oninput = renderFarmProfiles;
+                fetchJobs();
+            }, 100);
+        }
+
+        // Render reports when page is loaded
+        if (pageKey === 'reports') {
+            setTimeout(() => {
+                renderReportsPage();
                 fetchJobs();
             }, 100);
         }
@@ -6139,7 +6060,507 @@ function updateJobsStats() {
     if (overviewCompletedEl) overviewCompletedEl.textContent = completedJobs;
     
     updateAcresStats();
+    updateUpcomingJobs();
+    renderFarmProfiles();
+    renderReportsPage();
 }
+
+// Update the Upcoming Jobs section on the overview (5 soonest not-completed jobs with a scheduled date)
+function updateUpcomingJobs() {
+    const body = document.getElementById('upcomingJobsBody');
+    if (!body) return;
+    
+    const upcoming = jobs
+        .filter(j => j.scheduledDate && calculateJobStatus(j.jobStatus, j.fieldStatus, j.scheduledDate) !== 'completed')
+        .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate))
+        .slice(0, 5);
+    
+    if (upcoming.length === 0) {
+        body.innerHTML = '<tr><td colspan="6" class="no-data">No upcoming jobs</td></tr>';
+        return;
+    }
+    
+    body.innerHTML = upcoming.map(job => {
+        const clientName = job.fullName || job.client || 'N/A';
+        const totalAcres = (job.fields || []).reduce((sum, f) => sum + (parseFloat(f.fieldSize) || 0), 0) || job.acres || 0;
+        const cropTypes = [...new Set((job.fields || []).map(f => f.cropType).filter(Boolean))].join(', ') || job.crops || 'N/A';
+        const status = calculateJobStatus(job.jobStatus, job.fieldStatus, job.scheduledDate) || job.jobStatus || 'pending';
+        const statusClass = status === 'scheduled' ? 'scheduled' : 
+                           status === 'completed' ? 'completed' :
+                           status === 'in_progress' ? 'in_progress' : 'pending';
+        
+        return `
+            <tr class="clickable-row" onclick="viewJob('${job.id}')">
+                <td>${job.id}</td>
+                <td>${clientName}</td>
+                <td>${Math.round(totalAcres * 100) / 100} acres</td>
+                <td>${cropTypes}</td>
+                <td>${formatDate(job.scheduledDate)}</td>
+                <td><span class="status ${statusClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span></td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ============================================
+// REPORTS
+// ============================================
+
+// Collect every completed field record: { job, farm, field, acres, crop, date }
+function getCompletions() {
+    const out = [];
+    (jobs || []).forEach(job => {
+        const farm = (job.fullName || job.client || 'Unknown').trim();
+        (job.fields || []).forEach((field, i) => {
+            if (job.fieldStatus && job.fieldStatus[i] === 'complete' && job.fieldCompletionDates && job.fieldCompletionDates[i]) {
+                const d = new Date(job.fieldCompletionDates[i]);
+                if (isNaN(d.getTime())) return;
+                out.push({
+                    job: job,
+                    farm: farm,
+                    field: field.fieldName || 'Field ' + (i + 1),
+                    acres: parseFloat(field.fieldSize) || 0,
+                    crop: field.cropType || '—',
+                    date: d
+                });
+            }
+        });
+    });
+    return out;
+}
+
+const REPORT_MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const REPORT_CROP_COLORS = ['#4CAF50', '#d4a94c', '#3a7a8a', '#9c6b3f', '#8a5fa0', '#7ea8e8', '#e07a5f'];
+
+// Render the Reports page (Sample 1: analytics dashboard) from job data
+function renderReportsPage() {
+    const select = document.getElementById('reportYear');
+    if (!select) return;
+
+    const completions = getCompletions();
+    const years = [...new Set(completions.map(c => c.date.getFullYear()))].sort();
+    if (years.length === 0) years.push(new Date().getFullYear());
+    const current = years.includes(Number(select.value)) ? Number(select.value) : Math.max(...years);
+    const prevYear = current - 1;
+    select.innerHTML = years.map(y => `<option value="${y}" ${y === current ? 'selected' : ''}>${y}</option>`).join('');
+
+    const inYear = completions.filter(c => c.date.getFullYear() === current);
+    const inPrev = completions.filter(c => c.date.getFullYear() === prevYear);
+
+    const sum = list => list.reduce((s, c) => s + c.acres, 0);
+    const acres = sum(inYear);
+    const prevAcres = sum(inPrev);
+    const jobsDone = new Set(inYear.map(c => c.job.id)).size;
+    const prevJobs = new Set(inPrev.map(c => c.job.id)).size;
+    const farmsActive = new Set(inYear.map(c => c.farm)).size;
+    const today = new Date();
+    const thisMonthAcres = sum(inYear.filter(c => c.date.getMonth() === today.getMonth()));
+
+    // New clients = farms whose earliest completion ever falls in the selected year
+    const firstByFarm = {};
+    completions.forEach(c => {
+        if (!firstByFarm[c.farm] || c.date < firstByFarm[c.farm]) firstByFarm[c.farm] = c.date;
+    });
+    const newClients = Object.values(firstByFarm).filter(d => d.getFullYear() === current).length;
+    const newPrev = Object.values(firstByFarm).filter(d => d.getFullYear() === prevYear).length;
+    const newDelta = newClients - newPrev;
+    const pct = prevAcres ? Math.round((acres - prevAcres) / prevAcres * 100) : null;
+    const jobDelta = jobsDone - prevJobs;
+    const arrow = n => (n >= 0 ? '▲' : '▼') + ' ' + Math.abs(n);
+    const hasPrev = completions.some(c => c.date.getFullYear() === prevYear);
+    const prevSub = hasPrev ? `${arrow(jobDelta)} vs ${prevYear}` : `No data from ${prevYear}`;
+
+    document.getElementById('reportsKpis').innerHTML = `
+        <div class="report-kpi">
+            <div class="label">Total Acres Sprayed</div>
+            <div class="value">${Math.round(acres).toLocaleString()}<span class="unit"> ac</span></div>
+            <div class="sub">${pct === null ? 'No data from ' + prevYear : arrow(pct) + '% vs ' + prevYear}</div>
+        </div>
+        <div class="report-kpi">
+            <div class="label">Jobs Completed</div>
+            <div class="value">${jobsDone}</div>
+            <div class="sub ${jobDelta < 0 ? 'down' : ''}">${hasPrev ? (jobDelta === 0 ? 'Same as ' + prevYear : prevSub) : prevSub}</div>
+        </div>
+        <div class="report-kpi">
+            <div class="label">Active Farms</div>
+            <div class="value">${farmsActive}</div>
+            <div class="sub">This season</div>
+        </div>
+        <div class="report-kpi">
+            <div class="label">New Clients</div>
+            <div class="value">${newClients}</div>
+            <div class="sub ${newDelta < 0 ? 'down' : ''}">${hasPrev ? (newDelta === 0 ? 'Same as ' + prevYear : arrow(newDelta) + ' vs ' + prevYear) : 'No data from ' + prevYear}</div>
+        </div>
+        <div class="report-kpi">
+            <div class="label">Acres This Month</div>
+            <div class="value">${Math.round(thisMonthAcres).toLocaleString()}<span class="unit"> ac</span></div>
+            <div class="sub">${today.toLocaleDateString('en-US', { month: 'long' })} ${current}</div>
+        </div>`;
+
+    // Acres by month bar chart
+    const monthChart = document.getElementById('reportsMonthChart');
+    const byMonth = Array(12).fill(0);
+    inYear.forEach(c => byMonth[c.date.getMonth()] += c.acres);
+    const maxMonth = Math.max(...byMonth);
+    if (inYear.length === 0) {
+        monthChart.innerHTML = `<div class="reports-empty">No completions in ${current}</div>`;
+    } else {
+        monthChart.innerHTML = byMonth.map((a, m) => `
+            <div class="bar-col">
+                <div class="reports-bar" style="height: ${maxMonth ? Math.max(a / maxMonth * 100, 2) : 2}%;" data-tooltip="${Math.round(a).toLocaleString()} ac"></div>
+                <span>${REPORT_MONTH_LABELS[m]}</span>
+            </div>`).join('');
+    }
+
+    // Crop breakdown bars
+    const cropBars = document.getElementById('reportsCropBars');
+    const byCrop = {};
+    inYear.forEach(c => byCrop[c.crop] = (byCrop[c.crop] || 0) + c.acres);
+    const crops = Object.entries(byCrop).sort((a, b) => b[1] - a[1]);
+    if (crops.length === 0) {
+        cropBars.innerHTML = `<div class="reports-empty">No completions in ${current}</div>`;
+    } else {
+        const maxCrop = crops[0][1];
+        const cropTotal = crops.reduce((s, c) => s + c[1], 0);
+        cropBars.innerHTML = crops.map(([name, a], i) => `
+            <div class="bar-row">
+                <span class="lbl">${escapeHtml(name)}</span>
+                <div class="track"><div class="fill" style="width: ${a / maxCrop * 100}%; background: ${REPORT_CROP_COLORS[i % REPORT_CROP_COLORS.length]};">${Math.round(a).toLocaleString()}</div></div>
+                <span class="pct">${Math.round(a / cropTotal * 100)}%</span>
+            </div>`).join('');
+    }
+
+    // Top farms by acres
+    const topFarms = document.getElementById('reportsTopFarms');
+    const byFarm = {};
+    inYear.forEach(c => {
+        if (!byFarm[c.farm]) byFarm[c.farm] = { acres: 0, jobs: new Set() };
+        byFarm[c.farm].acres += c.acres;
+        byFarm[c.farm].jobs.add(c.job.id);
+    });
+    const farms = Object.entries(byFarm).sort((a, b) => b[1].acres - a[1].acres).slice(0, 6);
+    if (farms.length === 0) {
+        topFarms.innerHTML = `<tr><td colspan="4" class="reports-empty">No completions in ${current}</td></tr>`;
+    } else {
+        topFarms.innerHTML = farms.map(([name, f], i) => `
+            <tr>
+                <td style="color: var(--text-muted); font-size: 0.8rem;">${i + 1}</td>
+                <td>${escapeHtml(name)}</td>
+                <td class="num">${f.jobs.size}</td>
+                <td class="num">${Math.round(f.acres).toLocaleString()}</td>
+            </tr>`).join('');
+    }
+
+    // Recent completions: latest completion per job, newest first
+    const recent = document.getElementById('reportsRecent');
+    const byJob = {};
+    completions.forEach(c => {
+        if (!byJob[c.job.id] || c.date > byJob[c.job.id].date) byJob[c.job.id] = c;
+    });
+    const latest = Object.values(byJob).sort((a, b) => b.date - a.date).slice(0, 6);
+    if (latest.length === 0) {
+        recent.innerHTML = `<tr><td colspan="5" class="reports-empty">No completed fields yet</td></tr>`;
+    } else {
+        recent.innerHTML = latest.map(c => `
+            <tr class="clickable-row" onclick="viewJob('${c.job.id}')">
+                <td>${c.job.id}</td>
+                <td>${escapeHtml(c.farm)}</td>
+                <td>${escapeHtml(c.field)}</td>
+                <td class="num">${Math.round(c.acres * 100) / 100}</td>
+                <td>${c.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+            </tr>`).join('');
+    }
+}
+
+// ============================================
+// FARM PROFILES
+// ============================================
+
+let farmProfileMap = null;
+let farmProfileMarkers = [];
+
+// Parse "lat, lng" coordinates from a field location string
+function parseFieldCoords(loc) {
+    if (!loc) return null;
+    const m = String(loc).match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+    return m && Math.abs(parseFloat(m[1])) <= 90 && Math.abs(parseFloat(m[2])) <= 180 ? m : null;
+}
+
+// Build farm profiles by grouping jobs by client name
+function buildFarmProfiles() {
+    const farmsMap = {};
+    (jobs || []).forEach(job => {
+        const name = (job.fullName || job.client || '').trim();
+        if (!name) return;
+        if (!farmsMap[name]) {
+            farmsMap[name] = {
+                name: name,
+                phone: '', email: '', address: '', city: '', state: '', zip: '',
+                fieldsMap: {}, jobs: [], lastService: null, nextScheduled: null
+            };
+        }
+        const farm = farmsMap[name];
+        if (job.phone) farm.phone = job.phone;
+        if (job.email) farm.email = job.email;
+        if (job.address) farm.address = job.address;
+        if (job.city) farm.city = job.city;
+        if (job.state) farm.state = job.state;
+        if (job.zip) farm.zip = job.zip;
+        
+        (job.fields || []).forEach(field => {
+            const key = (field.fieldName || '').trim().toLowerCase();
+            if (!key) return;
+            const existing = farm.fieldsMap[key];
+            if (!existing) {
+                farm.fieldsMap[key] = field;
+            } else if ((!existing.fieldLocation || (!existing.photoKeys && !existing.photoKey)) && (field.fieldLocation || field.photoKeys || field.photoKey)) {
+                farm.fieldsMap[key] = field;
+            }
+        });
+        
+        (job.fieldCompletionDates || []).forEach(d => {
+            if (!d) return;
+            const t = new Date(d).getTime();
+            if (t && (!farm.lastService || t > new Date(farm.lastService).getTime())) farm.lastService = d;
+        });
+        
+        const status = calculateJobStatus(job.jobStatus, job.fieldStatus, job.scheduledDate) || job.jobStatus || 'pending';
+        if (job.scheduledDate && status !== 'completed') {
+            const t = new Date(job.scheduledDate).getTime();
+            if (t && (!farm.nextScheduled || t < new Date(farm.nextScheduled).getTime())) farm.nextScheduled = job.scheduledDate;
+        }
+        
+        farm.jobs.push({ ...job, _status: status });
+    });
+    
+    return Object.values(farmsMap).map(farm => ({
+        ...farm,
+        fields: Object.values(farm.fieldsMap),
+        totalAcres: Object.values(farm.fieldsMap).reduce((sum, f) => sum + (parseFloat(f.fieldSize) || 0), 0),
+        crops: [...new Set(Object.values(farm.fieldsMap).map(f => f.cropType).filter(Boolean))].join(', ')
+    })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Render farm profile cards with search filtering
+function renderFarmProfiles() {
+    const grid = document.getElementById('farmProfilesGrid');
+    if (!grid) return;
+    
+    const farms = buildFarmProfiles();
+    const searchEl = document.getElementById('farmSearch');
+    const q = (searchEl ? searchEl.value : '').toLowerCase();
+    const filtered = farms.filter(f => (f.name + ' ' + f.city + ' ' + f.state).toLowerCase().includes(q));
+    
+    const count = document.getElementById('farmCount');
+    if (count) count.textContent = `${filtered.length} of ${farms.length} farms`;
+    
+    if (farms.length === 0) {
+        grid.innerHTML = '<div class="no-data" style="grid-column: 1/-1; text-align: center; padding: 40px;">No farm profiles yet. Approve an application to create a job and the farm will appear here.</div>';
+        return;
+    }
+    if (filtered.length === 0) {
+        grid.innerHTML = '<div class="no-data" style="grid-column: 1/-1; text-align: center; padding: 40px;">No farms match your search</div>';
+        return;
+    }
+    
+    grid.innerHTML = filtered.map(farm => `
+        <div class="profile-card farm-card" onclick="openFarmProfile(this)" data-name="${escapeHtml(farm.name)}">
+            <div class="profile-header">
+                <h3>${escapeHtml(farm.name)}</h3>
+            </div>
+            <div class="farm-location">${escapeHtml(farm.city || '')}${farm.city && farm.state ? ', ' : ''}${escapeHtml(farm.state || '')}</div>
+            <div class="farm-stats">
+                <div class="farm-stat">
+                    <span class="farm-stat-num">${Math.round(farm.totalAcres * 100) / 100}</span>
+                    <span class="farm-stat-lbl">Acres</span>
+                </div>
+                <div class="farm-stat">
+                    <span class="farm-stat-num">${farm.fields.length}</span>
+                    <span class="farm-stat-lbl">Fields</span>
+                </div>
+                <div class="farm-stat">
+                    <span class="farm-stat-num">${farm.jobs.length}</span>
+                    <span class="farm-stat-lbl">Jobs</span>
+                </div>
+            </div>
+            <div class="farm-crops">${escapeHtml(farm.crops || '—')}</div>
+            <div class="farm-dates">
+                <span>Last service: <b>${farm.lastService ? formatDate(farm.lastService) : '—'}</b></span>
+                <span>Next scheduled: <b>${farm.nextScheduled ? formatDate(farm.nextScheduled) : '—'}</b></span>
+            </div>
+        </div>`).join('');
+}
+
+// Open the farm profile detail modal
+async function openFarmProfile(card) {
+    const name = card.dataset.name;
+    const farm = buildFarmProfiles().find(f => f.name === name);
+    if (!farm) return;
+    
+    document.getElementById('farmProfileTitle').textContent = farm.name;
+    
+    const upcoming = farm.jobs
+        .filter(j => j.scheduledDate && j._status !== 'completed')
+        .sort((a, b) => new Date(a.scheduledDate) - new Date(b.scheduledDate));
+    const mapped = farm.fields.filter(f => parseFieldCoords(f.fieldLocation));
+    const address = [farm.address, farm.city, farm.state, farm.zip].filter(Boolean).join(', ') || 'No address on file';
+    const phone = farm.phone ? farm.phone.replace(/[^+\d]/g, '') : '';
+    
+    document.getElementById('farmProfileContent').innerHTML = `
+        <div class="farm-detail">
+            <div class="farm-contact">
+                ${phone ? `<a href="tel:${phone}">${escapeHtml(farm.phone)}</a>` : '<span>No phone</span>'}
+                ${farm.email ? `<a href="mailto:${escapeHtml(farm.email)}">${escapeHtml(farm.email)}</a>` : '<span>No email</span>'}
+                <span>${escapeHtml(address)}</span>
+            </div>
+            <div class="farm-stat-strip">
+                <div class="box"><div class="num">${Math.round(farm.totalAcres * 100) / 100}</div><div class="lbl">Total Acres</div></div>
+                <div class="box"><div class="num">${farm.fields.length}</div><div class="lbl">Fields</div></div>
+                <div class="box"><div class="num">${farm.jobs.length}</div><div class="lbl">Jobs</div></div>
+                <div class="box"><div class="num">${mapped.length}</div><div class="lbl">Mapped Fields</div></div>
+            </div>
+            <div class="farm-section">
+                <h4>Upcoming Work</h4>
+                ${upcoming.length ? upcoming.slice(0, 5).map(j => `
+                    <div class="farm-upcoming-row">
+                        <span class="id">${j.id}</span>
+                        <span class="date">${formatDate(j.scheduledDate)}</span>
+                        <span class="status ${j._status === 'in_progress' ? 'in_progress' : 'scheduled'}">${j._status.replace('_', ' ')}</span>
+                    </div>`).join('') : '<div class="farm-muted">No upcoming work scheduled</div>'}
+            </div>
+            <div class="farm-section">
+                <h4>Fields</h4>
+                <div class="data-table">
+                    <table class="farm-fields-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Field</th>
+                                <th>Acres</th>
+                                <th>Crop</th>
+                                <th>GPA</th>
+                                <th>Optimal Date</th>
+                                <th>Location</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${farm.fields.map((field, i) => {
+                                const coords = parseFieldCoords(field.fieldLocation);
+                                const photoKey = (field.photoKeys && field.photoKeys[0]) || field.photoKey || '';
+                                return `
+                                <tr>
+                                    <td><div class="farm-photo-thumb" data-key="${escapeHtml(photoKey)}"></div></td>
+                                    <td>${coords ? `<span class="farm-field-link" data-lat="${coords[1]}" data-lng="${coords[2]}" title="Zoom to field on map" onclick="focusFarmField(this)">${escapeHtml(field.fieldName || 'Field ' + (i + 1))}</span>` : escapeHtml(field.fieldName || 'Field ' + (i + 1))}</td>
+                                    <td>${field.fieldSize || '—'}</td>
+                                    <td>${escapeHtml(field.cropType || '—')}</td>
+                                    <td>${field.gpa || '—'}</td>
+                                    <td>${field.optimalDate ? formatDate(field.optimalDate) : '—'}</td>
+                                    <td>${coords ? `<span class="farm-coords">${coords[1]}, ${coords[2]}</span>` : '<span class="farm-muted">Not set</span>'}</td>
+                                </tr>`;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="farm-section">
+                <h4>Field Map</h4>
+                <div id="farmProfileMap" class="farm-map"></div>
+                <div class="farm-muted">${mapped.length} of ${farm.fields.length} fields have GPS coordinates.</div>
+            </div>
+            <div class="farm-section">
+                <h4>Job History</h4>
+                <div class="farm-jobs">
+                    ${farm.jobs.slice().sort((a, b) => new Date(b.scheduledDate || b.dateSubmitted || 0) - new Date(a.scheduledDate || a.dateSubmitted || 0)).map(j => `
+                        <div class="farm-job-row" onclick="closeFarmProfileModal(); viewJob('${j.id}')">
+                            <span class="id">${j.id}</span>
+                            <span class="meta">${j.scheduledDate ? formatDate(j.scheduledDate) : 'No scheduled date'} • ${Math.round((j.fields || []).reduce((sum, f) => sum + (parseFloat(f.fieldSize) || 0), 0) * 100) / 100} acres</span>
+                            <span class="status ${j._status}">${j._status.replace('_', ' ')}</span>
+                        </div>`).join('')}
+                </div>
+            </div>
+        </div>`;
+    
+    document.getElementById('farmProfileModal').classList.add('active');
+    
+    document.querySelectorAll('#farmProfileContent .farm-photo-thumb[data-key]').forEach(async el => {
+        const key = el.dataset.key;
+        if (!key) { el.innerHTML = '<span>—</span>'; return; }
+        const url = await getJobPhotoDisplayUrl(key);
+        if (url) {
+            el.innerHTML = `<img src="${url}" alt="Field photo">`;
+        } else {
+            el.innerHTML = '<span>—</span>';
+        }
+    });
+    
+    initFarmProfileMap(farm, mapped);
+}
+
+// Initialize the Leaflet map inside the farm profile modal
+function initFarmProfileMap(farm, mapped) {
+    const el = document.getElementById('farmProfileMap');
+    if (!el) return;
+    if (farmProfileMap) {
+        farmProfileMap.remove();
+        farmProfileMap = null;
+    }
+    if (!mapped.length) {
+        el.innerHTML = '<div class="farm-map-empty">No GPS coordinates recorded for this farm</div>';
+        return;
+    }
+    const firstCoords = parseFieldCoords(mapped[0].fieldLocation).slice(1, 3).map(Number);
+    farmProfileMap = L.map('farmProfileMap').setView(firstCoords, 12);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri'
+    }).addTo(farmProfileMap);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Labels &copy; Esri'
+    }).addTo(farmProfileMap);
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Roads &copy; Esri'
+    }).addTo(farmProfileMap);
+    farmProfileMarkers = [];
+    const bounds = [];
+    mapped.forEach(field => {
+        const c = parseFieldCoords(field.fieldLocation).slice(1, 3).map(Number);
+        const marker = L.marker(c).addTo(farmProfileMap).bindPopup(`<b>${escapeHtml(field.fieldName || 'Field')}</b><br>${field.fieldSize || '—'} acres${field.cropType ? ' • ' + escapeHtml(field.cropType) : ''}`);
+        farmProfileMarkers.push({ latlng: c, marker });
+        bounds.push(c);
+    });
+    if (bounds.length > 1) farmProfileMap.fitBounds(bounds, { padding: [30, 30] });
+    setTimeout(() => farmProfileMap.invalidateSize(), 50);
+}
+
+// Scroll to the farm map and zoom into a specific field
+function focusFarmField(el) {
+    const lat = parseFloat(el.dataset.lat);
+    const lng = parseFloat(el.dataset.lng);
+    if (isNaN(lat) || isNaN(lng) || !farmProfileMap) return;
+    document.getElementById('farmProfileMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => {
+        farmProfileMap.setView([lat, lng], 16);
+        const match = farmProfileMarkers.find(m => Math.abs(m.latlng[0] - lat) < 1e-6 && Math.abs(m.latlng[1] - lng) < 1e-6);
+        if (match) match.marker.openPopup();
+    }, 400);
+}
+
+// Close the farm profile detail modal
+function closeFarmProfileModal() {
+    document.getElementById('farmProfileModal').classList.remove('active');
+    farmProfileMarkers = [];
+    if (farmProfileMap) {
+        farmProfileMap.remove();
+        farmProfileMap = null;
+    }
+}
+
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('farmProfileModal');
+    if (modal && modal.classList.contains('active') && e.target === modal) {
+        closeFarmProfileModal();
+    }
+});
 
 // Calendar modal variables
 let currentCalendarJobId = null;
