@@ -4179,6 +4179,7 @@ async function viewJob(jobId) {
             const fieldComplete = job.fieldStatus && job.fieldStatus[index] === 'complete';
             const statusBtnClass = fieldComplete ? 'field-status-btn complete' : 'field-status-btn not-complete';
             const statusBtnText = fieldComplete ? 'Completed' : 'Not Complete';
+            const fieldPhotoKeys = field.photoKeys && field.photoKeys.length ? field.photoKeys : (field.photoKey ? [field.photoKey] : []);
             return `
             <div class="detail-field-group">
                 <div class="field-header-row">
@@ -4247,11 +4248,14 @@ async function viewJob(jobId) {
                             </span>
                         </div>
                     </div>
-                    ${field.photoKey ? `
+                    ${fieldPhotoKeys.length ? `
                     <div class="detail-field-photo">
-                        <label>Field Photo</label>
-                        <div class="job-field-photo" id="jobFieldPhoto_${index}">
-                            <div class="field-photo-loading">Loading photo...</div>
+                        <label>Field Photo${fieldPhotoKeys.length > 1 ? 's' : ''}</label>
+                        <div class="detail-field-photo-grid">
+                            ${fieldPhotoKeys.map((key, photoIndex) => `
+                            <div class="job-field-photo" id="jobFieldPhoto_${index}_${photoIndex}">
+                                <div class="field-photo-loading">Loading photo...</div>
+                            </div>`).join('')}
                         </div>
                     </div>` : ''}
                 </div>
@@ -4348,9 +4352,10 @@ async function viewJob(jobId) {
     // Load field photos into the detail modal
     if (job.fields) {
         job.fields.forEach((field, index) => {
-            if (field.photoKey) {
-                loadJobFieldPhoto(index, field.photoKey);
-            }
+            const fieldPhotoKeys = field.photoKeys && field.photoKeys.length ? field.photoKeys : (field.photoKey ? [field.photoKey] : []);
+            fieldPhotoKeys.forEach((key, photoIndex) => {
+                loadJobFieldPhoto(index, photoIndex, key);
+            });
         });
     }
     
@@ -4595,19 +4600,11 @@ async function openEditJobModal(jobId) {
                             <input type="text" id="edit_optimalDate_${index}" value="${field.optimalDate || ''}" placeholder="Click to select date" readonly onclick="openEditFieldCalendar(${index})">
                         </div>
                         <div class="form-group field-photo-edit-group" style="grid-column: span 2;">
-                            <label>Field Photo</label>
+                            <label>Field Photos</label>
                             <div class="edit-field-photo-row">
-                                <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
-                                <div class="job-field-photo-menu">
-                                    <div class="edit-field-photo-preview" title="Click for options">
-                                        <span class="edit-field-photo-placeholder">Click to add photo</span>
-                                    </div>
-                                    <div class="job-field-photo-dropdown">
-                                        <button type="button" class="job-field-photo-menu-item edit-field-photo-browse">Upload Photo</button>
-                                        <button type="button" class="job-field-photo-menu-item edit-field-photo-remove" style="display: none;">Remove</button>
-                                    </div>
-                                </div>
+                                <div class="edit-field-photo-list"></div>
                             </div>
+                            <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
                         </div>
                     </div>
                 </div>
@@ -4734,11 +4731,10 @@ async function openEditJobModal(jobId) {
     
     // Initialize field photo state
     document.querySelectorAll('#editFieldGroups .edit-field-group').forEach((group, index) => {
-        const existingKey = (job.fields[index] || {}).photoKey || '';
-        group.dataset.photoKey = existingKey;
-        if (existingKey) {
-            renderEditFieldPhotoPreview(group, existingKey);
-        }
+        const field = job.fields[index] || {};
+        const existingKeys = field.photoKeys && field.photoKeys.length ? field.photoKeys : (field.photoKey ? [field.photoKey] : []);
+        setGroupPhotoKeys(group, existingKeys);
+        renderEditFieldPhotoList(group);
     });
     
     updateJobTimeSlotRemoveButtons();
@@ -4756,6 +4752,8 @@ async function openEditJobModal(jobId) {
             const browseBtn = e.target.closest('.edit-field-photo-browse');
             if (browseBtn) {
                 const group = browseBtn.closest('.edit-field-group');
+                const item = browseBtn.closest('.edit-field-photo-item');
+                group.dataset.photoTarget = item ? item.dataset.photoKey : 'new';
                 const input = group.querySelector('.edit-field-photo-input');
                 if (input) input.click();
                 closeAllJobFieldPhotoMenus();
@@ -4763,16 +4761,22 @@ async function openEditJobModal(jobId) {
             }
             const removeBtn = e.target.closest('.edit-field-photo-remove');
             if (removeBtn) {
-                const group = removeBtn.closest('.edit-field-group');
-                if (group) removeEditFieldPhoto(group);
+                const item = removeBtn.closest('.edit-field-photo-item');
+                if (item) removeEditFieldPhoto(item);
                 closeAllJobFieldPhotoMenus();
+                return;
+            }
+            const addBtn = e.target.closest('.edit-field-photo-add');
+            if (addBtn) {
+                addEditFieldPhoto(addBtn.closest('.edit-field-group'));
             }
         });
         editContent.addEventListener('change', function(e) {
             if (e.target.classList.contains('edit-field-photo-input')) {
                 const group = e.target.closest('.edit-field-group');
                 if (group && e.target.files && e.target.files[0]) {
-                    uploadEditFieldPhoto(e.target.files[0], group);
+                    const target = group.dataset.photoTarget && group.dataset.photoTarget !== 'new' ? group.dataset.photoTarget : null;
+                    uploadEditFieldPhoto(e.target.files[0], group, target);
                 }
             }
         });
@@ -4786,7 +4790,7 @@ async function openEditJobModal(jobId) {
             const group = e.target.closest('.edit-field-group');
             if (group && e.dataTransfer.files && e.dataTransfer.files[0]) {
                 e.preventDefault();
-                uploadEditFieldPhoto(e.dataTransfer.files[0], group);
+                uploadEditFieldPhoto(e.dataTransfer.files[0], group, null);
             }
         });
     }
@@ -4869,19 +4873,11 @@ function addEditFieldGroup() {
                     <input type="text" id="edit_optimalDate_${index}" value="" placeholder="Click to select date" readonly onclick="openEditFieldCalendar(${index})">
                 </div>
                 <div class="form-group field-photo-edit-group" style="grid-column: span 2;">
-                    <label>Field Photo</label>
+                    <label>Field Photos</label>
                     <div class="edit-field-photo-row">
-                        <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
-                        <div class="job-field-photo-menu">
-                            <div class="edit-field-photo-preview" title="Click for options">
-                                <span class="edit-field-photo-placeholder">Click to add photo</span>
-                            </div>
-                            <div class="job-field-photo-dropdown">
-                                <button type="button" class="job-field-photo-menu-item edit-field-photo-browse">Upload Photo</button>
-                                <button type="button" class="job-field-photo-menu-item edit-field-photo-remove" style="display: none;">Remove</button>
-                            </div>
-                        </div>
+                        <div class="edit-field-photo-list"></div>
                     </div>
+                    <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
                 </div>
             </div>
         </div>
@@ -4897,7 +4893,10 @@ function addEditFieldGroup() {
 
     // Initialize photo state for this field
     const newGroup = container.lastElementChild;
-    if (newGroup) newGroup.dataset.photoKey = '';
+    if (newGroup) {
+        setGroupPhotoKeys(newGroup, []);
+        renderEditFieldPhotoList(newGroup);
+    }
 
     // Scroll to the new field
     const newField = document.getElementById(`edit_fieldName_${index}`);
@@ -5022,7 +5021,7 @@ function generateThumbnail(file, maxSize = 600, quality = 0.7) {
 }
 
 // Upload a small thumbnail alongside a field photo (best effort)
-async function uploadFieldPhotoThumb(file, photoKey, fieldIndex, jobId) {
+async function uploadFieldPhotoThumb(file, photoKey, fieldIndex, jobId, photoIndex = 0) {
     const thumbBlob = await generateThumbnail(file);
     if (!thumbBlob) return null;
     try {
@@ -5034,7 +5033,8 @@ async function uploadFieldPhotoThumb(file, photoKey, fieldIndex, jobId) {
                 fieldIndex: fieldIndex,
                 fileName: 'thumb.jpg',
                 fileType: 'image/jpeg',
-                thumb: true
+                thumb: true,
+                photoIndex: photoIndex
             })
         });
         if (!response.ok) return null;
@@ -5057,22 +5057,78 @@ async function uploadFieldPhotoThumb(file, photoKey, fieldIndex, jobId) {
     }
 }
 
-// Render photo preview in the edit job modal
-async function renderEditFieldPhotoPreview(group, key) {
-    const preview = group.querySelector('.edit-field-photo-preview');
-    const removeBtn = group.querySelector('.edit-field-photo-remove');
-    const browseBtn = group.querySelector('.edit-field-photo-browse');
+// Get the list of photo keys for an edit field group
+function getGroupPhotoKeys(group) {
+    try {
+        return JSON.parse(group.dataset.photoKeys || '[]');
+    } catch (error) {
+        return [];
+    }
+}
+
+// Set the list of photo keys for an edit field group
+function setGroupPhotoKeys(group, keys) {
+    group.dataset.photoKeys = JSON.stringify(keys);
+    group.dataset.photoKey = keys[0] || '';
+}
+
+// Extract the photo index (n) from a key like field-0-1.jpg, or 0 for field-0.jpg
+function getEditFieldPhotoIndexFromKey(key) {
+    const match = key.match(/field-\d+-(\d+)\.\w+$/);
+    return match ? parseInt(match[1], 10) : 0;
+}
+
+// HTML for one photo item in the edit modal (empty preview, filled in by render)
+function editFieldPhotoItemHtml(key) {
+    return `
+        <div class="job-field-photo-menu edit-field-photo-item" data-photo-key="${key}">
+            <div class="edit-field-photo-preview" title="Click for options">
+                <span class="edit-field-photo-placeholder">Loading photo...</span>
+            </div>
+            <div class="job-field-photo-dropdown">
+                <button type="button" class="job-field-photo-menu-item edit-field-photo-browse">Replace Photo</button>
+                <button type="button" class="job-field-photo-menu-item edit-field-photo-add">Add Photo</button>
+                <button type="button" class="job-field-photo-menu-item edit-field-photo-remove">Remove</button>
+            </div>
+        </div>`;
+}
+
+// Render all photo items for an edit field group
+function renderEditFieldPhotoList(group) {
+    const list = group.querySelector('.edit-field-photo-list');
+    if (!list) return;
+    const keys = getGroupPhotoKeys(group);
+    if (!keys.length) {
+        list.innerHTML = `
+            <div class="job-field-photo-menu edit-field-photo-item" data-photo-key="">
+                <div class="edit-field-photo-preview" title="Click for options">
+                    <span class="edit-field-photo-placeholder">Click to add photo</span>
+                </div>
+                <div class="job-field-photo-dropdown">
+                    <button type="button" class="job-field-photo-menu-item edit-field-photo-browse">Upload Photo</button>
+                </div>
+            </div>`;
+        return;
+    }
+    list.innerHTML = keys.map(key => editFieldPhotoItemHtml(key)).join('');
+    keys.forEach(key => {
+        const item = list.querySelector(`.edit-field-photo-item[data-photo-key="${key}"]`);
+        if (item) renderEditFieldPhotoPreview(item, key);
+    });
+}
+
+// Render a single photo preview in the edit job modal
+async function renderEditFieldPhotoPreview(item, key) {
+    const preview = item.querySelector('.edit-field-photo-preview');
     if (!preview) return;
     
     const url = await getJobPhotoDisplayUrl(key);
-    if (group.dataset.photoKey !== key) return; // State changed while loading
+    if (!item.isConnected || item.dataset.photoKey !== key) return; // State changed while loading
     if (url) {
         preview.innerHTML = `<img src="${url}" alt="Field photo">`;
     } else {
         preview.innerHTML = '<span class="edit-field-photo-placeholder">Photo unavailable</span>';
     }
-    if (removeBtn) removeBtn.style.display = '';
-    if (browseBtn) browseBtn.textContent = 'Replace Photo';
 }
 
 // Upload a file to a presigned URL with progress reporting (XHR)
@@ -5097,22 +5153,44 @@ function uploadFileWithProgress(uploadUrl, file, onProgress) {
     });
 }
 
-// Reset the photo preview in the edit modal to the empty state
-function resetEditFieldPhotoPreview(group) {
-    const preview = group.querySelector('.edit-field-photo-preview');
-    if (preview) preview.innerHTML = '<span class="edit-field-photo-placeholder">Click to add photo</span>';
+// Open the file picker to add a new photo to a field
+function addEditFieldPhoto(group) {
+    const input = group.querySelector('.edit-field-photo-input');
+    if (!input) return;
+    group.dataset.photoTarget = 'new';
+    input.click();
+    closeAllJobFieldPhotoMenus();
 }
 
-// Upload a photo for a field in the edit job modal
-async function uploadEditFieldPhoto(file, group) {
+// Upload a photo for a field in the edit job modal (targetKey = replace that key, null = add new)
+async function uploadEditFieldPhoto(file, group, targetKey) {
     if (!file || !file.type.startsWith('image/')) {
         alert('Please select an image file (JPG, PNG, etc.)');
         return;
     }
     const fieldIndex = getEditFieldGroupIndex(group);
     const jobId = currentApplicationId;
-    const preview = group.querySelector('.edit-field-photo-preview');
-    if (!preview) return;
+    const isNew = !targetKey;
+    const photoIndex = isNew ? getGroupPhotoKeys(group).length : getEditFieldPhotoIndexFromKey(targetKey);
+    
+    const list = group.querySelector('.edit-field-photo-list');
+    if (!list) return;
+    
+    let item;
+    if (isNew) {
+        const existingEmpty = list.querySelector('.edit-field-photo-item[data-photo-key=""]');
+        if (existingEmpty && getGroupPhotoKeys(group).length === 0) {
+            item = existingEmpty;
+        } else {
+            list.insertAdjacentHTML('beforeend', editFieldPhotoItemHtml(''));
+            item = list.lastElementChild;
+            item.dataset.photoKey = '';
+        }
+    } else {
+        item = list.querySelector(`.edit-field-photo-item[data-photo-key="${targetKey}"]`);
+    }
+    if (!item) return;
+    const preview = item.querySelector('.edit-field-photo-preview');
     
     const showUploadProgress = (pct, label) => {
         const fill = preview.querySelector('.upload-progress-fill');
@@ -5138,12 +5216,13 @@ async function uploadEditFieldPhoto(file, group) {
                 jobId: jobId,
                 fieldIndex: fieldIndex,
                 fileName: file.name,
-                fileType: file.type || 'image/jpeg'
+                fileType: file.type || 'image/jpeg',
+                photoIndex: photoIndex
             })
         });
         if (!response.ok) {
             alert('Error starting photo upload. Please try again.');
-            resetEditFieldPhotoPreview(group);
+            renderEditFieldPhotoList(group);
             return;
         }
         const data = await response.json();
@@ -5151,25 +5230,26 @@ async function uploadEditFieldPhoto(file, group) {
         await uploadFileWithProgress(data.uploadUrl, file, (pct) => showUploadProgress(pct, 'Uploading'));
         
         showUploadProgress(100, 'Finalizing');
-        const thumbUrl = await uploadFieldPhotoThumb(file, data.key, fieldIndex, jobId);
+        await uploadFieldPhotoThumb(file, data.key, fieldIndex, jobId, photoIndex);
         
-        group.dataset.photoKey = data.key;
-        preview.innerHTML = `<img src="${thumbUrl || URL.createObjectURL(file)}" alt="Field photo">`;
-        const removeBtn = group.querySelector('.edit-field-photo-remove');
-        if (removeBtn) removeBtn.style.display = '';
-        const browseBtn = group.querySelector('.edit-field-photo-browse');
-        if (browseBtn) browseBtn.textContent = 'Replace Photo';
+        const keys = getGroupPhotoKeys(group);
+        if (isNew) {
+            keys.push(data.key);
+        }
+        setGroupPhotoKeys(group, keys);
+        renderEditFieldPhotoList(group);
         closeAllJobFieldPhotoMenus();
     } catch (error) {
         console.error('Error uploading field photo:', error);
         alert('Error uploading photo. Please try again.');
-        resetEditFieldPhotoPreview(group);
+        renderEditFieldPhotoList(group);
     }
 }
 
-// Remove a photo from a field in the edit job modal
-async function removeEditFieldPhoto(group) {
-    const key = group.dataset.photoKey;
+// Remove a photo item from a field in the edit job modal
+async function removeEditFieldPhoto(item) {
+    const group = item.closest('.edit-field-group');
+    const key = item.dataset.photoKey;
     if (key) {
         const thumbKey = key.replace(/\.(\w+)$/, '-thumb.jpg');
         for (const photoKey of [key, thumbKey]) {
@@ -5187,24 +5267,22 @@ async function removeEditFieldPhoto(group) {
             if (window.jobPhotoDisplayCache) delete window.jobPhotoDisplayCache[photoKey];
         }
     }
-    group.dataset.photoKey = '';
-    resetEditFieldPhotoPreview(group);
-    const removeBtn = group.querySelector('.edit-field-photo-remove');
-    if (removeBtn) removeBtn.style.display = 'none';
-    const browseBtn = group.querySelector('.edit-field-photo-browse');
-    if (browseBtn) browseBtn.textContent = 'Upload Photo';
-    const input = group.querySelector('.edit-field-photo-input');
-    if (input) input.value = '';
+    if (group) {
+        setGroupPhotoKeys(group, getGroupPhotoKeys(group).filter(k => k !== key));
+        renderEditFieldPhotoList(group);
+    }
 }
 
 // Load a field photo into the job detail modal
-async function loadJobFieldPhoto(index, key) {
-    const container = document.getElementById(`jobFieldPhoto_${index}`);
+async function loadJobFieldPhoto(index, photoIndex, key) {
+    const container = document.getElementById(`jobFieldPhoto_${index}_${photoIndex}`);
     if (!container) return;
     const url = await getJobPhotoDisplayUrl(key);
     if (!url) {
+        container.remove();
         const section = container.closest('.detail-field-photo');
-        if (section) section.remove();
+        const grid = section && section.querySelector('.detail-field-photo-grid');
+        if (grid && !grid.querySelector('.job-field-photo')) section.remove();
         return;
     }
     const safeKey = key.replace(/'/g, "\\'");
@@ -5349,7 +5427,8 @@ async function saveEditedJob() {
             chemicalRates: chemicalRates,
             chemicalRateUnits: chemicalRateUnits,
             optimalDate: document.getElementById(`edit_optimalDate_${index}`).value,
-            photoKey: group.dataset.photoKey || ''
+            photoKey: group.dataset.photoKey || '',
+            photoKeys: getGroupPhotoKeys(group)
         });
     });
     

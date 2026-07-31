@@ -19,7 +19,7 @@ export const handler = async (event) => {
 
         if (event.httpMethod === 'POST') {
             const body = JSON.parse(event.body || '{}');
-            const { jobId, fieldIndex, fileName, fileType, thumb } = body;
+            const { jobId, fieldIndex, fileName, fileType, thumb, photoIndex } = body;
 
             if (!jobId || fieldIndex === undefined || fieldIndex === null || !fileName || !fileType) {
                 return {
@@ -39,14 +39,16 @@ export const handler = async (event) => {
 
             const cleanJobId = String(jobId).replace(/[^a-zA-Z0-9-_]/g, '');
             const cleanFieldIndex = parseInt(fieldIndex, 10);
+            const cleanPhotoIndex = parseInt(photoIndex, 10) || 0;
+            const photoSuffix = cleanPhotoIndex > 0 ? `-${cleanPhotoIndex}` : '';
             let key;
             let contentType = fileType;
             if (thumb) {
-                key = `${PHOTOS_PREFIX}${cleanJobId}/field-${cleanFieldIndex}-thumb.jpg`;
+                key = `${PHOTOS_PREFIX}${cleanJobId}/field-${cleanFieldIndex}${photoSuffix}-thumb.jpg`;
                 contentType = 'image/jpeg';
             } else {
                 const ext = (fileName.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-                key = `${PHOTOS_PREFIX}${cleanJobId}/field-${cleanFieldIndex}.${ext}`;
+                key = `${PHOTOS_PREFIX}${cleanJobId}/field-${cleanFieldIndex}${photoSuffix}.${ext}`;
             }
 
             const putCommand = new PutObjectCommand({

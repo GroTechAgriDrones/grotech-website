@@ -2246,6 +2246,13 @@
     flex-wrap: wrap;
 }
 
+.edit-field-photo-list {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
 .edit-field-photo-preview {
     width: 160px;
     height: 110px;
@@ -2329,6 +2336,13 @@
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-wrap: wrap;
+}
+
+.detail-field-photo-grid {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
     flex-wrap: wrap;
 }
 
