@@ -4247,6 +4247,13 @@ async function viewJob(jobId) {
                             </span>
                         </div>
                     </div>
+                    ${field.photoKey ? `
+                    <div class="detail-field-photo">
+                        <label>Field Photo</label>
+                        <div class="job-field-photo" id="jobFieldPhoto_${index}">
+                            <div class="field-photo-loading">Loading photo...</div>
+                        </div>
+                    </div>` : ''}
                 </div>
             </div>
         `;
@@ -4304,6 +4311,22 @@ async function viewJob(jobId) {
                 ${fieldsHtml}
             </div>
             
+            ${job.startTime || job.stopTime ? `
+            <div class="detail-section">
+                <h4>Job Times</h4>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <label>Start</label>
+                        <span>${formatJobDateTime(job.startTime)}</span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Stop</label>
+                        <span>${formatJobDateTime(job.stopTime)}</span>
+                    </div>
+                </div>
+            </div>
+            ` : ''}
+            
             ${job.message ? `
             <div class="detail-section">
                 <h4>Additional Notes</h4>
@@ -4314,6 +4337,15 @@ async function viewJob(jobId) {
     `;
     
     document.getElementById('applicationDetailContent').innerHTML = content;
+    
+    // Load field photos into the detail modal
+    if (job.fields) {
+        job.fields.forEach((field, index) => {
+            if (field.photoKey) {
+                loadJobFieldPhoto(index, field.photoKey);
+            }
+        });
+    }
     
     // Modal footer is now empty - field status buttons are in field headers
     document.getElementById('modalFooter').innerHTML = '';
@@ -4555,6 +4587,19 @@ async function openEditJobModal(jobId) {
                             <label>Optimal Date</label>
                             <input type="text" id="edit_optimalDate_${index}" value="${field.optimalDate || ''}" placeholder="Click to select date" readonly onclick="openEditFieldCalendar(${index})">
                         </div>
+                        <div class="form-group field-photo-edit-group" style="grid-column: span 2;">
+                            <label>Field Photo</label>
+                            <div class="edit-field-photo-row">
+                                <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
+                                <div class="edit-field-photo-preview">
+                                    <span class="edit-field-photo-placeholder">No photo uploaded</span>
+                                </div>
+                                <div class="edit-field-photo-actions">
+                                    <button type="button" class="btn btn-secondary btn-sm edit-field-photo-browse">Upload Photo</button>
+                                    <button type="button" class="btn btn-danger btn-sm edit-field-photo-remove" style="display: none;">Remove</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
@@ -4635,6 +4680,26 @@ async function openEditJobModal(jobId) {
             </div>
             
             <div class="edit-section">
+                <h4>Job Times</h4>
+                <div class="edit-form-grid">
+                    <div class="form-group">
+                        <label>Start Time</label>
+                        <div class="job-time-picker">
+                            <input type="text" id="edit_startDate" class="job-time-input" value="${splitJobDateTime(job.startTime).date}" placeholder="Select date" readonly onclick="openJobTimeDatePicker('start')">
+                            <input type="text" id="edit_startTime" class="job-time-input" value="${splitJobDateTime(job.startTime).display}" placeholder="Select time" readonly onclick="openJobTimePicker('start')">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Stop Time</label>
+                        <div class="job-time-picker">
+                            <input type="text" id="edit_stopDate" class="job-time-input" value="${splitJobDateTime(job.stopTime).date}" placeholder="Select date" readonly onclick="openJobTimeDatePicker('stop')">
+                            <input type="text" id="edit_stopTime" class="job-time-input" value="${splitJobDateTime(job.stopTime).display}" placeholder="Select time" readonly onclick="openJobTimePicker('stop')">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="edit-section">
                 <h4>Additional Notes</h4>
                 <div class="form-group">
                     <textarea id="edit_message" rows="3">${job.message || ''}</textarea>
@@ -4655,6 +4720,56 @@ async function openEditJobModal(jobId) {
             window[`editChemicalRates_${index}`] = [...(field.chemicalRates || Array(chemCount).fill(''))];
             window[`editChemicalRateUnits_${index}`] = [...(field.chemicalRateUnits || Array(chemCount).fill('fl oz'))];
             initializeEditChemicals(job, index);
+        });
+    }
+    
+    // Initialize field photo state
+    document.querySelectorAll('#editFieldGroups .edit-field-group').forEach((group, index) => {
+        const existingKey = (job.fields[index] || {}).photoKey || '';
+        group.dataset.photoKey = existingKey;
+        if (existingKey) {
+            renderEditFieldPhotoPreview(group, existingKey);
+        }
+    });
+    
+    // Set up event delegation for field photo controls (once per modal shell)
+    const editContent = document.getElementById('editJobContent');
+    if (editContent && !editContent.dataset.photoDelegationBound) {
+        editContent.dataset.photoDelegationBound = 'true';
+        editContent.addEventListener('click', function(e) {
+            const browseBtn = e.target.closest('.edit-field-photo-browse');
+            if (browseBtn) {
+                const group = browseBtn.closest('.edit-field-group');
+                const input = group.querySelector('.edit-field-photo-input');
+                if (input) input.click();
+                return;
+            }
+            const removeBtn = e.target.closest('.edit-field-photo-remove');
+            if (removeBtn) {
+                const group = removeBtn.closest('.edit-field-group');
+                if (group) removeEditFieldPhoto(group);
+            }
+        });
+        editContent.addEventListener('change', function(e) {
+            if (e.target.classList.contains('edit-field-photo-input')) {
+                const group = e.target.closest('.edit-field-group');
+                if (group && e.target.files && e.target.files[0]) {
+                    uploadEditFieldPhoto(e.target.files[0], group);
+                }
+            }
+        });
+        editContent.addEventListener('dragover', function(e) {
+            if (e.target.closest('.edit-field-group')) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            }
+        });
+        editContent.addEventListener('drop', function(e) {
+            const group = e.target.closest('.edit-field-group');
+            if (group && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                e.preventDefault();
+                uploadEditFieldPhoto(e.dataTransfer.files[0], group);
+            }
         });
     }
 }
@@ -4735,6 +4850,19 @@ function addEditFieldGroup() {
                     <label>Optimal Date</label>
                     <input type="text" id="edit_optimalDate_${index}" value="" placeholder="Click to select date" readonly onclick="openEditFieldCalendar(${index})">
                 </div>
+                <div class="form-group field-photo-edit-group" style="grid-column: span 2;">
+                    <label>Field Photo</label>
+                    <div class="edit-field-photo-row">
+                        <input type="file" class="edit-field-photo-input" accept="image/*" style="display: none;">
+                        <div class="edit-field-photo-preview">
+                            <span class="edit-field-photo-placeholder">No photo uploaded</span>
+                        </div>
+                        <div class="edit-field-photo-actions">
+                            <button type="button" class="btn btn-secondary btn-sm edit-field-photo-browse">Upload Photo</button>
+                            <button type="button" class="btn btn-danger btn-sm edit-field-photo-remove" style="display: none;">Remove</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -4746,6 +4874,10 @@ function addEditFieldGroup() {
     window[`editSelectedChemicals_${index}`] = [];
     window[`editChemicalRates_${index}`] = [];
     window[`editChemicalRateUnits_${index}`] = [];
+
+    // Initialize photo state for this field
+    const newGroup = container.lastElementChild;
+    if (newGroup) newGroup.dataset.photoKey = '';
 
     // Scroll to the new field
     const newField = document.getElementById(`edit_fieldName_${index}`);
@@ -4803,6 +4935,282 @@ function removeEditFieldGroup(index) {
     });
 }
 
+// Get the current index of an edit field group based on DOM position
+function getEditFieldGroupIndex(group) {
+    return Array.from(document.querySelectorAll('#editFieldGroups .edit-field-group')).indexOf(group);
+}
+
+// Get presigned download URL for a field photo (cached, negative results too)
+async function getJobPhotoUrl(key) {
+    if (!key) return null;
+    if (!window.jobPhotoUrlCache) window.jobPhotoUrlCache = {};
+    if (key in window.jobPhotoUrlCache) return window.jobPhotoUrlCache[key];
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/job-photos?key=${encodeURIComponent(key)}`);
+        if (response.ok) {
+            const data = await response.json();
+            window.jobPhotoUrlCache[key] = data.downloadUrl;
+            return data.downloadUrl;
+        }
+    } catch (error) {
+        console.error('Error getting photo URL:', error);
+    }
+    window.jobPhotoUrlCache[key] = null;
+    return null;
+}
+
+// Get the URL for displaying a field photo: thumbnail with full-size fallback
+async function getJobPhotoDisplayUrl(photoKey) {
+    if (!photoKey) return null;
+    if (!window.jobPhotoDisplayCache) window.jobPhotoDisplayCache = {};
+    if (photoKey in window.jobPhotoDisplayCache) return window.jobPhotoDisplayCache[photoKey];
+    const thumbKey = photoKey.replace(/\.(\w+)$/, '-thumb.jpg');
+    const thumbUrl = await getJobPhotoUrl(thumbKey);
+    if (thumbUrl) {
+        window.jobPhotoDisplayCache[photoKey] = thumbUrl;
+        return thumbUrl;
+    }
+    const fullUrl = await getJobPhotoUrl(photoKey);
+    window.jobPhotoDisplayCache[photoKey] = fullUrl;
+    return fullUrl;
+}
+
+// Downscale an image file to a small JPEG thumbnail for fast display
+function generateThumbnail(file, maxSize = 600, quality = 0.7) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        const objectUrl = URL.createObjectURL(file);
+        img.onload = () => {
+            const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+            const w = Math.max(1, Math.round(img.width * scale));
+            const h = Math.max(1, Math.round(img.height * scale));
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob((blob) => {
+                URL.revokeObjectURL(objectUrl);
+                resolve(blob);
+            }, 'image/jpeg', quality);
+        };
+        img.onerror = () => {
+            URL.revokeObjectURL(objectUrl);
+            resolve(null);
+        };
+        img.src = objectUrl;
+    });
+}
+
+// Upload a small thumbnail alongside a field photo (best effort)
+async function uploadFieldPhotoThumb(file, photoKey, fieldIndex, jobId) {
+    const thumbBlob = await generateThumbnail(file);
+    if (!thumbBlob) return null;
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/job-photos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jobId: jobId,
+                fieldIndex: fieldIndex,
+                fileName: 'thumb.jpg',
+                fileType: 'image/jpeg',
+                thumb: true
+            })
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        const putResponse = await fetchWithTimeout(data.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'image/jpeg' },
+            body: thumbBlob
+        }, 60000);
+        if (!putResponse.ok) return null;
+        const thumbUrl = URL.createObjectURL(thumbBlob);
+        if (!window.jobPhotoUrlCache) window.jobPhotoUrlCache = {};
+        if (!window.jobPhotoDisplayCache) window.jobPhotoDisplayCache = {};
+        window.jobPhotoUrlCache[data.key] = thumbUrl;
+        window.jobPhotoDisplayCache[photoKey] = thumbUrl;
+        return thumbUrl;
+    } catch (error) {
+        console.error('Error uploading thumbnail:', error);
+        return null;
+    }
+}
+
+// Render photo preview in the edit job modal
+async function renderEditFieldPhotoPreview(group, key) {
+    const preview = group.querySelector('.edit-field-photo-preview');
+    const removeBtn = group.querySelector('.edit-field-photo-remove');
+    const browseBtn = group.querySelector('.edit-field-photo-browse');
+    if (!preview) return;
+    
+    const url = await getJobPhotoDisplayUrl(key);
+    if (group.dataset.photoKey !== key) return; // State changed while loading
+    if (url) {
+        preview.innerHTML = `<img src="${url}" alt="Field photo">`;
+    } else {
+        preview.innerHTML = '<span class="edit-field-photo-placeholder">Photo unavailable</span>';
+    }
+    if (removeBtn) removeBtn.style.display = '';
+    if (browseBtn) browseBtn.textContent = 'Replace Photo';
+}
+
+// Upload a photo for a field in the edit job modal
+async function uploadEditFieldPhoto(file, group) {
+    if (!file || !file.type.startsWith('image/')) {
+        alert('Please select an image file (JPG, PNG, etc.)');
+        return;
+    }
+    const fieldIndex = getEditFieldGroupIndex(group);
+    const jobId = currentApplicationId;
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/job-photos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                jobId: jobId,
+                fieldIndex: fieldIndex,
+                fileName: file.name,
+                fileType: file.type || 'image/jpeg'
+            })
+        });
+        if (!response.ok) {
+            alert('Error starting photo upload. Please try again.');
+            return;
+        }
+        const data = await response.json();
+        
+        const putResponse = await fetchWithTimeout(data.uploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type || 'image/jpeg' },
+            body: file
+        }, 60000);
+        if (!putResponse.ok) {
+            alert('Error uploading photo. Please try again.');
+            return;
+        }
+        
+        const thumbUrl = await uploadFieldPhotoThumb(file, data.key, fieldIndex, jobId);
+        
+        group.dataset.photoKey = data.key;
+        const preview = group.querySelector('.edit-field-photo-preview');
+        if (preview) preview.innerHTML = `<img src="${thumbUrl || URL.createObjectURL(file)}" alt="Field photo">`;
+        const removeBtn = group.querySelector('.edit-field-photo-remove');
+        if (removeBtn) removeBtn.style.display = '';
+        const browseBtn = group.querySelector('.edit-field-photo-browse');
+        if (browseBtn) browseBtn.textContent = 'Replace Photo';
+    } catch (error) {
+        console.error('Error uploading field photo:', error);
+        alert('Error uploading photo. Please try again.');
+    }
+}
+
+// Remove a photo from a field in the edit job modal
+async function removeEditFieldPhoto(group) {
+    const key = group.dataset.photoKey;
+    if (key) {
+        const thumbKey = key.replace(/\.(\w+)$/, '-thumb.jpg');
+        for (const photoKey of [key, thumbKey]) {
+            try {
+                await fetchWithTimeout(`${API_BASE_URL}/job-photos?key=${encodeURIComponent(photoKey)}`, {
+                    method: 'DELETE'
+                });
+            } catch (error) {
+                console.error('Error deleting field photo:', error);
+            }
+            if (window.jobPhotoUrlCache) {
+                delete window.jobPhotoUrlCache[photoKey];
+                delete window.jobPhotoUrlCache[thumbKey];
+            }
+            if (window.jobPhotoDisplayCache) delete window.jobPhotoDisplayCache[photoKey];
+        }
+    }
+    group.dataset.photoKey = '';
+    const preview = group.querySelector('.edit-field-photo-preview');
+    if (preview) preview.innerHTML = '<span class="edit-field-photo-placeholder">No photo uploaded</span>';
+    const removeBtn = group.querySelector('.edit-field-photo-remove');
+    if (removeBtn) removeBtn.style.display = 'none';
+    const browseBtn = group.querySelector('.edit-field-photo-browse');
+    if (browseBtn) browseBtn.textContent = 'Upload Photo';
+    const input = group.querySelector('.edit-field-photo-input');
+    if (input) input.value = '';
+}
+
+// Load a field photo into the job detail modal
+async function loadJobFieldPhoto(index, key) {
+    const container = document.getElementById(`jobFieldPhoto_${index}`);
+    if (!container) return;
+    const url = await getJobPhotoDisplayUrl(key);
+    if (!url) {
+        container.innerHTML = '<span class="field-photo-unavailable">Photo unavailable</span>';
+        return;
+    }
+    const safeKey = key.replace(/'/g, "\\'");
+    container.innerHTML = `
+        <div class="job-field-photo-menu">
+            <img src="${url}" alt="Field photo" class="job-field-photo-img" loading="lazy" onclick="toggleJobFieldPhotoMenu(this)" title="Click for options">
+            <div class="job-field-photo-dropdown">
+                <button class="job-field-photo-menu-item" onclick="viewJobFieldPhoto('${safeKey}'); closeAllJobFieldPhotoMenus()">View</button>
+                <button class="job-field-photo-menu-item" onclick="downloadJobFieldPhoto('${safeKey}'); closeAllJobFieldPhotoMenus()">Download</button>
+            </div>
+        </div>`;
+}
+
+// Toggle the photo options dropdown (job detail modal)
+function toggleJobFieldPhotoMenu(img) {
+    const menu = img.closest('.job-field-photo-menu');
+    if (!menu) return;
+    const wasOpen = menu.classList.contains('open');
+    closeAllJobFieldPhotoMenus();
+    if (!wasOpen) menu.classList.add('open');
+}
+
+// Close all photo option dropdowns (job detail modal)
+function closeAllJobFieldPhotoMenus() {
+    document.querySelectorAll('.job-field-photo-menu.open').forEach(menu => {
+        menu.classList.remove('open');
+    });
+}
+
+// Close photo option dropdowns when clicking elsewhere
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.job-field-photo-menu')) {
+        closeAllJobFieldPhotoMenus();
+    }
+});
+
+// Open a field photo in a new tab (job detail modal)
+async function viewJobFieldPhoto(key) {
+    const url = await getJobPhotoUrl(key);
+    if (url) window.open(url, '_blank');
+}
+
+// Download a field photo (job detail modal)
+async function downloadJobFieldPhoto(key) {
+    const url = await getJobPhotoUrl(key);
+    if (!url) return;
+    const parts = key.split('/');
+    const filename = parts.length > 2 ? parts[1] + '-' + parts[2] : parts[parts.length - 1];
+    try {
+        const response = await fetchWithTimeout(url, {}, 60000);
+        if (!response.ok) {
+            console.error('Error downloading photo:', response.status);
+            return;
+        }
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } catch (error) {
+        console.error('Error downloading field photo:', error);
+    }
+}
+
 // Close edit job modal
 function closeEditJobModal() {
     document.getElementById('editJobModal').classList.remove('active');
@@ -4838,8 +5246,15 @@ async function saveEditedJob() {
         state: document.getElementById('edit_state').value,
         zip: document.getElementById('edit_zip').value,
         message: document.getElementById('edit_message').value,
+        startTime: combineJobDateTime(document.getElementById('edit_startDate').value, document.getElementById('edit_startTime').value),
+        stopTime: combineJobDateTime(document.getElementById('edit_stopDate').value, document.getElementById('edit_stopTime').value),
         fields: []
     };
+    
+    if (updatedJob.startTime && updatedJob.stopTime && updatedJob.stopTime < updatedJob.startTime) {
+        alert('Stop time must be after start time.');
+        return;
+    }
     
     // Update fields — iterate DOM field groups (includes dynamically added fields)
     const fieldGroups = document.querySelectorAll('#editFieldGroups .edit-field-group');
@@ -4856,7 +5271,8 @@ async function saveEditedJob() {
             chemicals: chemicals,
             chemicalRates: chemicalRates,
             chemicalRateUnits: chemicalRateUnits,
-            optimalDate: document.getElementById(`edit_optimalDate_${index}`).value
+            optimalDate: document.getElementById(`edit_optimalDate_${index}`).value,
+            photoKey: group.dataset.photoKey || ''
         });
     });
     
@@ -5155,6 +5571,157 @@ function openEditFieldCalendar(fieldIndex) {
         document.getElementById(`edit_optimalDate_${fieldIndex}`).value = dateStr;
     });
 }
+
+// Split stored job time "2026-07-31T08:30" into date + display time for the edit modal
+function splitJobDateTime(iso) {
+    if (!iso) return { date: '', display: '' };
+    const parts = iso.split('T');
+    if (parts.length !== 2) return { date: '', display: '' };
+    const timeParts = parts[1].split(':');
+    if (timeParts.length < 2) return { date: parts[0], display: '' };
+    let hours = parseInt(timeParts[0], 10);
+    if (isNaN(hours)) return { date: parts[0], display: '' };
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    return { date: parts[0], display: `${hours}:${timeParts[1]} ${ampm}` };
+}
+
+// Combine date + display time into "2026-07-31T08:30" for storage
+function combineJobDateTime(dateStr, timeDisplay) {
+    if (!dateStr || !timeDisplay) return '';
+    const m = timeDisplay.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!m) return '';
+    let hours = parseInt(m[1], 10);
+    if (m[3].toUpperCase() === 'PM' && hours !== 12) hours += 12;
+    if (m[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
+    return `${dateStr}T${String(hours).padStart(2, '0')}:${m[2]}`;
+}
+
+// Format stored job time for display in the detail modal
+function formatJobDateTime(iso) {
+    if (!iso) return 'Not set';
+    const parts = iso.split('T');
+    if (parts.length !== 2) return iso;
+    const dateParts = parts[0].split('-');
+    const timeParts = parts[1].split(':');
+    if (dateParts.length !== 3 || timeParts.length < 2) return iso;
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const month = monthNames[parseInt(dateParts[1], 10) - 1] || dateParts[1];
+    let hours = parseInt(timeParts[0], 10);
+    if (isNaN(hours)) return iso;
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    if (hours === 0) hours = 12;
+    return `${month} ${parseInt(dateParts[2], 10)}, ${dateParts[0]} ${hours}:${timeParts[1]} ${ampm}`;
+}
+
+// Date picking for job start/stop times (reuses the existing calendar modal)
+let jobTimeDateTarget = null;
+function openJobTimeDatePicker(target) {
+    jobTimeDateTarget = target;
+    openFieldCalendar(function(dateStr) {
+        const input = document.getElementById(jobTimeDateTarget === 'stop' ? 'edit_stopDate' : 'edit_startDate');
+        if (input) input.value = dateStr;
+    }, true);
+}
+
+// Custom click-only time picker popover for job start/stop times
+let jobTimePickerTarget = null;
+let jobTimePickerInitialized = false;
+
+function openJobTimePicker(target) {
+    const input = document.getElementById(`edit_${target}Time`);
+    if (!input) return;
+    const popover = document.getElementById('jobTimePicker');
+    if (popover && popover.classList.contains('active') && jobTimePickerTarget === target) {
+        closeJobTimePicker();
+        return;
+    }
+    jobTimePickerTarget = target;
+    buildJobTimePicker();
+    const popoverEl = document.getElementById('jobTimePicker');
+    const rect = input.getBoundingClientRect();
+    popoverEl.style.top = (rect.bottom + 4) + 'px';
+    popoverEl.style.left = Math.max(8, rect.left) + 'px';
+    const current = input.value;
+    const m = current.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    let hours = 9;
+    let minutes = '00';
+    let ampm = 'AM';
+    if (m) {
+        hours = parseInt(m[1], 10);
+        minutes = m[2];
+        ampm = m[3].toUpperCase();
+    }
+    document.getElementById('jobTimeHour').value = hours;
+    document.getElementById('jobTimeMinute').value = minutes;
+    document.getElementById('jobTimeAmpm').value = ampm;
+    popoverEl.classList.add('active');
+}
+
+function buildJobTimePicker() {
+    if (jobTimePickerInitialized) return;
+    jobTimePickerInitialized = true;
+    const popover = document.createElement('div');
+    popover.id = 'jobTimePicker';
+    popover.className = 'job-time-popover';
+    const hours = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(h => `<option value="${h}">${h}</option>`).join('');
+    const minutes = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55']
+        .map(m => `<option value="${m}">${m}</option>`).join('');
+    popover.innerHTML = `
+        <div class="job-time-row">
+            <select id="jobTimeHour">${hours}</select>
+            <span class="job-time-colon">:</span>
+            <select id="jobTimeMinute">${minutes}</select>
+            <select id="jobTimeAmpm">
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+            </select>
+        </div>
+        <div class="job-time-actions">
+            <button type="button" class="btn btn-sm btn-secondary" onclick="clearJobTime()">Clear</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="commitJobTime()">Done</button>
+        </div>
+    `;
+    document.body.appendChild(popover);
+    ['jobTimeHour', 'jobTimeMinute', 'jobTimeAmpm'].forEach(id => {
+        document.getElementById(id).addEventListener('change', updateJobTimePreview);
+    });
+}
+
+function updateJobTimePreview() {
+    const hours = document.getElementById('jobTimeHour').value;
+    const minutes = document.getElementById('jobTimeMinute').value;
+    const ampm = document.getElementById('jobTimeAmpm').value;
+    const input = jobTimePickerTarget ? document.getElementById(`edit_${jobTimePickerTarget}Time`) : null;
+    if (input) input.value = `${hours}:${minutes} ${ampm}`;
+}
+
+function commitJobTime() {
+    updateJobTimePreview();
+    closeJobTimePicker();
+}
+
+function clearJobTime() {
+    const input = jobTimePickerTarget ? document.getElementById(`edit_${jobTimePickerTarget}Time`) : null;
+    if (input) input.value = '';
+    closeJobTimePicker();
+}
+
+function closeJobTimePicker() {
+    const popover = document.getElementById('jobTimePicker');
+    if (popover) popover.classList.remove('active');
+    jobTimePickerTarget = null;
+}
+
+// Close the time picker when clicking elsewhere
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.job-time-popover')) return;
+    const targetId = e.target.id || '';
+    if (targetId === 'edit_startTime' || targetId === 'edit_stopTime') return;
+    closeJobTimePicker();
+});
 
 // Open map for field location in edit modal / new app modal
 let editFieldMapIndex = null;
@@ -5493,9 +6060,11 @@ function selectDate(dateStr) {
 
 let fieldCalendarCallback = null;
 let fieldCalendarDate = new Date();
+let fieldCalendarAllowPast = false;
 
-function openFieldCalendar(callback) {
+function openFieldCalendar(callback, allowPast) {
     fieldCalendarCallback = callback;
+    fieldCalendarAllowPast = !!allowPast;
     fieldCalendarDate = new Date();
     let modal = document.getElementById('fieldCalendarModal');
     if (!modal) {
@@ -5555,9 +6124,10 @@ function renderFieldCalendar() {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
         const isPast = new Date(year, month, day) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const blocked = isPast && !fieldCalendarAllowPast;
         html += `
-            <div class="calendar-day ${isToday ? 'today' : ''} ${isPast ? 'past' : ''}"
-                 onclick="${!isPast ? `selectFieldDate('${dateStr}')` : ''}">
+            <div class="calendar-day ${isToday ? 'today' : ''} ${blocked ? 'past' : ''}"
+                 onclick="${!blocked ? `selectFieldDate('${dateStr}')` : ''}">
                 ${day}
             </div>
         `;
