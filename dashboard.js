@@ -2335,6 +2335,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
         // Init FAA report page
         if (pageKey === 'faareport') {
             setTimeout(() => {
+                fetchJobs();
                 initFaaReportPage();
             }, 100);
         }
@@ -2512,6 +2513,110 @@ function processFaaImport(file) {
     reader.readAsArrayBuffer(file);
 }
 
+function parseFaaDate(value) {
+    if (value instanceof Date) {
+        return isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value === 'number' && value > 20000 && value < 90000) {
+        // Excel serial date (days since 1899-12-30)
+        var d = new Date(Math.round((value - 25569) * 86400 * 1000));
+        return isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof value === 'string') {
+        var s = value.trim();
+        var m = s.match(/^\s*(\d{4}[-/]\d{1,2}[-/]\d{1,2}[ T]\d{1,2}:\d{2}(?::\d{2})?)/);
+        var first = m ? m[1] : s;
+        var dt = new Date(first.replace(/\//g, '-'));
+        if (isNaN(dt.getTime())) {
+            dt = new Date(s);
+        }
+        return isNaN(dt.getTime()) ? null : dt;
+    }
+    return null;
+}
+
+function buildFaaJobCandidates() {
+    var cands = [];
+    (jobs || []).forEach(function(job) {
+        (job.fields || []).forEach(function(field, fi) {
+            if (!field || !field.fieldLocation) return;
+            var m = parseFieldCoords(field.fieldLocation);
+            if (!m) return;
+            var lat = parseFloat(m[1]);
+            var lng = parseFloat(m[2]);
+            if (isNaN(lat) || isNaN(lng)) return;
+            var dateKeys = {};
+            faaAddDateKey(dateKeys, job.scheduledDate);
+            if (job.fieldCompletionDates && job.fieldCompletionDates[fi]) {
+                faaAddDateKey(dateKeys, job.fieldCompletionDates[fi]);
+            }
+            var timeSlots = (job.timeSlots && job.timeSlots.length) ? job.timeSlots : [];
+            if (!timeSlots.length && (job.startTime || job.stopTime)) {
+                timeSlots = [{ start: job.startTime, stop: job.stopTime }];
+            }
+            cands.push({ job: job, field: field, lat: lat, lng: lng, dateKeys: dateKeys, timeSlots: timeSlots });
+        });
+    });
+    return cands;
+}
+
+function faaAddDateKey(set, val) {
+    if (!val) return;
+    var s = String(val).slice(0, 10);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) set[s] = true;
+}
+
+function faaTimeToMinutes(t) {
+    if (t === null || t === undefined || t === '') return null;
+    var m = String(t).match(/(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+}
+
+var FAA_STOPWORDS = {};
+['township','county','united','states','usa','road','highway','route','way','street','st','avenue','ave','and','the','of','for'].forEach(function(w) { FAA_STOPWORDS[w] = true; });
+
+function faaNormTokens(str) {
+    if (!str) return [];
+    var s = String(str).toLowerCase()
+        .replace(/\bIllinois\b/g, 'il')
+        .replace(/[^a-z0-9]+/g, ' ');
+    return s.split(/\s+/).filter(function(t) {
+        return t.length >= 2 && !FAA_STOPWORDS[t];
+    });
+}
+
+function faaTextOverlap(locStr, candStr) {
+    var lt = faaNormTokens(locStr);
+    var ct = faaNormTokens(candStr);
+    if (!lt.length || !ct.length) return 0;
+    var ctSet = {};
+    ct.forEach(function(t) { ctSet[t] = true; });
+    var hits = 0;
+    lt.forEach(function(t) { if (ctSet[t]) hits++; });
+    return hits / lt.length;
+}
+
+function scoreFaaCandidate(cand, group) {
+    var dateHits = 0, timeHits = 0;
+    group.rows.forEach(function(r) {
+        if (r.dateKey && cand.dateKeys[r.dateKey]) dateHits++;
+        if (r.timeKey !== null && r.timeKey !== undefined && cand.timeSlots.length) {
+            for (var i = 0; i < cand.timeSlots.length; i++) {
+                var st = faaTimeToMinutes(cand.timeSlots[i].start);
+                var en = faaTimeToMinutes(cand.timeSlots[i].stop);
+                if (st !== null && en !== null && r.timeKey >= st && r.timeKey <= en) { timeHits++; break; }
+            }
+        }
+    });
+    var n = group.rows.length || 1;
+    var dateScore = dateHits / n;
+    var timeScore = timeHits / n;
+    var candText = [cand.job.address, cand.job.city, cand.job.state, cand.job.zip, cand.field.fieldName].filter(Boolean).join(' ');
+    var textScore = faaTextOverlap(group.location, candText);
+    return { score: 3 * dateScore + 2 * timeScore + textScore, dateScore: dateScore, timeScore: timeScore, textScore: textScore };
+}
+
 function autoFillFaaReport(rows) {
     const keys = Object.keys(rows[0]);
     const keyLower = {};
@@ -2527,31 +2632,52 @@ function autoFillFaaReport(rows) {
         return null;
     }
 
-    const flightTimeCol = getCol('flighttime') || getCol('flight time');
+    let flightTimeCol = null;
+    var dateColNames = ['flighttime', 'flight time', 'flightdate', 'flight date', 'starttime', 'start time', 'startdatetime', 'start datetime', 'datetime', 'date time', 'date', 'timestamp', 'time', 'logdate', 'log date'];
+    for (var di = 0; di < dateColNames.length; di++) {
+        flightTimeCol = getCol(dateColNames[di]);
+        if (flightTimeCol) break;
+    }
     const locationCol = getCol('location');
     const aircraftCol = getCol('aircraftname') || getCol('aircraft name') || getCol('aircraft');
     const durationCol = getCol('flightduration') || getCol('flight duration') || getCol('duration');
 
-    // Group by aircraft x location
+    // Build index of job fields with GPS coordinates for cross-referencing
+    var faaCandidates = buildFaaJobCandidates();
+
+    // Pass 1: group rows by DJI location, capturing flight date/time for matching
     var breakdown = {};
     var locations = {};
     var aircraftSet = {};
     var totalMinutes = 0;
     var hasDateInfo = false;
     var latestDate = null;
+    var locGroups = {};
 
     rows.forEach(function(row) {
         var ac = aircraftCol ? String(row[aircraftCol] || '').trim() : 'Unknown';
         var loc = locationCol ? String(row[locationCol] || '').trim() : 'Unknown';
+        if (!loc) loc = 'Unknown';
         var bk = ac + '||' + loc;
         if (!breakdown[bk]) breakdown[bk] = { aircraft: ac, location: loc, flights: 0, totalMinutes: 0 };
         breakdown[bk].flights++;
         if (ac) aircraftSet[ac] = true;
 
-        if (locationCol && row[locationCol]) {
-            var l = String(row[locationCol]).trim();
-            if (l) locations[l] = (locations[l] || 0) + 1;
+        var flightDateKey = null;
+        var flightTimeKey = null;
+        if (flightTimeCol && row[flightTimeCol]) {
+            var dt = parseFaaDate(row[flightTimeCol]);
+            if (dt) {
+                hasDateInfo = true;
+                if (!latestDate || dt > latestDate) latestDate = dt;
+                flightDateKey = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+                flightTimeKey = dt.getHours() * 60 + dt.getMinutes();
+            }
         }
+
+        if (!locGroups[loc]) locGroups[loc] = { location: loc, rows: [], flights: 0, totalMinutes: 0 };
+        locGroups[loc].rows.push({ dateKey: flightDateKey, timeKey: flightTimeKey });
+        locGroups[loc].flights++;
 
         if (durationCol) {
             var dur = row[durationCol];
@@ -2562,16 +2688,9 @@ function autoFillFaaReport(rows) {
                     mins = parseInt(parts[0]) + Math.round(parseInt(parts[1]) / 60 * 100) / 100;
                 } else { mins = parseFloat(dur) || 0; }
             } else if (typeof dur === 'number') { mins = dur; }
+            locGroups[loc].totalMinutes += mins;
             breakdown[bk].totalMinutes += mins;
             totalMinutes += mins;
-        }
-
-        if (flightTimeCol && row[flightTimeCol]) {
-            var dt = new Date(row[flightTimeCol]);
-            if (!isNaN(dt.getTime())) {
-                hasDateInfo = true;
-                if (!latestDate || dt > latestDate) latestDate = dt;
-            }
         }
     });
 
@@ -2583,11 +2702,56 @@ function autoFillFaaReport(rows) {
         setFaaField('faaReportMonth', monthNames[latestDate.getMonth()] + ' ' + latestDate.getFullYear(), true);
     } else {
         var now = new Date();
-        setFaaField('faaReportMonth', monthNames[now.getMonth()] + ' ' + now.getFullYear(), true);
+        var prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        setFaaField('faaReportMonth', monthNames[prev.getMonth()] + ' ' + prev.getFullYear(), true);
     }
 
     // Certificate
     setFaaField('faaProponentName', 'GroTech AgriDrones LLC', true);
+
+    // Pass 2: cross-reference each imported location against job fields to get
+    // accurate field GPS coordinates; the imported DJI location name is kept
+    var resolvedLoc = {};
+    Object.keys(locGroups).forEach(function(locKey) {
+        var g = locGroups[locKey];
+        var best = null;
+        faaCandidates.forEach(function(cand) {
+            var s = scoreFaaCandidate(cand, g);
+            if (!best || s.score > best.s.score) best = { cand: cand, s: s };
+        });
+        if (best && (best.s.dateScore >= 0.34 || (best.s.dateScore > 0 && best.s.timeScore > 0) || best.s.textScore >= 0.6)) {
+            resolvedLoc[locKey] = {
+                matched: true,
+                key: locKey,
+                name: locKey,
+                lat: best.cand.lat,
+                lng: best.cand.lng
+            };
+        } else {
+            resolvedLoc[locKey] = { matched: false, key: locKey, name: locKey, lat: '', lng: '' };
+        }
+    });
+
+    // Rebuild breakdown and locations using resolved keys (matched locations get
+    // field-precise coordinates while keeping the imported DJI location name)
+    var locMeta = {};
+    Object.keys(locGroups).forEach(function(locKey) {
+        var g = locGroups[locKey];
+        var r = resolvedLoc[locKey];
+        if (!locMeta[r.key]) locMeta[r.key] = r;
+        locations[r.key] = (locations[r.key] || 0) + g.flights;
+    });
+    var rebuilt = {};
+    Object.keys(breakdown).forEach(function(bk) {
+        var entry = breakdown[bk];
+        var r = resolvedLoc[entry.location] || { key: entry.location, name: entry.location, matched: false, lat: '', lng: '' };
+        var newKey = entry.aircraft + '||' + r.key;
+        if (!rebuilt[newKey]) rebuilt[newKey] = { aircraft: entry.aircraft, location: r.name, flights: 0, totalMinutes: 0 };
+        rebuilt[newKey].flights += entry.flights;
+        rebuilt[newKey].totalMinutes += entry.totalMinutes;
+    });
+    breakdown = rebuilt;
+    var locKeys = Object.keys(locations);
 
     // Determine model and registration per aircraft
     function getModelInfo(acName) {
@@ -2634,11 +2798,13 @@ function autoFillFaaReport(rows) {
     // Locations table
     var locBody = document.getElementById('faaLocationsTableBody');
     locBody.innerHTML = '';
-    var locKeys = Object.keys(locations);
     if (locKeys.length === 0) {
         locBody.innerHTML = '<tr class="faa-detail-empty"><td colspan="5">No locations detected.</td></tr>';
     } else {
-        locKeys.forEach(function(loc) { addFaaLocationRow(loc, '', '', locations[loc]); });
+        locKeys.forEach(function(key) {
+            var meta = locMeta[key] || { name: key, lat: '', lng: '' };
+            addFaaLocationRow(meta.name, String(meta.lat), String(meta.lng), locations[key]);
+        });
     }
 
     // Totals
