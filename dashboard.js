@@ -5322,10 +5322,29 @@ async function uploadEditFieldPhoto(file, group, targetKey) {
         const keys = getGroupPhotoKeys(group);
         if (isNew) {
             keys.push(data.key);
+        } else {
+            const idx = keys.indexOf(targetKey);
+            if (idx !== -1) {
+                keys[idx] = data.key;
+            } else {
+                keys.push(data.key);
+            }
         }
         setGroupPhotoKeys(group, keys);
         renderEditFieldPhotoList(group);
         closeAllJobFieldPhotoMenus();
+        if (!isNew && data.key !== targetKey) {
+            const oldThumbKey = targetKey.replace(/\.(\w+)$/, '-thumb.jpg');
+            for (const oldKey of [targetKey, oldThumbKey]) {
+                try {
+                    await fetchWithTimeout(`${API_BASE_URL}/job-photos?key=${encodeURIComponent(oldKey)}`, {
+                        method: 'DELETE'
+                    });
+                } catch (error) {
+                    console.error('Error deleting replaced field photo:', error);
+                }
+            }
+        }
     } catch (error) {
         console.error('Error uploading field photo:', error);
         alert('Error uploading photo. Please try again.');
