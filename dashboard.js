@@ -5471,14 +5471,23 @@ function closeEditJobModal() {
     document.getElementById('editJobModal').classList.remove('active');
 }
 
+// Track whether a press started inside modal content, so dragging out and releasing
+// on the backdrop doesn't close the modal (clicks that begin outside still close it)
+let modalPressInside = false;
+function recordModalPress(e) {
+    modalPressInside = !!(e.target && e.target.closest && e.target.closest('.modal-content, .calendar-modal-content'));
+}
+document.addEventListener('mousedown', recordModalPress, true);
+document.addEventListener('touchstart', recordModalPress, true);
+
 // Close modals when clicking outside content area
 document.addEventListener('click', function(e) {
     const appModal = document.getElementById('applicationDetailModal');
-    if (appModal && appModal.classList.contains('active') && e.target === appModal) {
+    if (appModal && appModal.classList.contains('active') && e.target === appModal && !modalPressInside) {
         closeApplicationModal();
     }
     const editModal = document.getElementById('editJobModal');
-    if (editModal && editModal.classList.contains('active') && e.target === editModal) {
+    if (editModal && editModal.classList.contains('active') && e.target === editModal && !modalPressInside) {
         closeEditJobModal();
     }
 });
@@ -6742,7 +6751,7 @@ function closeFarmProfileModal() {
 
 document.addEventListener('click', function(e) {
     const modal = document.getElementById('farmProfileModal');
-    if (modal && modal.classList.contains('active') && e.target === modal) {
+    if (modal && modal.classList.contains('active') && e.target === modal && !modalPressInside) {
         closeFarmProfileModal();
     }
 });
@@ -9018,14 +9027,14 @@ document.addEventListener('click', function(e) {
 
 // Close new app modal on overlay click
 document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('modal-overlay') && e.target.id === 'newApplicationModal') {
+    if (e.target.classList.contains('modal-overlay') && e.target.id === 'newApplicationModal' && !modalPressInside) {
         closeNewApplicationModal();
     }
 });
 
 // Close field calendar on overlay click
 document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('calendar-modal') && e.target.id === 'fieldCalendarModal') {
+    if (e.target.classList.contains('calendar-modal') && e.target.id === 'fieldCalendarModal' && !modalPressInside) {
         closeFieldCalendar();
     }
 });
