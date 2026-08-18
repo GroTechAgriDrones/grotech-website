@@ -48,11 +48,29 @@ export const handler = async (event) => {
             throw err;
         }
 
+        // Conflict detection: if the client reports the version it loaded (_baseUpdatedAt)
+        // and it differs from the stored version, the job was changed on another device.
+        // Reject the write so stale data can't overwrite newer changes.
+        const baseUpdatedAt = updateData._baseUpdatedAt;
+        delete updateData._baseUpdatedAt;
+        if (jobData.updatedAt && baseUpdatedAt !== jobData.updatedAt) {
+            return {
+                statusCode: 409,
+                headers,
+                body: JSON.stringify({
+                    error: 'Job was changed on another device',
+                    job: jobData,
+                    updatedAt: jobData.updatedAt
+                })
+            };
+        }
+
         // Update the job data
         const updatedJob = {
             ...jobData,
             ...updateData,
-            id: jobId // Ensure ID doesn't change
+            id: jobId, // Ensure ID doesn't change
+            updatedAt: new Date().toISOString()
         };
 
         // Save updated job

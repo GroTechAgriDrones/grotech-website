@@ -4095,7 +4095,11 @@ let jobs = [];
 const ACRES_BASELINE = 3694;
 
 // Fetch jobs from S3 jobs/ folder
+let jobsFetching = false;
+
 async function fetchJobs() {
+    if (jobsFetching) return;
+    jobsFetching = true;
     const cached = getCache('jobs');
     if (cached) {
         jobs = cached;
@@ -4131,8 +4135,24 @@ async function fetchJobs() {
             const tbody = document.getElementById('jobsTableBody');
             if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#ef4444;">Error loading jobs. Check your connection and try again.</td></tr>';
         }
+    } finally {
+        jobsFetching = false;
     }
 }
+
+// Keep data fresh when the tab regains focus, so a long-open tab doesn't
+// overwrite changes made on another device
+let lastJobsRefresh = 0;
+function refreshJobsOnFocus() {
+    const now = Date.now();
+    if (now - lastJobsRefresh < 5000) return;
+    lastJobsRefresh = now;
+    fetchJobs();
+}
+window.addEventListener('focus', refreshJobsOnFocus);
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') refreshJobsOnFocus();
+});
 
 // Update job schedule (stored in jobs/ folder)
 async function updateJobSchedule(jobId, scheduledDate) {
@@ -4142,22 +4162,13 @@ async function updateJobSchedule(jobId, scheduledDate) {
     }
     
     try {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                scheduledDate: scheduledDate,
-                jobStatus: scheduledDate ? 'scheduled' : 'pending'
-            })
+        const saved = await saveJobPatch(jobId, {
+            scheduledDate: scheduledDate,
+            jobStatus: scheduledDate ? 'scheduled' : 'pending'
         });
         
-        const result = await response.json();
-        
-        if (response.ok) {
-            clearCache('jobs');
-            await fetchJobs();
-        } else {
-            alert('Error: ' + (result.error || 'Failed to update schedule'));
+        if (!saved) {
+            alert('Error: Failed to update schedule');
         }
     } catch (error) {
         console.error('Error updating job:', error);
@@ -4172,16 +4183,7 @@ async function updateJobStatus(jobId, status) {
     }
     
     try {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ jobStatus: status })
-        });
-        
-        if (response.ok) {
-            clearCache('jobs');
-            await fetchJobs();
-        }
+        await saveJobPatch(jobId, { jobStatus: status });
     } catch (error) {
         console.error('Error updating job status:', error);
     }
@@ -4490,12 +4492,8 @@ async function saveChemicalRates() {
     });
 
     try {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fields: job.fields })
-        });
-        if (!response.ok) {
+        const saved = await saveJobPatch(jobId, { fields: job.fields });
+        if (!saved) {
             console.error('Failed to save chemical rates');
         }
     } catch (error) {
@@ -4520,6 +4518,47 @@ function calculateJobStatus(jobStatus, fieldStatus, scheduledDate) {
 }
 
 // Toggle field status between not_complete and complete
+// Save a partial job update with conflict detection. Returns true on success.
+// If the job was changed on another device since this page loaded its data,
+// the server returns 409 and we reload instead of overwriting the newer data.
+async function saveJobPatch(jobId, patch) {
+    const job = jobs.find(j => j.id === jobId);
+    try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ...patch,
+                _baseUpdatedAt: job ? (job.updatedAt || null) : null
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            if (data.job) {
+                const local = jobs.find(j => j.id === jobId);
+                if (local) Object.assign(local, data.job);
+            }
+            clearCache('jobs');
+            fetchJobs();
+            return true;
+        }
+        
+        if (response.status === 409) {
+            alert('This job was changed on another device. The latest data has been loaded - please try your change again.');
+            clearCache('jobs');
+            fetchJobs();
+            return false;
+        }
+        
+        console.error('Failed to update job:', response.status);
+        return false;
+    } catch (error) {
+        console.error('Error updating job:', error);
+        return false;
+    }
+}
+
 async function toggleFieldStatus(jobId, fieldIndex) {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return;
@@ -4564,31 +4603,15 @@ async function toggleFieldStatus(jobId, fieldIndex) {
     // Optimistically update the DOM immediately
     await viewJob(jobId);
     
-    try {
-        // Update job via API
-        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                fieldStatus: job.fieldStatus,
-                fieldCompletionDates: job.fieldCompletionDates,
-                jobStatus: newJobStatus
-            })
-        });
-        
-        if (response.ok) {
-            clearCache('jobs');
-            fetchJobs();
-        } else {
-            console.error('Failed to update field status');
-            // Revert the change
-            job.fieldStatus[fieldIndex] = currentStatus;
-            job.fieldCompletionDates[fieldIndex] = null;
-            job.jobStatus = previousJobStatus;
-            await viewJob(jobId);
-        }
-    } catch (error) {
-        console.error('Error updating field status:', error);
+    // Update job via API (with conflict detection)
+    const saved = await saveJobPatch(jobId, {
+        fieldStatus: job.fieldStatus,
+        fieldCompletionDates: job.fieldCompletionDates,
+        jobStatus: newJobStatus
+    });
+    
+    if (!saved) {
+        console.error('Failed to update field status');
         // Revert the change
         job.fieldStatus[fieldIndex] = currentStatus;
         job.fieldCompletionDates[fieldIndex] = null;
@@ -5548,18 +5571,12 @@ async function saveEditedJob() {
     });
     
     try {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/jobs/${jobId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(updatedJob)
-        });
+        const saved = await saveJobPatch(jobId, updatedJob);
         
-        if (response.ok) {
+        if (saved) {
             // Update local data
             Object.assign(job, updatedJob);
             closeEditJobModal();
-            clearCache('jobs');
-            fetchJobs();
         } else {
             alert('Error saving job. Please try again.');
         }
