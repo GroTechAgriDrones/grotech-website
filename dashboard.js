@@ -3077,6 +3077,66 @@ function initFaaFieldMap() {
     faaFieldMapInit = true;
 }
 
+// Search for a location on the FAA field map (mirrors searchFieldMapLocation)
+function searchFaaFieldMapLocation() {
+    const input = document.getElementById('faaMapSearchInput');
+    const query = input.value.trim();
+    if (!query) return;
+
+    const map = faaFieldMap;
+    if (!map) return;
+
+    // Check if input is GPS coordinates (lat,lng)
+    const coordMatch = query.match(/^\s*([+-]?\d+\.?\d*)\s*,\s*([+-]?\d+\.?\d*)\s*$/);
+    if (coordMatch) {
+        const lat = parseFloat(coordMatch[1]);
+        const lng = parseFloat(coordMatch[2]);
+        if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+            map.setView([lat, lng], 15);
+            if (faaFieldMarker) map.removeLayer(faaFieldMarker);
+            faaFieldMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
+            if (faaActiveLocRow) {
+                const inputs = faaActiveLocRow.querySelectorAll('td input');
+                inputs[1].value = lat.toFixed(6);
+                inputs[2].value = lng.toFixed(6);
+            }
+            return;
+        }
+    }
+
+    // Geocode via Nominatim (Illinois-focused)
+    const locLower = query.toLowerCase();
+    const suffix = (locLower.includes('illinois') || locLower.includes('united states') || locLower.includes('usa')) ? '' : ', Illinois, USA';
+    const url = 'https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query + suffix) + '&format=json&limit=1';
+
+    fetch(url)
+        .then(function(r) {
+            if (!r.ok) throw new Error('Geocode request failed');
+            return r.json();
+        })
+        .then(function(data) {
+            if (data && data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                map.setView([lat, lng], 15);
+                if (faaFieldMarker) map.removeLayer(faaFieldMarker);
+                faaFieldMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
+                if (faaActiveLocRow) {
+                    const inputs = faaActiveLocRow.querySelectorAll('td input');
+                    // Populate city input with found location name
+                    inputs[0].value = data[0].display_name;
+                    inputs[1].value = lat.toFixed(6);
+                    inputs[2].value = lng.toFixed(6);
+                }
+            } else {
+                alert('Location not found. Try a different search term.');
+            }
+        })
+        .catch(function() {
+            alert('Failed to search for location. Please try again.');
+        });
+}
+
 function getFaaFieldCoordinates() {
     if (!faaFieldMarker) {
         alert('Please click on the map to place a pin first.');

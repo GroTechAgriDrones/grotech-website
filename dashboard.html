@@ -212,6 +212,10 @@
                 <button class="map-close-btn" onclick="closeFaaFieldMapModal()">&times;</button>
             </div>
             <div class="map-modal-body">
+                <div class="map-search-bar">
+                    <input type="text" id="faaMapSearchInput" placeholder="Search address, town, intersection, or GPS coordinates..." onkeydown="if(event.key==='Enter')searchFaaFieldMapLocation()" />
+                    <button onclick="searchFaaFieldMapLocation()">Search</button>
+                </div>
                 <div id="faaFieldMapView"></div>
             </div>
             <div class="map-modal-footer">
