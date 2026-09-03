@@ -1,0 +1,7 @@
+credentials.json
+*.pem
+.env
+.env.*
+*.key
+*.p12
+*.pfx
